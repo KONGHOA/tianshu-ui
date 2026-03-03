@@ -6,41 +6,17 @@ export const themeSettings: App.Theme.ThemeSetting = {
   recommendColor: false,
   themeColor: '#0E42D2',
   themeRadius: 6,
-  otherColor: {
-    info: '#0E42D2',
-    success: '#009A29',
-    warning: '#D25F00',
-    error: '#CB2634'
-  },
+  otherColor: { info: '#0E42D2', success: '#009A29', warning: '#D25F00', error: '#CB2634' },
   isInfoFollowPrimary: true,
-  layout: {
-    mode: 'vertical',
-    scrollMode: 'content'
-  },
-  page: {
-    animate: true,
-    animateMode: 'fade-slide'
-  },
+  layout: { mode: 'vertical', scrollMode: 'content' },
+  page: { animate: true, animateMode: 'fade-slide' },
   header: {
     height: 56,
-    breadcrumb: {
-      visible: true,
-      showIcon: true
-    },
-    multilingual: {
-      visible: true
-    },
-    globalSearch: {
-      visible: true
-    }
+    breadcrumb: { visible: true, showIcon: true },
+    multilingual: { visible: false },
+    globalSearch: { visible: false }
   },
-  tab: {
-    visible: true,
-    cache: true,
-    height: 44,
-    mode: 'chrome',
-    closeTabByMiddleClick: true
-  },
+  tab: { visible: true, cache: true, height: 44, mode: 'chrome', closeTabByMiddleClick: true },
   fixedHeaderAndTab: true,
   sider: {
     inverted: false,
@@ -51,27 +27,15 @@ export const themeSettings: App.Theme.ThemeSetting = {
     mixChildMenuWidth: 200,
     autoSelectFirstMenu: false
   },
-  footer: {
-    visible: true,
-    fixed: false,
-    height: 48,
-    right: true
-  },
+  footer: { visible: false, fixed: false, height: 48, right: true },
   watermark: {
-    visible: import.meta.env.VITE_WATERMARK === 'Y',
-    text: 'RuoYi-Plus-Soybean',
+    visible: true,
+    text: '禁止以任何形式拍照或录像\n',
     enableUserName: true,
-    enableTime: false,
+    enableTime: true,
     timeFormat: 'YYYY-MM-DD HH:mm'
   },
-  table: {
-    bordered: true,
-    bottomBordered: true,
-    singleColumn: false,
-    singleLine: true,
-    size: 'small',
-    striped: false
-  },
+  table: { bordered: true, bottomBordered: true, singleColumn: false, singleLine: true, size: 'small', striped: false },
   tokens: {
     light: {
       colors: {
@@ -86,13 +50,7 @@ export const themeSettings: App.Theme.ThemeSetting = {
         tab: '0 1px 2px rgb(0, 21, 41, 0.08)'
       }
     },
-    dark: {
-      colors: {
-        container: 'rgb(28, 28, 28)',
-        layout: 'rgb(18, 18, 18)',
-        'base-text': 'rgb(224, 224, 224)'
-      }
-    }
+    dark: { colors: { container: 'rgb(28, 28, 28)', layout: 'rgb(18, 18, 18)', 'base-text': 'rgb(224, 224, 224)' } }
   }
 };
 
