@@ -31,6 +31,12 @@ declare module "@elegant-router/types" {
     "home": "/home";
     "iframe-page": "/iframe-page/:url";
     "login": "/login/:module(pwd-login|code-login|register|reset-pwd|bind-wechat)?";
+    "metadata": "/metadata";
+    "metadata_catalog": "/metadata/catalog";
+    "metadata_datasource": "/metadata/datasource";
+    "metadata_schema-change": "/metadata/schema-change";
+    "metadata_tag": "/metadata/tag";
+    "metadata_tag-category": "/metadata/tag-category";
     "monitor": "/monitor";
     "monitor_cache": "/monitor/cache";
     "monitor_logininfor": "/monitor/logininfor";
@@ -97,6 +103,7 @@ declare module "@elegant-router/types" {
     | "home"
     | "iframe-page"
     | "login"
+    | "metadata"
     | "monitor"
     | "social-callback"
     | "system"
@@ -130,6 +137,11 @@ declare module "@elegant-router/types" {
     | "demo_demo"
     | "demo_tree"
     | "home"
+    | "metadata_catalog"
+    | "metadata_datasource"
+    | "metadata_schema-change"
+    | "metadata_tag-category"
+    | "metadata_tag"
     | "monitor_cache"
     | "monitor_logininfor"
     | "monitor_online"

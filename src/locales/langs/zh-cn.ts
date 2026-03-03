@@ -1,6 +1,6 @@
 const local: App.I18n.Schema = {
   system: {
-    title: 'RuoYi Plus Soybean',
+    title: '天枢大数据治理平台',
     updateTitle: '系统版本更新通知',
     updateContent: '检测到系统有新版本发布，是否立即刷新页面？',
     updateConfirm: '立即刷新',
@@ -297,6 +297,12 @@ const local: App.I18n.Schema = {
     exception_500: '500',
     tool: '系统工具',
     tool_gen: '代码生成',
+    metadata: '元数据管理',
+    metadata_datasource: '数据源管理',
+    metadata_catalog: '目录浏览',
+    metadata_tag: '标签管理',
+    'metadata_tag-category': '标签分类管理',
+    'metadata_schema-change': 'Schema变更记录',
     about: '关于'
   },
   menu: {

@@ -1,6 +1,6 @@
 const local: App.I18n.Schema = {
   system: {
-    title: 'RuoYi Plus Soybean',
+    title: '天枢大数据治理平台',
     updateTitle: 'System Version Update Notification',
     updateContent: 'A new version of the system has been detected. Do you want to refresh the page immediately?',
     updateConfirm: 'Refresh immediately',
@@ -301,6 +301,12 @@ const local: App.I18n.Schema = {
     exception_500: '500',
     tool: 'System Tools',
     tool_gen: 'Code Generation',
+    metadata: 'Metadata',
+    metadata_datasource: 'Datasource',
+    metadata_catalog: 'Catalog Browser',
+    metadata_tag: 'Tag Management',
+    'metadata_tag-category': 'Tag Category Management',
+    'metadata_schema-change': 'Schema Change History',
     about: 'About'
   },
   menu: {

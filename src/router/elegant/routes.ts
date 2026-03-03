@@ -116,6 +116,62 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'metadata',
+    path: '/metadata',
+    component: 'layout.base',
+    meta: {
+      title: 'metadata',
+      i18nKey: 'route.metadata'
+    },
+    children: [
+      {
+        name: 'metadata_catalog',
+        path: '/metadata/catalog',
+        component: 'view.metadata_catalog',
+        meta: {
+          title: 'metadata_catalog',
+          i18nKey: 'route.metadata_catalog'
+        }
+      },
+      {
+        name: 'metadata_datasource',
+        path: '/metadata/datasource',
+        component: 'view.metadata_datasource',
+        meta: {
+          title: 'metadata_datasource',
+          i18nKey: 'route.metadata_datasource'
+        }
+      },
+      {
+        name: 'metadata_schema-change',
+        path: '/metadata/schema-change',
+        component: 'view.metadata_schema-change',
+        meta: {
+          title: 'metadata_schema-change',
+          i18nKey: 'route.metadata_schema-change'
+        }
+      },
+      {
+        name: 'metadata_tag',
+        path: '/metadata/tag',
+        component: 'view.metadata_tag',
+        meta: {
+          title: 'metadata_tag',
+          i18nKey: 'route.metadata_tag'
+        }
+      },
+      {
+        name: 'metadata_tag-category',
+        path: '/metadata/tag-category',
+        component: 'view.metadata_tag-category',
+        meta: {
+          title: 'metadata_tag-category',
+          i18nKey: 'route.metadata_tag-category'
+        }
+      }
+    ]
+  },
+  {
     name: 'monitor',
     path: '/monitor',
     component: 'layout.base',
