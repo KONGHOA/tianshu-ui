@@ -11,6 +11,7 @@ defineOptions({
 });
 
 interface Props {
+  categoryTree?: any[];
   /** the type of operation */
   operateType: NaiveUI.TableOperateType;
   /** the edit row data */
@@ -158,6 +159,17 @@ watch(visible, () => {
       >
         <NFormItem label="数据源名称" path="datasourceName">
           <NInput v-model:value="model.datasourceName" placeholder="请输入数据源名称" />
+        </NFormItem>
+        <NFormItem label="所属分类" path="categoryId">
+          <NTreeSelect
+            v-model:value="model.categoryId"
+            :options="categoryTree"
+            key-field="id"
+            label-field="name"
+            children-field="children"
+            :default-value="0"
+            placeholder="请选择所属分类"
+          />
         </NFormItem>
         <NFormItem label="数据源类型" path="datasourceType">
           <NSelect

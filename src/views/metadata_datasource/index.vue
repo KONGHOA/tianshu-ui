@@ -1,187 +1,252 @@
 <script setup lang="tsx">
-import { ref } from 'vue';
-import { NCard, NDataTable } from 'naive-ui';
+import { computed, h, onMounted, ref } from 'vue';
+import {
+  NButton,
+  NCard,
+  NDropdown,
+  NEmpty,
+  NGrid,
+  NGridItem,
+  NIcon,
+  NInput,
+  NPagination,
+  NSpace,
+  NTag,
+  NTree
+} from 'naive-ui';
+import type { TreeOption } from 'naive-ui';
 import {
   fetchBatchDeleteDatasource,
   fetchGetDatasourceList,
+  fetchGetDatasourceStats,
   fetchRefreshDatasource,
   fetchTestConnectionById
 } from '@/service/api/metadata/datasource';
-import { useAppStore } from '@/store/modules/app';
+import { fetchDeleteCategory, fetchGetCategoryTree } from '@/service/api/metadata/datasourceCategory';
 import { useAuth } from '@/hooks/business/auth';
-import { useDownload } from '@/hooks/business/download';
 import { defaultTransform, useNaivePaginatedTable, useTableOperate } from '@/hooks/common/table';
 import { useDict } from '@/hooks/business/dict';
-import DictTag from '@/components/custom/dict-tag.vue';
-import { $t } from '@/locales';
-import ButtonIcon from '@/components/custom/button-icon.vue';
-import TableHeaderOperation from '@/components/advanced/table-header-operation.vue';
-import DatasourceOperateDrawer from './modules/datasource-operate-drawer.vue';
-import DatasourceSearch from './modules/datasource-search.vue';
+import SvgIcon from '@/components/custom/svg-icon.vue';
+import DatasourceOperateDrawer from './modules/DatasourceOperateDrawer.vue';
+import CategoryOperateDrawer from './modules/CategoryOperateDrawer.vue';
 
 defineOptions({
   name: 'MetadataDatasourceList'
 });
 
 useDict('sys_normal_disable');
-const appStore = useAppStore();
-const { download } = useDownload();
 const { hasAuth } = useAuth();
 
 const searchParams = ref<Api.Metadata.DatasourceSearchParams>({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 20,
   datasourceName: null,
   datasourceType: null,
   status: null,
+  categoryId: null,
   params: {}
 });
 
-const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination, scrollX } =
-  useNaivePaginatedTable({
-    api: () => fetchGetDatasourceList(searchParams.value),
-    transform: response => defaultTransform(response),
-    onPaginationParamsChange: params => {
-      searchParams.value.pageNum = params.page;
-      searchParams.value.pageSize = params.pageSize;
-    },
-    columns: () => [
-      {
-        type: 'selection',
-        align: 'center',
-        width: 48
-      },
-      {
-        key: 'index',
-        title: $t('common.index'),
-        align: 'center',
-        width: 64,
-        render: (_, index) => index + 1
-      },
-      {
-        key: 'datasourceName',
-        title: '数据源名称',
-        align: 'center',
-        minWidth: 160
-      },
-      {
-        key: 'datasourceType',
-        title: '数据源类型',
-        align: 'center',
-        minWidth: 120
-      },
-      {
-        key: 'status',
-        title: '状态',
-        align: 'center',
-        minWidth: 120,
-        render(row) {
-          return <DictTag size="small" value={row.status} dictCode="sys_normal_disable" />;
-        }
-      },
-      {
-        key: 'createTime',
-        title: '创建时间',
-        align: 'center',
-        minWidth: 120,
-        ellipsis: {
-          tooltip: true
-        }
-      },
-      {
-        key: 'operate',
-        title: $t('common.operate'),
-        align: 'center',
-        width: 200,
-        render: row => {
-          const testBtn = () => {
-            if (!hasAuth('metadata:datasource:query')) {
-              return null;
-            }
-            return (
-              <ButtonIcon
-                type="info"
-                text
-                icon="mdi:connection"
-                tooltipContent="测试连接"
-                onClick={() => handleTestConnection(row.datasourceId!)}
-              />
-            );
-          };
+const { data, getData, mobilePagination } = useNaivePaginatedTable({
+  api: () => fetchGetDatasourceList(searchParams.value),
+  transform: response => defaultTransform(response),
+  onPaginationParamsChange: params => {
+    searchParams.value.pageNum = params.page;
+    searchParams.value.pageSize = params.pageSize;
+  },
+  columns: () => [] // 卡片视图不再需要 columns
+});
 
-          const refreshBtn = () => {
-            if (!hasAuth('metadata:datasource:query')) {
-              return null;
-            }
-            return (
-              <ButtonIcon
-                type="primary"
-                text
-                icon="mdi:refresh"
-                tooltipContent="刷新元数据"
-                popconfirmContent="确认要刷新元数据吗？"
-                onPositiveClick={() => handleRefresh(row.datasourceId!)}
-              />
-            );
-          };
+const { drawerVisible, operateType, editingData, handleAdd, handleEdit, onDeleted } = useTableOperate(
+  data,
+  'datasourceId',
+  getData
+);
 
-          const editBtn = () => {
-            if (!hasAuth('metadata:datasource:edit')) {
-              return null;
-            }
-            return (
-              <ButtonIcon
-                type="primary"
-                text
-                icon="material-symbols:drive-file-rename-outline-outline"
-                tooltipContent={$t('common.edit')}
-                onClick={() => edit(row.datasourceId!)}
-              />
-            );
-          };
+// ==== 分类管理逻辑 ====
+const catDrawerVisible = ref(false);
+const catOperateType = ref<NaiveUI.TableOperateType>('add');
+const catEditingData = ref<any>(null);
 
-          const deleteBtn = () => {
-            if (!hasAuth('metadata:datasource:remove')) {
-              return null;
-            }
-            return (
-              <ButtonIcon
-                text
-                type="error"
-                icon="material-symbols:delete-outline"
-                tooltipContent={$t('common.delete')}
-                popconfirmContent={$t('common.confirmDelete')}
-                onPositiveClick={() => handleDelete(row.datasourceId!)}
-              />
-            );
-          };
+function handleCategoryAdd() {
+  catOperateType.value = 'add';
+  catEditingData.value = { parentId: 0 };
+  catDrawerVisible.value = true;
+}
 
-          return (
-            <div class="flex-center gap-8px">
-              {testBtn()}
-              {refreshBtn()}
-              {editBtn()}
-              {deleteBtn()}
-            </div>
-          );
-        }
+function handleCategoryAddChild(option: TreeOption) {
+  catOperateType.value = 'add';
+  catEditingData.value = { parentId: option.id };
+  catDrawerVisible.value = true;
+}
+
+function handleCategoryEdit(option: TreeOption) {
+  catOperateType.value = 'edit';
+  catEditingData.value = {
+    categoryId: option.id,
+    parentId: option.parentId,
+    categoryName: option.name,
+    orderNum: option.weight || 0
+  };
+  catDrawerVisible.value = true;
+}
+
+async function handleCategoryDelete(option: TreeOption) {
+  window.$dialog?.warning({
+    title: '确认删除',
+    content: `是否确认删除分类 "${option.name}"？`,
+    positiveText: '确认',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      const { error } = await fetchDeleteCategory(option.id as number);
+      if (!error) {
+        window.$message?.success('删除成功');
+        getCategoryTree();
       }
-    ]
+    }
   });
+}
 
-const { drawerVisible, operateType, editingData, handleAdd, handleEdit, checkedRowKeys, onBatchDeleted, onDeleted } =
-  useTableOperate(data, 'datasourceId', getData);
+const getCategoryDropdownOptions = () => {
+  const options = [] as any[];
+  if (hasAuth('metadata:datasourceCategory:add')) {
+    options.push({ label: '添加子分类', key: 'addChild' });
+  }
+  if (hasAuth('metadata:datasourceCategory:edit')) {
+    options.push({ label: '编辑', key: 'edit' });
+  }
+  if (hasAuth('metadata:datasourceCategory:remove')) {
+    options.push({ label: '删除', key: 'delete' });
+  }
+  return options;
+};
 
-async function handleBatchDelete() {
-  const { error } = await fetchBatchDeleteDatasource(checkedRowKeys.value);
-  if (error) return;
-  onBatchDeleted();
+function handleCategoryDropdownSelect(key: string, option: TreeOption) {
+  if (key === 'addChild') handleCategoryAddChild(option);
+  else if (key === 'edit') handleCategoryEdit(option);
+  else if (key === 'delete') handleCategoryDelete(option);
+}
+
+const renderCategoryPrefix = () => {
+  return h(SvgIcon, { icon: 'mdi:folder-outline', class: 'text-16px text-amber-500' });
+};
+
+const renderCategorySuffix = ({ option }: { option: TreeOption }) => {
+  const options = getCategoryDropdownOptions();
+  if (options.length === 0 || option.id === 0) return null;
+
+  return h(
+    NDropdown,
+    {
+      options,
+      trigger: 'click',
+      onSelect: (key: string) => handleCategoryDropdownSelect(key, option)
+    },
+    {
+      default: () =>
+        h(
+          NButton,
+          {
+            text: true,
+            size: 'tiny',
+            class: 'ml-2 text-gray-400 hover:text-blue-500',
+            onClick: (e: Event) => e.stopPropagation()
+          },
+          { default: () => h(NIcon, { size: 16 }, { default: () => h('span', { class: 'i-mdi-dots-vertical' }) }) }
+        )
+    }
+  );
+};
+// ====================
+
+const categoryTreeData = ref<any[]>([{ id: 0, name: '全部数据源', children: [] }]);
+const categoryKeyword = ref('');
+const selectedCategoryKeys = ref<Array<number>>([0]);
+
+function filterTree(list: any[], keyword: string): any[] {
+  if (!keyword.trim()) return list;
+  const pattern = keyword.trim().toLowerCase();
+  return list
+    .map(node => {
+      const children = node.children ? filterTree(node.children, keyword) : [];
+      const matched = String(node.name || '')
+        .toLowerCase()
+        .includes(pattern);
+      if (matched || children.length) {
+        return { ...node, children };
+      }
+      return null;
+    })
+    .filter(Boolean) as any[];
+}
+
+const filteredCategoryTreeData = computed(() => filterTree(categoryTreeData.value, categoryKeyword.value));
+const selectedCategoryName = computed(() => {
+  const selectedId = selectedCategoryKeys.value[0];
+  if (selectedId === undefined || selectedId === 0) return '全部数据源';
+  const findNode = (nodes: any[]): string => {
+    for (const node of nodes) {
+      if (node.id === selectedId) return node.name;
+      if (node.children?.length) {
+        const result = findNode(node.children);
+        if (result) return result;
+      }
+    }
+    return '';
+  };
+  return findNode(categoryTreeData.value) || '全部数据源';
+});
+
+async function getCategoryTree() {
+  const { data: treeData, error } = await fetchGetCategoryTree();
+  if (error) {
+    categoryTreeData.value = [{ id: 0, name: '全部数据源', children: [] }];
+    window.$message?.error('获取分类失败，请检查分类权限或接口状态');
+    return;
+  }
+  categoryTreeData.value = [{ id: 0, name: '全部数据源', children: treeData || [] }];
+}
+
+function handleCategorySelect(keys: Array<number>) {
+  const selected = keys[0] ?? 0;
+  selectedCategoryKeys.value = [selected];
+  searchParams.value.categoryId = selected === 0 ? null : selected;
+  searchParams.value.pageNum = 1;
+  getData();
+}
+
+function handleSearch() {
+  searchParams.value.pageNum = 1;
+  getData();
+}
+
+function handleResetFilters() {
+  searchParams.value.datasourceName = null;
+  searchParams.value.categoryId = null;
+  searchParams.value.pageNum = 1;
+  selectedCategoryKeys.value = [0];
+  getData();
+}
+
+function handleReloadAll() {
+  getCategoryTree();
+  loadStats();
+  getData();
 }
 
 async function handleDelete(datasourceId: CommonType.IdType) {
-  const { error } = await fetchBatchDeleteDatasource([datasourceId]);
-  if (error) return;
-  onDeleted();
+  window.$dialog?.warning({
+    title: '确认删除',
+    content: '是否确认删除该数据源？删除后不可恢复。',
+    positiveText: '确认',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      const { error } = await fetchBatchDeleteDatasource([datasourceId]);
+      if (error) return;
+      onDeleted();
+      loadStats();
+    }
+  });
 }
 
 async function handleTestConnection(datasourceId: CommonType.IdType) {
@@ -196,79 +261,428 @@ async function handleRefresh(datasourceId: CommonType.IdType) {
   if (!error) {
     window.$message?.success('刷新成功');
     getData();
+    loadStats();
   }
+}
+
+function handleDatasourceSubmitted() {
+  getData();
+  loadStats();
 }
 
 async function edit(datasourceId: CommonType.IdType) {
   handleEdit(datasourceId);
 }
 
-function handleExport() {
-  download('/metadata/datasource/export', searchParams.value, `数据源信息_${new Date().getTime()}.xlsx`);
+// 顶部数据统计
+const statsData = ref<Api.Metadata.DatasourceStats>({
+  totalCount: 0,
+  typeCount: 0,
+  activeCount: 0,
+  inactiveCount: 0
+});
+
+async function loadStats() {
+  const { data: stats, error } = await fetchGetDatasourceStats();
+  if (!error && stats) {
+    statsData.value = stats;
+  }
 }
+
+const statCards = computed(() => [
+  {
+    label: '数据源总量',
+    value: statsData.value.totalCount,
+    icon: 'i-mdi-database',
+    bg: 'bg-blue-50 dark:bg-blue-900/20',
+    color: 'text-blue-500 dark:text-blue-400',
+    border: 'border-t-blue-500',
+    unit: '个',
+    subText: '全部数据源'
+  },
+  {
+    label: '接入类型',
+    value: statsData.value.typeCount,
+    icon: 'i-mdi-shape-outline',
+    bg: 'bg-orange-50 dark:bg-orange-900/20',
+    color: 'text-orange-500 dark:text-orange-400',
+    border: 'border-t-orange-500',
+    unit: '种',
+    subText: '类型数量'
+  },
+  {
+    label: '运行中',
+    value: statsData.value.activeCount,
+    icon: 'i-mdi-check-circle-outline',
+    bg: 'bg-green-50 dark:bg-green-900/20',
+    color: 'text-green-500 dark:text-green-400',
+    border: 'border-t-green-500',
+    unit: '个',
+    subText: statsData.value.totalCount
+      ? `占比 ${Math.round((statsData.value.activeCount / statsData.value.totalCount) * 100)}%`
+      : '占比 0%'
+  },
+  {
+    label: '已停用',
+    value: statsData.value.inactiveCount,
+    icon: 'i-mdi-pause-circle-outline',
+    bg: 'bg-red-50 dark:bg-red-900/20',
+    color: 'text-red-500 dark:text-red-400',
+    border: 'border-t-red-500',
+    unit: '个',
+    subText: statsData.value.totalCount
+      ? `占比 ${Math.round((statsData.value.inactiveCount / statsData.value.totalCount) * 100)}%`
+      : '占比 0%'
+  }
+]);
+
+function getTagType(type: string) {
+  if (type === 'hive') return 'info';
+  if (type === 'vertica') return 'success';
+  if (type === 'mysql') return 'warning';
+  return 'default';
+}
+
+function getStatusMeta(status?: string) {
+  if (status === '0') {
+    return {
+      text: '正常',
+      dot: 'bg-green-500',
+      textColor: 'text-green-600 dark:text-green-400'
+    };
+  }
+  return {
+    text: '停用',
+    dot: 'bg-red-500',
+    textColor: 'text-red-600 dark:text-red-400'
+  };
+}
+
+onMounted(() => {
+  getCategoryTree();
+  loadStats();
+  getData();
+});
 </script>
 
 <template>
-  <div class="h-full flex-col-stretch gap-12px overflow-hidden lt-sm:overflow-auto">
-    <DatasourceSearch v-model:model="searchParams" @reset="getDataByPage" @search="getDataByPage" />
-    <NCard title="数据源列表" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
+  <div class="h-full flex-col-stretch gap-20px bg-[#f2f3f5] p-20px dark:bg-transparent">
+    <!-- Top Stats -->
+    <NGrid :x-gap="16" :y-gap="16" :cols="4" responsive="screen">
+      <NGridItem v-for="stat in statCards" :key="stat.label">
+        <div
+          class="group relative flex items-center gap-14px overflow-hidden border border-t-2 border-gray-200 rounded-10px bg-white px-16px py-12px shadow-sm transition-all dark:border-gray-800 dark:bg-[#18181c] hover:shadow-md hover:-translate-y-0.5"
+          :class="stat.border"
+        >
+          <div
+            class="absolute opacity-8 transition-transform -right-6px -top-6px group-hover:scale-110"
+            :class="stat.color"
+          >
+            <NIcon size="64"><div :class="stat.icon" /></NIcon>
+          </div>
+          <div class="relative z-10 h-36px w-36px flex-center flex-shrink-0 rounded-8px" :class="[stat.bg, stat.color]">
+            <NIcon size="20"><div :class="stat.icon" /></NIcon>
+          </div>
+          <div class="relative z-10 flex flex-col gap-2px">
+            <span class="text-12px text-gray-400 font-medium leading-tight dark:text-gray-500">{{ stat.label }}</span>
+            <div class="flex items-baseline gap-4px">
+              <span class="text-22px text-gray-800 font-bold leading-none tracking-tight dark:text-gray-100">
+                {{ stat.value }}
+              </span>
+              <span class="text-11px text-gray-400">{{ stat.unit }}</span>
+            </div>
+            <span class="mt-3px text-11px text-gray-400">{{ stat.subText }}</span>
+          </div>
+        </div>
+      </NGridItem>
+    </NGrid>
+
+    <TableSiderLayout sider-title="数据源分类">
       <template #header-extra>
-        <TableHeaderOperation
-          v-model:columns="columnChecks"
-          :disabled-delete="checkedRowKeys.length === 0"
-          :loading="loading"
-          :show-add="hasAuth('metadata:datasource:add')"
-          :show-delete="hasAuth('metadata:datasource:remove')"
-          :show-export="hasAuth('metadata:datasource:export')"
-          @add="handleAdd"
-          @delete="handleBatchDelete"
-          @export="handleExport"
-          @refresh="getData"
-        />
+        <NButton
+          v-if="hasAuth('metadata:datasourceCategory:add')"
+          size="small"
+          text
+          class="h-18px"
+          @click.stop="handleCategoryAdd"
+        >
+          <template #icon>
+            <icon-mdi-plus />
+          </template>
+        </NButton>
       </template>
-      <NDataTable
-        v-model:checked-row-keys="checkedRowKeys"
-        :columns="columns"
-        :data="data"
-        size="small"
-        :flex-height="!appStore.isMobile"
-        :scroll-x="scrollX"
-        :loading="loading"
-        remote
-        :row-key="row => row.datasourceId"
-        :pagination="mobilePagination"
-        class="sm:h-full"
-      />
-      <DatasourceOperateDrawer
-        v-model:visible="drawerVisible"
-        :operate-type="operateType"
-        :row-data="editingData"
-        @submitted="getData"
-      />
-    </NCard>
+      <template #sider>
+        <NInput v-model:value="categoryKeyword" clearable size="small" placeholder="搜索分类" class="mb-10px">
+          <template #prefix>
+            <icon-mdi-magnify class="text-gray-400" />
+          </template>
+        </NInput>
+        <NTree
+          v-model:selected-keys="selectedCategoryKeys"
+          block-line
+          expand-on-click
+          default-expand-all
+          :data="filteredCategoryTreeData"
+          key-field="id"
+          label-field="name"
+          children-field="children"
+          :render-suffix="renderCategorySuffix"
+          :render-prefix="renderCategoryPrefix"
+          class="datasource-tree min-h-200px"
+          style="height: calc(100% - 44px)"
+          @update:selected-keys="handleCategorySelect"
+        >
+          <template #empty>
+            <NEmpty description="暂无分类" size="small" class="h-full min-h-200px justify-center" />
+          </template>
+        </NTree>
+      </template>
+      <div class="h-full flex-col-stretch gap-12px overflow-hidden lt-sm:overflow-auto">
+        <NCard
+          :bordered="false"
+          size="small"
+          class="card-wrapper sm:flex-1-hidden"
+          content-class="p-20px flex-col h-full"
+        >
+          <div class="mb-20px flex-y-center justify-between">
+            <div class="flex items-center gap-16px">
+              <NInput
+                v-model:value="searchParams.datasourceName"
+                placeholder="搜索数据源名称..."
+                class="w-280px"
+                round
+                clearable
+                @keyup.enter="handleSearch"
+              >
+                <template #prefix>
+                  <icon-mdi-magnify class="text-gray-400" />
+                </template>
+              </NInput>
+              <NButton type="primary" ghost @click="handleSearch">
+                <template #icon><icon-mdi-magnify /></template>
+                搜索
+              </NButton>
+              <NButton ghost @click="handleResetFilters">
+                <template #icon><icon-mdi-filter-off-outline /></template>
+                重置
+              </NButton>
+            </div>
+            <div class="flex items-center gap-12px">
+              <NButton quaternary circle @click="handleReloadAll">
+                <template #icon><icon-mdi-refresh /></template>
+              </NButton>
+              <NButton v-if="hasAuth('metadata:datasource:add')" type="primary" class="px-16px" @click="handleAdd">
+                <template #icon><icon-mdi-plus /></template>
+                新建数据源
+              </NButton>
+              <div class="h-24px w-1px bg-gray-200 dark:bg-gray-700"></div>
+              <NSpace :size="0" class="overflow-hidden border border-gray-200 rounded-md dark:border-gray-700">
+                <NButton ghost class="border-0 bg-gray-50 text-primary dark:bg-gray-800 px-10px!" :focusable="false">
+                  <icon-mdi-view-grid class="text-18px" />
+                </NButton>
+                <NButton
+                  ghost
+                  class="border-0 border-l border-gray-200 text-gray-400 dark:border-gray-700 px-10px! hover:text-primary"
+                  :focusable="false"
+                >
+                  <icon-mdi-format-list-bulleted class="text-18px" />
+                </NButton>
+              </NSpace>
+            </div>
+          </div>
+
+          <div class="mb-14px flex-y-center justify-between rounded-8px bg-gray-50 px-12px py-8px dark:bg-[#202024]">
+            <div class="flex items-center gap-8px text-12px text-gray-600 dark:text-gray-300">
+              <span class="i-mdi-folder-outline text-14px" />
+              当前分类：
+              <span class="text-gray-900 font-medium dark:text-gray-100">{{ selectedCategoryName }}</span>
+            </div>
+            <div class="text-12px text-gray-500">共 {{ mobilePagination.itemCount || 0 }} 条</div>
+          </div>
+
+          <div class="flex-1 pr-12px">
+            <NGrid v-if="data.length" :x-gap="16" :y-gap="16" :cols="12" responsive="screen" item-responsive>
+              <NGridItem v-for="item in data" :key="item.datasourceId" span="12 m:6 l:4 xl:4 2xl:3">
+                <div
+                  class="group h-full flex flex-col overflow-hidden border border-gray-200 rounded-12px bg-white transition-all dark:border-gray-800 hover:border-primary/50 dark:bg-[#18181c] hover:shadow-lg hover:-translate-y-1"
+                >
+                  <!-- Card Header -->
+                  <div
+                    class="flex items-center justify-between border-b border-gray-100 p-12px dark:border-gray-800/60"
+                  >
+                    <div class="max-w-[calc(100%-70px)] flex items-center gap-10px">
+                      <div class="h-32px w-32px flex-center flex-shrink-0 rounded-6px bg-gray-50 dark:bg-gray-800">
+                        <NIcon v-if="item.datasourceType === 'mysql'" size="20" class="text-gray-500">
+                          <icon-mdi-database-search />
+                        </NIcon>
+                        <NIcon v-else-if="item.datasourceType === 'hive'" size="20" class="text-gray-500">
+                          <icon-mdi-bee />
+                        </NIcon>
+                        <NIcon v-else-if="item.datasourceType === 'vertica'" size="20" class="text-gray-500">
+                          <icon-mdi-grid />
+                        </NIcon>
+                        <NIcon v-else size="20" class="text-gray-500"><icon-mdi-database /></NIcon>
+                      </div>
+                      <div class="flex flex-col overflow-hidden">
+                        <span
+                          class="truncate text-15px text-gray-800 font-bold dark:text-gray-100"
+                          :title="item.datasourceName"
+                        >
+                          {{ item.datasourceName }}
+                        </span>
+                        <span class="truncate text-12px text-gray-400">ID: {{ item.datasourceId }}</span>
+                      </div>
+                    </div>
+                    <NTag
+                      :type="getTagType(item.datasourceType)"
+                      size="small"
+                      :bordered="false"
+                      class="rounded-4px font-medium"
+                    >
+                      {{ item.datasourceType?.toUpperCase() }}
+                    </NTag>
+                  </div>
+
+                  <!-- Card Body -->
+                  <div class="flex flex-col flex-1 p-12px text-12px">
+                    <div class="grid grid-cols-2 gap-x-12px">
+                      <div class="flex flex-col gap-4px">
+                        <span class="text-gray-400">连接状态</span>
+                        <span class="flex items-center gap-6px" :class="getStatusMeta(item.status).textColor">
+                          <span class="h-6px w-6px rounded-full" :class="getStatusMeta(item.status).dot"></span>
+                          {{ getStatusMeta(item.status).text }}
+                        </span>
+                      </div>
+                      <div class="flex flex-col gap-4px">
+                        <span class="text-gray-400">更新时间</span>
+                        <span class="text-gray-700 dark:text-gray-300">
+                          {{ item.updateTime || item.createTime || '-' }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Card Actions -->
+                  <div
+                    class="flex items-center justify-between border-t border-gray-100 bg-gray-50/50 px-12px py-8px dark:border-gray-800/60 dark:bg-[#202024]/50"
+                  >
+                    <div class="flex flex-nowrap items-center gap-8px whitespace-nowrap">
+                      <NButton
+                        v-if="hasAuth('metadata:datasource:remove')"
+                        size="small"
+                        quaternary
+                        type="error"
+                        @click="handleDelete(item.datasourceId)"
+                      >
+                        <template #icon><icon-material-symbols-delete-outline /></template>
+                        删除
+                      </NButton>
+                      <NButton
+                        v-if="hasAuth('metadata:datasource:edit')"
+                        size="small"
+                        quaternary
+                        @click="edit(item.datasourceId)"
+                      >
+                        <template #icon><icon-material-symbols-drive-file-rename-outline-outline /></template>
+                        编辑
+                      </NButton>
+                      <NButton
+                        v-if="hasAuth('metadata:datasource:edit')"
+                        size="small"
+                        secondary
+                        @click="handleRefresh(item.datasourceId)"
+                      >
+                        <template #icon><icon-mdi-refresh /></template>
+                        刷新
+                      </NButton>
+                      <NButton
+                        v-if="hasAuth('metadata:datasource:query')"
+                        size="small"
+                        secondary
+                        type="primary"
+                        @click="handleTestConnection(item.datasourceId)"
+                      >
+                        <template #icon><icon-mdi-connection /></template>
+                        测试
+                      </NButton>
+                    </div>
+                  </div>
+                </div>
+              </NGridItem>
+            </NGrid>
+            <NEmpty v-else description="暂无数据源，请先新增或切换分类" class="h-full min-h-260px justify-center" />
+          </div>
+
+          <div class="mt-20px flex justify-end">
+            <NPagination
+              v-model:page="searchParams.pageNum!"
+              v-model:page-size="searchParams.pageSize!"
+              :item-count="mobilePagination.itemCount || 0"
+              show-size-picker
+              :page-sizes="[10, 20, 50]"
+              @update:page="getData"
+              @update:page-size="getData"
+            />
+          </div>
+        </NCard>
+      </div>
+    </TableSiderLayout>
+
+    <!-- 数据源新增/编辑弹窗 -->
+    <DatasourceOperateDrawer
+      v-model:visible="drawerVisible"
+      :operate-type="operateType"
+      :row-data="editingData"
+      :category-tree="categoryTreeData"
+      @submitted="handleDatasourceSubmitted"
+    />
+
+    <!-- 分类新增/编辑弹窗 -->
+    <CategoryOperateDrawer
+      v-model:visible="catDrawerVisible"
+      :operate-type="catOperateType"
+      :row-data="catEditingData"
+      :tree-data="categoryTreeData"
+      @submitted="getCategoryTree"
+    />
   </div>
 </template>
 
-<style scoped lang="scss">
-:deep(.n-data-table-wrapper),
-:deep(.n-data-table-base-table),
-:deep(.n-data-table-base-table-body) {
-  height: 100%;
+<style scoped>
+:deep(.sider-layout-card-content) {
+  overflow: hidden !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-@media screen and (max-width: 800px) {
-  :deep(.n-data-table-base-table-body) {
-    max-height: calc(100vh - 400px - var(--calc-footer-height, 0px));
-  }
+:deep(.sider-layout-card-content::-webkit-scrollbar) {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
-@media screen and (max-width: 802px) {
-  :deep(.n-data-table-base-table-body) {
-    max-height: calc(100vh - 473px - var(--calc-footer-height, 0px));
-  }
+:deep(.datasource-tree) {
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-:deep(.n-card-header__main) {
-  min-width: 69px !important;
+:deep(.datasource-tree::-webkit-scrollbar) {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+:deep(.n-tree-node-content) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+:deep(.n-tree-node-content__suffix) {
+  opacity: 1 !important;
+  transition: opacity 0.2s;
+}
+:deep(.n-tree-node-wrapper:hover .n-tree-node-content__suffix) {
+  opacity: 1;
 }
 </style>

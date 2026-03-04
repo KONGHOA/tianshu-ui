@@ -44,3 +44,8 @@ export function fetchRefreshDatasource(datasourceId: CommonType.IdType) {
 export function fetchGetDatasourceSelect() {
   return request<Api.Metadata.Datasource[]>({ url: '/metadata/datasource/selectList', method: 'get' });
 }
+
+/** 获取数据源统计信息 */
+export function fetchGetDatasourceStats() {
+  return request<Api.Metadata.DatasourceStats>({ url: '/metadata/datasource/stats', method: 'get' });
+}

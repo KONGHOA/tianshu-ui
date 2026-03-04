@@ -7,11 +7,13 @@ defineOptions({
 
 interface Props {
   defaultExpanded?: boolean;
+  showTrigger?: boolean;
   siderTitle?: string;
 }
 
 withDefaults(defineProps<Props>(), {
   defaultExpanded: false,
+  showTrigger: true,
   siderTitle: undefined
 });
 
@@ -56,7 +58,12 @@ const isCollapse = breakpoints.smaller('lg');
     </NGridItem>
   </NGrid>
   <NLayout v-else has-sider>
-    <NLayoutSider collapse-mode="transform" :collapsed-width="0" :width="320" show-trigger="bar">
+    <NLayoutSider
+      collapse-mode="transform"
+      :collapsed-width="0"
+      :width="320"
+      :show-trigger="showTrigger ? 'bar' : false"
+    >
       <NCard
         :bordered="false"
         size="small"

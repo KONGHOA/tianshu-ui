@@ -16,6 +16,8 @@ declare namespace Api {
     /** 数据源 */
     type Datasource = Common.CommonRecord<{
       datasourceId: CommonType.IdType;
+      categoryId?: number;
+      categoryId?: number;
       datasourceName: string;
       datasourceType: string;
       connParams: string;
@@ -24,14 +26,29 @@ declare namespace Api {
     }>;
 
     type DatasourceSearchParams = CommonType.RecordNullable<
-      Pick<Datasource, 'datasourceName' | 'datasourceType' | 'status'> & Api.Common.CommonSearchParams
+      Pick<Datasource, 'datasourceName' | 'datasourceType' | 'status' | 'categoryId'> & Api.Common.CommonSearchParams
     >;
 
     type DatasourceOperateParams = CommonType.RecordNullable<
-      Pick<Datasource, 'datasourceId' | 'datasourceName' | 'datasourceType' | 'connParams' | 'status' | 'remark'>
+      Pick<
+        Datasource,
+        'datasourceId' | 'categoryId' | 'datasourceName' | 'datasourceType' | 'connParams' | 'status' | 'remark'
+      >
     >;
 
     type DatasourceList = Common.PaginatingQueryRecord<Datasource>;
+
+    /** 数据源统计信息 */
+    type DatasourceStats = {
+      /** 数据源总数 */
+      totalCount: number;
+      /** 接入类型数 */
+      typeCount: number;
+      /** 运行中数量 */
+      activeCount: number;
+      /** 已停用数量 */
+      inactiveCount: number;
+    };
 
     /** 元数据实体实例 */
     type EntityInstance = Common.CommonRecord<{
@@ -39,6 +56,7 @@ declare namespace Api {
       uuid: string;
       entityType: string;
       datasourceId: CommonType.IdType;
+      categoryId?: number;
       fullyQualifiedName: string;
       displayName: string;
       description: string;
