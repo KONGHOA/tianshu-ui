@@ -27,6 +27,7 @@ import { useAuth } from '@/hooks/business/auth';
 import { defaultTransform, useNaivePaginatedTable, useTableOperate } from '@/hooks/common/table';
 import { useDict } from '@/hooks/business/dict';
 import SvgIcon from '@/components/custom/svg-icon.vue';
+import DatasourceDetailDrawer from './modules/DatasourceDetailDrawer.vue';
 import DatasourceOperateDrawer from './modules/DatasourceOperateDrawer.vue';
 import CategoryOperateDrawer from './modules/CategoryOperateDrawer.vue';
 
@@ -274,6 +275,13 @@ async function edit(datasourceId: CommonType.IdType) {
   handleEdit(datasourceId);
 }
 
+// 详情抽屉
+const detailDatasourceId = ref<CommonType.IdType | null>(null);
+
+function handleCardClick(datasourceId: CommonType.IdType) {
+  detailDatasourceId.value = datasourceId;
+}
+
 // 顶部数据统计
 const statsData = ref<Api.Metadata.DatasourceStats>({
   totalCount: 0,
@@ -504,7 +512,8 @@ onMounted(() => {
             <NGrid v-if="data.length" :x-gap="16" :y-gap="16" :cols="12" responsive="screen" item-responsive>
               <NGridItem v-for="item in data" :key="item.datasourceId" span="12 m:6 l:4 xl:4 2xl:3">
                 <div
-                  class="group h-full flex flex-col overflow-hidden border border-gray-200 rounded-12px bg-white transition-all dark:border-gray-800 hover:border-primary/50 dark:bg-[#18181c] hover:shadow-lg hover:-translate-y-1"
+                  class="group h-full flex flex-col cursor-pointer overflow-hidden border border-gray-200 rounded-12px bg-white transition-all dark:border-gray-800 hover:border-primary/50 dark:bg-[#18181c] hover:shadow-lg hover:-translate-y-1"
+                  @click="handleCardClick(item.datasourceId)"
                 >
                   <!-- Card Header -->
                   <div
@@ -564,48 +573,52 @@ onMounted(() => {
 
                   <!-- Card Actions -->
                   <div
-                    class="flex items-center justify-between border-t border-gray-100 bg-gray-50/50 px-12px py-8px dark:border-gray-800/60 dark:bg-[#202024]/50"
+                    class="grid border-t border-gray-100 bg-gray-50/50 dark:border-gray-800/60 dark:bg-[#202024]/50"
+                    :style="{ gridTemplateColumns: 'repeat(4, 1fr)' }"
+                    @click.stop
                   >
-                    <div class="flex flex-nowrap items-center gap-8px whitespace-nowrap">
-                      <NButton
-                        v-if="hasAuth('metadata:datasource:remove')"
-                        size="small"
-                        quaternary
-                        type="error"
-                        @click="handleDelete(item.datasourceId)"
-                      >
-                        <template #icon><icon-material-symbols-delete-outline /></template>
-                        删除
-                      </NButton>
-                      <NButton
-                        v-if="hasAuth('metadata:datasource:edit')"
-                        size="small"
-                        quaternary
-                        @click="edit(item.datasourceId)"
-                      >
-                        <template #icon><icon-material-symbols-drive-file-rename-outline-outline /></template>
-                        编辑
-                      </NButton>
-                      <NButton
-                        v-if="hasAuth('metadata:datasource:edit')"
-                        size="small"
-                        secondary
-                        @click="handleRefresh(item.datasourceId)"
-                      >
-                        <template #icon><icon-mdi-refresh /></template>
-                        刷新
-                      </NButton>
-                      <NButton
-                        v-if="hasAuth('metadata:datasource:query')"
-                        size="small"
-                        secondary
-                        type="primary"
-                        @click="handleTestConnection(item.datasourceId)"
-                      >
-                        <template #icon><icon-mdi-connection /></template>
-                        测试
-                      </NButton>
-                    </div>
+                    <NButton
+                      v-if="hasAuth('metadata:datasource:remove')"
+                      size="small"
+                      quaternary
+                      type="error"
+                      class="rounded-none!"
+                      @click="handleDelete(item.datasourceId)"
+                    >
+                      <template #icon><icon-material-symbols-delete-outline /></template>
+                      删除
+                    </NButton>
+                    <NButton
+                      v-if="hasAuth('metadata:datasource:edit')"
+                      size="small"
+                      quaternary
+                      class="rounded-none!"
+                      @click="edit(item.datasourceId)"
+                    >
+                      <template #icon><icon-material-symbols-drive-file-rename-outline-outline /></template>
+                      编辑
+                    </NButton>
+                    <NButton
+                      v-if="hasAuth('metadata:datasource:edit')"
+                      size="small"
+                      quaternary
+                      class="rounded-none!"
+                      @click="handleRefresh(item.datasourceId)"
+                    >
+                      <template #icon><icon-mdi-refresh /></template>
+                      刷新
+                    </NButton>
+                    <NButton
+                      v-if="hasAuth('metadata:datasource:query')"
+                      size="small"
+                      quaternary
+                      type="primary"
+                      class="rounded-none!"
+                      @click="handleTestConnection(item.datasourceId)"
+                    >
+                      <template #icon><icon-mdi-connection /></template>
+                      测试
+                    </NButton>
                   </div>
                 </div>
               </NGridItem>
@@ -627,6 +640,18 @@ onMounted(() => {
         </NCard>
       </div>
     </TableSiderLayout>
+
+    <!-- 数据源详情抽屉 -->
+    <DatasourceDetailDrawer
+      v-model:datasource-id="detailDatasourceId"
+      @refresh="handleReloadAll"
+      @edit="
+        id => {
+          detailDatasourceId = null;
+          edit(id);
+        }
+      "
+    />
 
     <!-- 数据源新增/编辑弹窗 -->
     <DatasourceOperateDrawer

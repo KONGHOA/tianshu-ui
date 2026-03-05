@@ -17,7 +17,6 @@ declare namespace Api {
     type Datasource = Common.CommonRecord<{
       datasourceId: CommonType.IdType;
       categoryId?: number;
-      categoryId?: number;
       datasourceName: string;
       datasourceType: string;
       connParams: string;
@@ -37,6 +36,15 @@ declare namespace Api {
     >;
 
     type DatasourceList = Common.PaginatingQueryRecord<Datasource>;
+
+    /** 数据源摘要统计 */
+    type DatasourceSummary = {
+      databaseCount: number;
+      tableCount: number;
+      columnCount: number;
+      lastSyncTime: string | null;
+      recentChangeCount: number;
+    };
 
     /** 数据源统计信息 */
     type DatasourceStats = {
@@ -119,7 +127,7 @@ declare namespace Api {
     }>;
 
     type SchemaChangeSearchParams = CommonType.RecordNullable<
-      Pick<SchemaChange, 'entityUuid' | 'parentUuid'> & Api.Common.CommonSearchParams
+      Pick<SchemaChange, 'entityUuid' | 'parentUuid'> & { datasourceId?: number } & Api.Common.CommonSearchParams
     >;
 
     type SchemaChangeList = Common.PaginatingQueryRecord<SchemaChange>;

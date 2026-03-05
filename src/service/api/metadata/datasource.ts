@@ -49,3 +49,11 @@ export function fetchGetDatasourceSelect() {
 export function fetchGetDatasourceStats() {
   return request<Api.Metadata.DatasourceStats>({ url: '/metadata/datasource/stats', method: 'get' });
 }
+
+/** 获取数据源摘要（数据库数、表数、字段数、最近同步时间、近7天变更数） */
+export function fetchGetDatasourceSummary(datasourceId: CommonType.IdType) {
+  return request<Api.Metadata.DatasourceSummary>({
+    url: `/metadata/datasource/summary/${datasourceId}`,
+    method: 'get'
+  });
+}
