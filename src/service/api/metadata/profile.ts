@@ -29,3 +29,12 @@ export function fetchGetProfile(id: string | number) {
     method: 'get'
   });
 }
+
+/** 触发表数据概览（异步执行） */
+export function fetchTriggerTableProfile(tableUuid: string) {
+  return request<null>({
+    url: '/metadata/profile/trigger',
+    method: 'post',
+    params: { tableUuid }
+  });
+}
