@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { toRaw } from 'vue';
+import { NSelect } from 'naive-ui';
 import { jsonClone } from '@sa/utils';
 import { useNaiveForm } from '@/hooks/common/form';
+
+const levelOptions = [
+  { label: '库级变更', value: 'database' },
+  { label: '表级变更', value: 'table' },
+  { label: '列级变更', value: 'column' }
+];
 
 defineOptions({
   name: 'SchemaChangeSearch'
@@ -39,20 +46,18 @@ async function search() {
   <NCard :bordered="false" size="small" class="card-wrapper">
     <NCollapse>
       <NCollapseItem title="搜索" name="schema-change-search">
-        <NForm ref="formRef" :model="model" label-placement="left" :label-width="100">
+        <NForm ref="formRef" :model="model" label-placement="left" :label-width="80">
           <NGrid responsive="screen" item-responsive>
-            <NFormItemGi span="24 s:12 m:8" label="父实体 UUID" path="parentUuid" class="pr-24px">
-              <NInput
-                v-model:value="model.parentUuid"
-                placeholder="请输入父实体 UUID"
-                clearable
-                @keyup.enter="search"
-              />
+            <NFormItemGi span="24 s:12 m:6" label="变更层级" path="entityLevel" class="pr-24px">
+              <NSelect v-model:value="model.entityLevel" :options="levelOptions" placeholder="全部层级" clearable />
             </NFormItemGi>
-            <NFormItemGi span="24 s:12 m:8" label="实体 UUID" path="entityUuid" class="pr-24px">
-              <NInput v-model:value="model.entityUuid" placeholder="请输入实体 UUID" clearable @keyup.enter="search" />
+            <NFormItemGi span="24 s:12 m:6" label="数据库名" path="databaseName" class="pr-24px">
+              <NInput v-model:value="model.databaseName" placeholder="请输入数据库名" clearable @keyup.enter="search" />
             </NFormItemGi>
-            <NFormItemGi span="24 m:8" class="pr-24px">
+            <NFormItemGi span="24 s:12 m:6" label="表名" path="tableName" class="pr-24px">
+              <NInput v-model:value="model.tableName" placeholder="请输入表名" clearable @keyup.enter="search" />
+            </NFormItemGi>
+            <NFormItemGi span="24 m:6" class="pr-24px">
               <NSpace class="w-full" justify="end">
                 <NButton @click="reset">
                   <template #icon>

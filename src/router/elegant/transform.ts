@@ -180,6 +180,7 @@ const routeMap: RouteMap = {
   "metadata": "/metadata",
   "metadata_catalog": "/metadata/catalog",
   "metadata_datasource": "/metadata/datasource",
+  "metadata_datasource-explorer": "/metadata/datasource-explorer",
   "metadata_schema-change": "/metadata/schema-change",
   "metadata_tag": "/metadata/tag",
   "metadata_tag-category": "/metadata/tag-category",

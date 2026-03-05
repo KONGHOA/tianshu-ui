@@ -27,6 +27,7 @@ export const views: Record<LastLevelRouteKey, RouteComponent | (() => Promise<Ro
   demo_tree: () => import("@/views/demo/tree/index.vue"),
   home: () => import("@/views/home/index.vue"),
   metadata_catalog: () => import("@/views/metadata_catalog/index.vue"),
+  "metadata_datasource-explorer": () => import("@/views/metadata_datasource-explorer/index.vue"),
   metadata_datasource: () => import("@/views/metadata_datasource/index.vue"),
   "metadata_schema-change": () => import("@/views/metadata_schema-change/index.vue"),
   "metadata_tag-category": () => import("@/views/metadata_tag-category/index.vue"),

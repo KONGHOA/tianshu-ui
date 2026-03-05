@@ -1,5 +1,6 @@
 <script setup lang="tsx">
 import { ref } from 'vue';
+import { NTag } from 'naive-ui';
 import { fetchGetSchemaChangeList } from '@/service/api/metadata/schema-change';
 import { useAppStore } from '@/store/modules/app';
 import { defaultTransform, useNaivePaginatedTable } from '@/hooks/common/table';
@@ -14,8 +15,10 @@ const appStore = useAppStore();
 const searchParams = ref<Api.Metadata.SchemaChangeSearchParams>({
   pageNum: 1,
   pageSize: 10,
-  parentUuid: null,
-  entityUuid: null
+  datasourceId: null,
+  entityLevel: null,
+  databaseName: null,
+  tableName: null
 });
 
 const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagination, scrollX } =
@@ -33,6 +36,25 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         align: 'center',
         width: 64,
         render: (_, index) => index + 1
+      },
+      {
+        key: 'entityLevel',
+        title: '变更层级',
+        align: 'center',
+        width: 100,
+        render: row => {
+          const map: Record<string, { text: string; type: 'default' | 'info' | 'warning' | 'success' }> = {
+            database: { text: '库', type: 'info' },
+            table: { text: '表', type: 'warning' },
+            column: { text: '列', type: 'default' }
+          };
+          const m = map[row.entityLevel ?? ''] ?? { text: row.entityLevel ?? '-', type: 'default' };
+          return (
+            <NTag size="small" type={m.type} bordered={false}>
+              {m.text}
+            </NTag>
+          );
+        }
       },
       {
         key: 'changeType',

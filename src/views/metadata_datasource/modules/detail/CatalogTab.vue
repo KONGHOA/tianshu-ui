@@ -219,7 +219,7 @@ const columnTableColumns: DataTableColumns<ColumnEntry> = [
       v-model:show="columnModalVisible"
       :title="columnModalTitle"
       preset="card"
-      style="width: 680px"
+      class="w-680px"
       :mask-closable="true"
     >
       <NSpin :show="columnLoading" class="min-h-100px">

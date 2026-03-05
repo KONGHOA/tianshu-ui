@@ -299,6 +299,7 @@ const local: App.I18n.Schema = {
     tool_gen: '代码生成',
     metadata: '元数据管理',
     metadata_datasource: '数据源管理',
+    'metadata_datasource-explorer': '元数据浏览',
     metadata_catalog: '目录浏览',
     metadata_tag: '标签管理',
     'metadata_tag-category': '标签分类管理',

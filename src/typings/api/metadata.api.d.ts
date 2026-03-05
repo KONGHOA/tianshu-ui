@@ -117,6 +117,8 @@ declare namespace Api {
       changeId: CommonType.IdType;
       parentUuid: string;
       entityUuid: string;
+      datasourceId: CommonType.IdType;
+      entityLevel: 'database' | 'table' | 'column';
       changeType: string;
       databaseName: string;
       tableName: string;
@@ -127,7 +129,12 @@ declare namespace Api {
     }>;
 
     type SchemaChangeSearchParams = CommonType.RecordNullable<
-      Pick<SchemaChange, 'entityUuid' | 'parentUuid'> & { datasourceId?: number } & Api.Common.CommonSearchParams
+      {
+        datasourceId?: number;
+        entityLevel?: string;
+        databaseName?: string;
+        tableName?: string;
+      } & Api.Common.CommonSearchParams
     >;
 
     type SchemaChangeList = Common.PaginatingQueryRecord<SchemaChange>;

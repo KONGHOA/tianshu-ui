@@ -143,6 +143,17 @@ export const generatedRoutes: GeneratedRoute[] = [
         }
       },
       {
+        name: 'metadata_datasource-explorer',
+        path: '/metadata/datasource-explorer',
+        component: 'view.metadata_datasource-explorer',
+        meta: {
+          title: 'metadata_datasource-explorer',
+          i18nKey: 'route.metadata_datasource-explorer',
+          hideInMenu: true,
+          activeMenu: 'metadata_datasource'
+        }
+      },
+      {
         name: 'metadata_schema-change',
         path: '/metadata/schema-change',
         component: 'view.metadata_schema-change',

@@ -1,5 +1,6 @@
 <script setup lang="tsx">
 import { computed, h, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   NButton,
   NCard,
@@ -27,7 +28,6 @@ import { useAuth } from '@/hooks/business/auth';
 import { defaultTransform, useNaivePaginatedTable, useTableOperate } from '@/hooks/common/table';
 import { useDict } from '@/hooks/business/dict';
 import SvgIcon from '@/components/custom/svg-icon.vue';
-import DatasourceDetailDrawer from './modules/DatasourceDetailDrawer.vue';
 import DatasourceOperateDrawer from './modules/DatasourceOperateDrawer.vue';
 import CategoryOperateDrawer from './modules/CategoryOperateDrawer.vue';
 
@@ -275,11 +275,10 @@ async function edit(datasourceId: CommonType.IdType) {
   handleEdit(datasourceId);
 }
 
-// 详情抽屉
-const detailDatasourceId = ref<CommonType.IdType | null>(null);
+const router = useRouter();
 
 function handleCardClick(datasourceId: CommonType.IdType) {
-  detailDatasourceId.value = datasourceId;
+  router.push({ name: 'metadata_datasource-explorer', query: { datasourceId: String(datasourceId) } });
 }
 
 // 顶部数据统计
@@ -436,8 +435,7 @@ onMounted(() => {
           children-field="children"
           :render-suffix="renderCategorySuffix"
           :render-prefix="renderCategoryPrefix"
-          class="datasource-tree min-h-200px"
-          style="height: calc(100% - 44px)"
+          class="datasource-tree h-[calc(100%-44px)] min-h-200px"
           @update:selected-keys="handleCategorySelect"
         >
           <template #empty>
@@ -573,8 +571,7 @@ onMounted(() => {
 
                   <!-- Card Actions -->
                   <div
-                    class="grid border-t border-gray-100 bg-gray-50/50 dark:border-gray-800/60 dark:bg-[#202024]/50"
-                    :style="{ gridTemplateColumns: 'repeat(4, 1fr)' }"
+                    class="grid grid-cols-4 border-t border-gray-100 bg-gray-50/50 dark:border-gray-800/60 dark:bg-[#202024]/50"
                     @click.stop
                   >
                     <NButton
@@ -640,18 +637,6 @@ onMounted(() => {
         </NCard>
       </div>
     </TableSiderLayout>
-
-    <!-- 数据源详情抽屉 -->
-    <DatasourceDetailDrawer
-      v-model:datasource-id="detailDatasourceId"
-      @refresh="handleReloadAll"
-      @edit="
-        id => {
-          detailDatasourceId = null;
-          edit(id);
-        }
-      "
-    />
 
     <!-- 数据源新增/编辑弹窗 -->
     <DatasourceOperateDrawer

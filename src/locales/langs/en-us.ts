@@ -303,6 +303,7 @@ const local: App.I18n.Schema = {
     tool_gen: 'Code Generation',
     metadata: 'Metadata',
     metadata_datasource: 'Datasource',
+    'metadata_datasource-explorer': 'Metadata Explorer',
     metadata_catalog: 'Catalog Browser',
     metadata_tag: 'Tag Management',
     'metadata_tag-category': 'Tag Category Management',
