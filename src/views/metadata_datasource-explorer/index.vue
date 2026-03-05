@@ -120,7 +120,7 @@ async function loadTables() {
   const [tableRes, changeRes] = await Promise.all([
     fetchGetTables(dbUuid.value),
     fetchGetSchemaChangeList({
-      datasourceId: Number(datasourceId.value),
+      datasourceId: datasourceId.value,
       entityLevel: 'table',
       databaseName: dbName.value ?? undefined,
       pageNum: 1,
@@ -138,7 +138,7 @@ async function loadColumns() {
   const [colRes, changeRes] = await Promise.all([
     fetchGetColumns(tableUuid.value),
     fetchGetSchemaChangeList({
-      datasourceId: Number(datasourceId.value),
+      datasourceId: datasourceId.value,
       entityLevel: 'column',
       tableName: tableName.value ?? undefined,
       pageNum: 1,

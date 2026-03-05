@@ -130,7 +130,7 @@ declare namespace Api {
 
     type SchemaChangeSearchParams = CommonType.RecordNullable<
       {
-        datasourceId?: number;
+        datasourceId?: number | string;
         entityLevel?: string;
         databaseName?: string;
         tableName?: string;
