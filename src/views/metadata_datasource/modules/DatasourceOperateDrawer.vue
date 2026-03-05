@@ -1,6 +1,18 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { NButton, NDivider, NForm, NFormItem, NIcon, NInput, NInputNumber, NSpace, NTag, NTreeSelect } from 'naive-ui';
+import {
+  NButton,
+  NDivider,
+  NForm,
+  NFormItem,
+  NIcon,
+  NInput,
+  NInputNumber,
+  NSpace,
+  NSwitch,
+  NTag,
+  NTreeSelect
+} from 'naive-ui';
 import { jsonClone } from '@sa/utils';
 import { fetchCreateDatasource, fetchTestConnection, fetchUpdateDatasource } from '@/service/api/metadata/datasource';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
@@ -60,6 +72,15 @@ const SERVICE_TYPES = [
     color: '#D97706',
     bgColor: '#FFFBEB',
     desc: '列式 OLAP 分析数据库'
+  },
+  {
+    key: 'hive',
+    label: 'Hive',
+    icon: 'i-mdi-bee',
+    port: 10000,
+    color: '#CA8A04',
+    bgColor: '#FEFCE8',
+    desc: 'Apache Hive 大数据仓库'
   }
 ] as const;
 
@@ -69,7 +90,14 @@ type ServiceKey = (typeof SERVICE_TYPES)[number]['key'];
 type Model = Api.Metadata.DatasourceOperateParams;
 
 const model = ref<Model>(createDefaultModel());
-const connModel = ref({ host: '', port: 3306, database: '', username: '', password: '' });
+const connModel = ref<{
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+  properties: Record<string, string>;
+}>({ host: '', port: 3306, database: '', username: '', password: '', properties: {} });
 const testStatus = ref<'idle' | 'testing' | 'success' | 'fail'>('idle');
 const testLoading = ref(false);
 
@@ -84,6 +112,16 @@ function createDefaultModel(): Model {
     categoryId: null
   };
 }
+
+// Kerberos 开关（双向绑定到 connModel.properties）
+const kerberosEnabled = computed({
+  get: () => connModel.value.properties?.['kerberos.enable'] === 'true',
+  set: (val: boolean) => {
+    if (!connModel.value.properties) connModel.value.properties = {};
+    connModel.value.properties['kerberos.enable'] = val ? 'true' : 'false';
+    testStatus.value = 'idle';
+  }
+});
 
 // ────────────── 计算属性 ──────────────
 const selectedTypeInfo = computed(
@@ -135,6 +173,20 @@ const connectionHelp: Record<ServiceKey, { title: string; items: { icon: string;
       { icon: 'i-mdi-account-key', label: '用户名', text: '默认用户名为 default' },
       { icon: 'i-mdi-lock-outline', label: '密码', text: '默认无密码；密码将加密存储' }
     ]
+  },
+  hive: {
+    title: 'Hive 连接说明',
+    items: [
+      { icon: 'i-mdi-server-network', label: '主机地址', text: 'HiveServer2 所在节点的 IP 或域名' },
+      { icon: 'i-mdi-numeric', label: '端口', text: 'HiveServer2 默认 Thrift 端口为 10000' },
+      { icon: 'i-mdi-database', label: '数据库', text: '可选，不填默认连接 default 库' },
+      { icon: 'i-mdi-account-key', label: '用户名/密码', text: '非 Kerberos 模式下填写；Kerberos 模式可留空' },
+      {
+        icon: 'i-mdi-shield-key-outline',
+        label: 'Kerberos',
+        text: '启用后需提供 principal、keytab 路径；服务端 principal 写入 JDBC URL'
+      }
+    ]
   }
 };
 
@@ -149,17 +201,17 @@ const basicRules = {
   datasourceName: createRequiredRule('数据源名称不能为空')
 };
 
-const connRules = {
+const connRules = computed(() => ({
   host: createRequiredRule('主机地址不能为空'),
   port: createRequiredRule('端口不能为空'),
-  username: createRequiredRule('用户名不能为空'),
-  password: createRequiredRule('密码不能为空')
-};
+  username: kerberosEnabled.value ? [] : createRequiredRule('用户名不能为空'),
+  password: kerberosEnabled.value ? [] : createRequiredRule('密码不能为空')
+}));
 
 // ────────────── 初始化 ──────────────
 function handleUpdateModelWhenEdit() {
   model.value = createDefaultModel();
-  connModel.value = { host: '', port: 3306, database: '', username: '', password: '' };
+  connModel.value = { host: '', port: 3306, database: '', username: '', password: '', properties: {} };
   testStatus.value = 'idle';
   currentStep.value = 1;
 
@@ -325,7 +377,7 @@ watch(visible, v => {
             </p>
           </div>
 
-          <div class="grid grid-cols-4 mx-auto max-w-600px w-full gap-14px">
+          <div class="grid grid-cols-4 mx-auto max-w-720px w-full gap-14px">
             <div
               v-for="type in SERVICE_TYPES"
               :key="type.key"
@@ -455,6 +507,7 @@ watch(visible, v => {
               :rules="connRules"
               label-placement="top"
               require-mark-placement="right-hanging"
+              @update:model="testStatus = 'idle'"
             >
               <div class="grid grid-cols-3 gap-x-16px">
                 <NFormItem class="col-span-2" label="主机地址" path="host" required>
@@ -508,6 +561,97 @@ watch(visible, v => {
                 </NFormItem>
               </div>
             </NForm>
+
+            <!-- Kerberos 认证配置（仅 Hive） -->
+            <template v-if="model.datasourceType === 'hive'">
+              <div
+                class="mb-16px mt-4px border border-amber-200 rounded-10px bg-amber-50/60 px-16px py-12px dark:border-amber-800/40 dark:bg-amber-900/10"
+              >
+                <!-- 开关标题行 -->
+                <div class="mb-2px flex items-center justify-between">
+                  <div class="flex items-center gap-8px">
+                    <NIcon :size="15" class="text-amber-600 dark:text-amber-400">
+                      <div class="i-mdi-shield-key-outline" />
+                    </NIcon>
+                    <span class="text-13px text-amber-800 font-semibold dark:text-amber-300">Kerberos 认证</span>
+                  </div>
+                  <NSwitch v-model:value="kerberosEnabled" size="small" />
+                </div>
+                <p class="mb-12px text-11px text-amber-600/80 leading-relaxed dark:text-amber-400/70">
+                  启用后将通过 keytab 文件获取 TGT，连接 Kerberos 保护的 HiveServer2
+                </p>
+
+                <template v-if="kerberosEnabled">
+                  <div class="grid grid-cols-2 gap-x-12px gap-y-0">
+                    <div class="flex flex-col gap-4px">
+                      <span class="text-12px text-gray-600 font-medium dark:text-gray-300">
+                        客户端 Principal
+                        <span class="text-red-500">*</span>
+                      </span>
+                      <NInput
+                        :value="connModel.properties?.['kerberos.principal'] ?? ''"
+                        placeholder="hive/host@REALM"
+                        size="small"
+                        @update:value="
+                          val => {
+                            connModel.properties['kerberos.principal'] = val;
+                            testStatus = 'idle';
+                          }
+                        "
+                      />
+                    </div>
+                    <div class="flex flex-col gap-4px">
+                      <span class="text-12px text-gray-600 font-medium dark:text-gray-300">
+                        服务端 Principal
+                        <span class="text-red-500">*</span>
+                      </span>
+                      <NInput
+                        :value="connModel.properties?.['hive.server.principal'] ?? ''"
+                        placeholder="hive/_HOST@REALM"
+                        size="small"
+                        @update:value="
+                          val => {
+                            connModel.properties['hive.server.principal'] = val;
+                            testStatus = 'idle';
+                          }
+                        "
+                      />
+                    </div>
+                  </div>
+                  <div class="mt-8px flex flex-col gap-4px">
+                    <span class="text-12px text-gray-600 font-medium dark:text-gray-300">
+                      Keytab 文件路径
+                      <span class="text-red-500">*</span>
+                    </span>
+                    <NInput
+                      :value="connModel.properties?.['kerberos.keytab'] ?? ''"
+                      placeholder="/etc/security/keytabs/hive.service.keytab"
+                      size="small"
+                      @update:value="
+                        val => {
+                          connModel.properties['kerberos.keytab'] = val;
+                          testStatus = 'idle';
+                        }
+                      "
+                    />
+                  </div>
+                  <div class="mt-8px flex flex-col gap-4px">
+                    <span class="text-12px text-gray-600 font-medium dark:text-gray-300">krb5.conf 路径（可选）</span>
+                    <NInput
+                      :value="connModel.properties?.['kerberos.krb5conf'] ?? ''"
+                      placeholder="/etc/krb5.conf（留空使用系统默认）"
+                      size="small"
+                      @update:value="
+                        val => {
+                          connModel.properties['kerberos.krb5conf'] = val;
+                          testStatus = 'idle';
+                        }
+                      "
+                    />
+                  </div>
+                </template>
+              </div>
+            </template>
 
             <!-- 测试连接按钮 -->
             <div class="mt-4px">
