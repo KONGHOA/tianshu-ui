@@ -23,9 +23,9 @@ import {
   fetchRefreshDatasource
 } from '@/service/api/metadata/datasource';
 import { fetchGetColumns, fetchGetDatabases, fetchGetTables } from '@/service/api/metadata/catalog';
-import { fetchGetAllProfiles, fetchTriggerTableProfile } from '@/service/api/metadata/profile';
 import { fetchGetSchemaChangeList } from '@/service/api/metadata/schema-change';
 import { useAuth } from '@/hooks/business/auth';
+import ProfileTab from './modules/ProfileTab.vue';
 
 defineOptions({ name: 'MetadataDatasourceExplorer' });
 
@@ -63,14 +63,6 @@ const dbSearch = ref('');
 const tableSearch = ref('');
 const activeTab = ref('columns');
 const dbActiveTab = ref('tables');
-
-// ─── 数据概览 ─────────────────────────────────────────────────
-const profileLoading = ref(false);
-const triggerLoading = ref(false);
-/** 表级 profile 结果, metricName -> value */
-const tableProfileMap = ref<Record<string, string>>({});
-/** 列级 profile 结果, columnUuid -> (metricName -> value) */
-const columnProfileMap = ref<Record<string, Record<string, string>>>({});
 
 // ─── 工具函数 ─────────────────────────────────────────────────
 function parseProps(json: string | undefined): Record<string, unknown> {
@@ -159,41 +151,6 @@ async function loadColumns() {
   listLoading.value = false;
 }
 
-async function loadProfiles() {
-  if (!tableUuid.value) return;
-  profileLoading.value = true;
-  tableProfileMap.value = {};
-  columnProfileMap.value = {};
-
-  // 并发加载：表级 + 所有列的 profile
-  const tableRes = await fetchGetAllProfiles(tableUuid.value);
-  if (!tableRes.error && tableRes.data) {
-    tableProfileMap.value = Object.fromEntries(tableRes.data.map(p => [p.metricName, p.actualValue]));
-  }
-
-  if (columns.value.length > 0) {
-    const colResults = await Promise.all(columns.value.map(col => fetchGetAllProfiles(col.uuid)));
-    columns.value.forEach((col, idx) => {
-      const res = colResults[idx];
-      if (!res.error && res.data) {
-        columnProfileMap.value[col.uuid] = Object.fromEntries(res.data.map(p => [p.metricName, p.actualValue]));
-      }
-    });
-  }
-
-  profileLoading.value = false;
-}
-
-async function handleTriggerProfile() {
-  if (!tableUuid.value) return;
-  triggerLoading.value = true;
-  const res = await fetchTriggerTableProfile(tableUuid.value);
-  triggerLoading.value = false;
-  if (!res.error) {
-    window.$message?.success('数据概览已触发，正在后台计算，请稍后刷新');
-  }
-}
-
 // ─── 导航 ─────────────────────────────────────────────────────
 function openDatabase(db: Api.Metadata.EntityInstance) {
   router.push({
@@ -255,8 +212,6 @@ watch(
       loadTables();
     } else {
       activeTab.value = 'columns';
-      tableProfileMap.value = {};
-      columnProfileMap.value = {};
       loadColumns();
     }
   },
@@ -425,74 +380,6 @@ const dbChangeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
     key: 'createTime',
     width: 160,
     render: row => (row.createTime ? new Date(row.createTime).toLocaleString('zh-CN') : '-')
-  }
-];
-
-function profileVal(colUuid: string, metric: string): string {
-  return columnProfileMap.value[colUuid]?.[metric] ?? '-';
-}
-
-const profileTableColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
-  {
-    title: '字段名',
-    key: 'displayName',
-    fixed: 'left',
-    width: 140,
-    render: row => <span class="text-gray-800 font-medium dark:text-gray-200">{row.displayName}</span>
-  },
-  {
-    title: '类型',
-    key: 'dataType',
-    width: 130,
-    render: row => {
-      const p = parseProps(row.properties);
-      return (
-        <NTag size="small" bordered={false} type="info">
-          {String(p.type ?? '-')}
-        </NTag>
-      );
-    }
-  },
-  { title: '空值数', key: 'null', width: 90, align: 'right', render: row => profileVal(row.uuid, 'column_null') },
-  {
-    title: '非空值数',
-    key: 'notNull',
-    width: 90,
-    align: 'right',
-    render: row => profileVal(row.uuid, 'column_not_null')
-  },
-  {
-    title: '不同值数',
-    key: 'distinct',
-    width: 90,
-    align: 'right',
-    render: row => profileVal(row.uuid, 'column_distinct')
-  },
-  { title: '唯一值数', key: 'unique', width: 90, align: 'right', render: row => profileVal(row.uuid, 'column_unique') },
-  { title: '最大值', key: 'max', width: 110, align: 'right', render: row => profileVal(row.uuid, 'column_max') },
-  { title: '最小值', key: 'min', width: 110, align: 'right', render: row => profileVal(row.uuid, 'column_min') },
-  { title: '均值', key: 'avg', width: 110, align: 'right', render: row => profileVal(row.uuid, 'column_avg') },
-  { title: '求和', key: 'sum', width: 110, align: 'right', render: row => profileVal(row.uuid, 'column_sum') },
-  {
-    title: '最大长度',
-    key: 'maxLen',
-    width: 90,
-    align: 'right',
-    render: row => profileVal(row.uuid, 'column_max_length')
-  },
-  {
-    title: '最小长度',
-    key: 'minLen',
-    width: 90,
-    align: 'right',
-    render: row => profileVal(row.uuid, 'column_min_length')
-  },
-  {
-    title: '平均长度',
-    key: 'avgLen',
-    width: 90,
-    align: 'right',
-    render: row => profileVal(row.uuid, 'column_avg_length')
   }
 ];
 
@@ -762,13 +649,7 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
       <!-- ── Level 3: 表 → 字段列表 + Schema 变更 + 数据概览 ── -->
       <template v-else>
         <NCard :bordered="false" class="shadow-sm" content-style="padding: 0">
-          <NTabs
-            v-model:value="activeTab"
-            type="line"
-            :tab-style="{ padding: '12px 20px' }"
-            pane-style="padding: 0"
-            @update:value="v => v === 'profile' && !profileLoading && loadProfiles()"
-          >
+          <NTabs v-model:value="activeTab" type="line" :tab-style="{ padding: '12px 20px' }" pane-style="padding: 0">
             <NTabPane name="columns" tab="字段列表">
               <NSpin :show="listLoading">
                 <NDataTable
@@ -797,58 +678,8 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
               </NSpin>
             </NTabPane>
 
-            <NTabPane name="profile" tab="数据概览">
-              <div class="p-20px">
-                <!-- 操作栏 -->
-                <div class="mb-16px flex items-center gap-12px">
-                  <NButton
-                    size="small"
-                    type="primary"
-                    secondary
-                    :loading="triggerLoading"
-                    @click="handleTriggerProfile"
-                  >
-                    <template #icon>
-                      <NIcon><div class="i-mdi-play-circle-outline" /></NIcon>
-                    </template>
-                    执行数据概览
-                  </NButton>
-                  <NButton size="small" :loading="profileLoading" secondary @click="loadProfiles">
-                    <template #icon>
-                      <NIcon><div class="i-mdi-refresh" /></NIcon>
-                    </template>
-                    刷新结果
-                  </NButton>
-                  <span class="text-12px text-gray-400">
-                    点击「执行数据概览」触发计算，执行完成后点「刷新结果」查看
-                  </span>
-                </div>
-
-                <NSpin :show="profileLoading">
-                  <!-- 表级指标 -->
-                  <div
-                    v-if="tableProfileMap['table_row_count']"
-                    class="mb-16px inline-flex items-center gap-8px rounded-8px bg-blue-50 px-16px py-10px dark:bg-blue-900/20"
-                  >
-                    <NIcon class="text-blue-500" :size="18"><div class="i-mdi-table-large" /></NIcon>
-                    <span class="text-13px text-gray-600 dark:text-gray-300">总行数</span>
-                    <span class="text-16px text-blue-600 font-bold dark:text-blue-400">
-                      {{ tableProfileMap['table_row_count'] }}
-                    </span>
-                  </div>
-
-                  <!-- 列级指标表格 -->
-                  <NDataTable
-                    v-if="columns.length"
-                    :data="columns"
-                    :columns="profileTableColumns"
-                    :single-line="false"
-                    size="small"
-                    :scroll-x="1200"
-                  />
-                  <NEmpty v-else description="暂无列信息" class="py-40px" />
-                </NSpin>
-              </div>
+            <NTabPane name="profile" tab="数据概览" display-directive="show">
+              <ProfileTab :table-uuid="tableUuid ?? ''" :columns="columns" />
             </NTabPane>
           </NTabs>
         </NCard>

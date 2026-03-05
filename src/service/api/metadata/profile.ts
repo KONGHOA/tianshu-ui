@@ -30,6 +30,15 @@ export function fetchGetProfile(id: string | number) {
   });
 }
 
+/** 查询表行数历史趋势（折线图数据） */
+export function fetchGetProfileTrend(tableUuid: string) {
+  return request<Api.Metadata.EntityProfile[]>({
+    url: '/metadata/profile/trend',
+    method: 'get',
+    params: { tableUuid }
+  });
+}
+
 /** 触发表数据概览（异步执行） */
 export function fetchTriggerTableProfile(tableUuid: string) {
   return request<null>({
