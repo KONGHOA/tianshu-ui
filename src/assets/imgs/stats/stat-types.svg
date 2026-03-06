@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="go1" x1="4" y1="4" x2="44" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDBA74"/>
+      <stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+  </defs>
+  <!-- 左上 -->
+  <rect x="5" y="5" width="16" height="16" rx="4" fill="url(#go1)" opacity="0.9"/>
+  <!-- 右上 -->
+  <rect x="27" y="5" width="16" height="16" rx="4" fill="url(#go1)" opacity="0.65"/>
+  <!-- 左下 -->
+  <rect x="5" y="27" width="16" height="16" rx="4" fill="url(#go1)" opacity="0.65"/>
+  <!-- 右下 -->
+  <rect x="27" y="27" width="16" height="16" rx="4" fill="url(#go1)" opacity="0.45"/>
+  <!-- 高光 -->
+  <rect x="7" y="7" width="8" height="3" rx="1.5" fill="#fff" opacity="0.35"/>
+  <rect x="29" y="7" width="8" height="3" rx="1.5" fill="#fff" opacity="0.25"/>
+</svg>

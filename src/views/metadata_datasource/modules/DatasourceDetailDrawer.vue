@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { NButton, NDrawer, NDrawerContent, NIcon, NSpin, NTabPane, NTabs, NTag } from 'naive-ui';
 import { fetchGetDatasource, fetchRefreshDatasource, fetchTestConnectionById } from '@/service/api/metadata/datasource';
 import { useAuth } from '@/hooks/business/auth';
+import { getDatasourceIcon } from '@/utils/datasourceIcon';
 import CatalogTab from './detail/CatalogTab.vue';
 import OverviewTab from './detail/OverviewTab.vue';
 import ProfilingTab from './detail/ProfilingTab.vue';
@@ -68,14 +69,7 @@ function handleEdit() {
   handleClose();
 }
 
-function getDbIcon(type?: string) {
-  if (type === 'mysql') return 'i-mdi-database-search';
-  if (type === 'hive') return 'i-mdi-bee';
-  if (type === 'oracle') return 'i-mdi-alpha-o-circle-outline';
-  if (type === 'clickhouse') return 'i-mdi-table-arrow-right';
-  if (type === 'postgresql' || type === 'postgres') return 'i-mdi-elephant';
-  return 'i-mdi-database';
-}
+// getDbIcon 已移除，改用统一的 getDatasourceIcon() 渲染品牌图标
 
 function getTypeTagType(type?: string): 'warning' | 'info' | 'success' | 'default' {
   if (type === 'mysql') return 'warning';
@@ -93,10 +87,12 @@ function getTypeTagType(type?: string): 'warning' | 'info' | 'success' | 'defaul
         <div class="w-full flex items-center justify-between gap-12px">
           <NSpin :show="detailLoading" :size="16" class="flex-1 overflow-hidden">
             <div class="min-h-28px flex items-center gap-12px">
-              <div class="h-34px w-34px flex-center flex-shrink-0 rounded-8px bg-gray-100 dark:bg-gray-800">
-                <NIcon size="18" class="text-gray-600 dark:text-gray-300">
-                  <div :class="getDbIcon(datasource?.datasourceType)" />
-                </NIcon>
+              <div class="h-34px w-34px flex-center flex-shrink-0 rounded-8px bg-gray-50 dark:bg-gray-800">
+                <img
+                  :src="getDatasourceIcon(datasource?.datasourceType)"
+                  :alt="datasource?.datasourceType"
+                  class="h-22px w-22px object-contain"
+                />
               </div>
               <div class="flex flex-col overflow-hidden leading-snug">
                 <span class="truncate text-14px text-gray-900 font-semibold dark:text-gray-100">
@@ -162,10 +158,7 @@ function getTypeTagType(type?: string): 'warning' | 'info' | 'success' | 'defaul
           </NTabPane>
 
           <NTabPane name="catalog" tab="数据目录">
-            <CatalogTab
-              v-if="activeTab === 'catalog'"
-              :datasource-id="props.datasourceId"
-            />
+            <CatalogTab v-if="activeTab === 'catalog'" :datasource-id="props.datasourceId" />
           </NTabPane>
 
           <NTabPane name="schemaChange" tab="架构变更">

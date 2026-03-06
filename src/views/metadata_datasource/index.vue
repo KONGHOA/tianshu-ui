@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { computed, h, onMounted, ref } from 'vue';
+import { computed, h, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   NButton,
@@ -27,8 +27,12 @@ import { fetchDeleteCategory, fetchGetCategoryTree } from '@/service/api/metadat
 import { useAuth } from '@/hooks/business/auth';
 import { defaultTransform, useNaivePaginatedTable, useTableOperate } from '@/hooks/common/table';
 import { useDict } from '@/hooks/business/dict';
-import SvgIcon from '@/components/custom/svg-icon.vue';
 import { getDatasourceIcon } from '@/utils/datasourceIcon';
+import statTotalIcon from '@/assets/imgs/stats/stat-total.svg';
+import statTypesIcon from '@/assets/imgs/stats/stat-types.svg';
+import statActiveIcon from '@/assets/imgs/stats/stat-active.svg';
+import statInactiveIcon from '@/assets/imgs/stats/stat-inactive.svg';
+import SvgIcon from '@/components/custom/svg-icon.vue';
 import DatasourceOperateDrawer from './modules/DatasourceOperateDrawer.vue';
 import CategoryOperateDrawer from './modules/CategoryOperateDrawer.vue';
 
@@ -297,13 +301,46 @@ async function loadStats() {
   }
 }
 
+// ---- 数字计数动画 ----
+function useAnimatedCount(source: () => number, duration = 600) {
+  const display = ref(0);
+  let raf = 0;
+  watch(
+    source,
+    newVal => {
+      cancelAnimationFrame(raf);
+      const start = display.value;
+      const diff = newVal - start;
+      if (diff === 0) return;
+      const startTime = performance.now();
+      function step(now: number) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // ease-out cubic
+        const ease = 1 - (1 - progress) ** 3;
+        display.value = Math.round(start + diff * ease);
+        if (progress < 1) raf = requestAnimationFrame(step);
+      }
+      raf = requestAnimationFrame(step);
+    },
+    { immediate: true }
+  );
+  return display;
+}
+
+const animTotal = useAnimatedCount(() => statsData.value.totalCount);
+const animTypes = useAnimatedCount(() => statsData.value.typeCount);
+const animActive = useAnimatedCount(() => statsData.value.activeCount);
+const animInactive = useAnimatedCount(() => statsData.value.inactiveCount);
+
 const statCards = computed(() => [
   {
     label: '数据源总量',
     value: statsData.value.totalCount,
-    icon: 'i-mdi-database',
-    bg: 'bg-blue-50 dark:bg-blue-900/20',
-    color: 'text-blue-500 dark:text-blue-400',
+    animValue: animTotal.value,
+    iconSrc: statTotalIcon,
+    gradient: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
+    gradientDark: 'linear-gradient(135deg, rgba(30,58,138,0.25) 0%, rgba(30,64,175,0.15) 100%)',
     border: 'border-t-blue-500',
     unit: '个',
     subText: '全部数据源'
@@ -311,9 +348,10 @@ const statCards = computed(() => [
   {
     label: '接入类型',
     value: statsData.value.typeCount,
-    icon: 'i-mdi-shape-outline',
-    bg: 'bg-orange-50 dark:bg-orange-900/20',
-    color: 'text-orange-500 dark:text-orange-400',
+    animValue: animTypes.value,
+    iconSrc: statTypesIcon,
+    gradient: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)',
+    gradientDark: 'linear-gradient(135deg, rgba(154,52,18,0.25) 0%, rgba(194,65,12,0.15) 100%)',
     border: 'border-t-orange-500',
     unit: '种',
     subText: '类型数量'
@@ -321,9 +359,10 @@ const statCards = computed(() => [
   {
     label: '运行中',
     value: statsData.value.activeCount,
-    icon: 'i-mdi-check-circle-outline',
-    bg: 'bg-green-50 dark:bg-green-900/20',
-    color: 'text-green-500 dark:text-green-400',
+    animValue: animActive.value,
+    iconSrc: statActiveIcon,
+    gradient: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
+    gradientDark: 'linear-gradient(135deg, rgba(6,78,59,0.25) 0%, rgba(4,120,87,0.15) 100%)',
     border: 'border-t-green-500',
     unit: '个',
     subText: statsData.value.totalCount
@@ -333,9 +372,10 @@ const statCards = computed(() => [
   {
     label: '已停用',
     value: statsData.value.inactiveCount,
-    icon: 'i-mdi-pause-circle-outline',
-    bg: 'bg-red-50 dark:bg-red-900/20',
-    color: 'text-red-500 dark:text-red-400',
+    animValue: animInactive.value,
+    iconSrc: statInactiveIcon,
+    gradient: 'linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%)',
+    gradientDark: 'linear-gradient(135deg, rgba(127,29,29,0.25) 0%, rgba(153,27,27,0.15) 100%)',
     border: 'border-t-red-500',
     unit: '个',
     subText: statsData.value.totalCount
@@ -379,23 +419,30 @@ onMounted(() => {
     <NGrid :x-gap="16" :y-gap="16" :cols="4" responsive="screen">
       <NGridItem v-for="stat in statCards" :key="stat.label">
         <div
-          class="group relative flex items-center gap-14px overflow-hidden border border-t-2 border-gray-200 rounded-10px bg-white px-16px py-12px shadow-sm transition-all dark:border-gray-800 dark:bg-[#18181c] hover:shadow-md hover:-translate-y-0.5"
+          class="stat-card group relative flex items-center gap-16px overflow-hidden border border-t-2 border-gray-200 rounded-12px bg-white px-18px py-14px shadow-sm dark:border-gray-800 dark:bg-[#18181c]"
           :class="stat.border"
         >
+          <!-- 背景水印图标 -->
+          <img
+            :src="stat.iconSrc"
+            :alt="stat.label"
+            class="stat-card-watermark absolute h-72px w-72px -right-8px -top-8px"
+          />
+          <!-- 渐变图标容器 -->
           <div
-            class="absolute opacity-8 transition-transform -right-6px -top-6px group-hover:scale-110"
-            :class="stat.color"
+            class="stat-card-icon relative z-10 h-44px w-44px flex-center flex-shrink-0 rounded-12px shadow-sm"
+            :style="{ background: stat.gradient }"
           >
-            <NIcon size="64"><div :class="stat.icon" /></NIcon>
+            <img :src="stat.iconSrc" :alt="stat.label" class="h-28px w-28px object-contain" />
           </div>
-          <div class="relative z-10 h-36px w-36px flex-center flex-shrink-0 rounded-8px" :class="[stat.bg, stat.color]">
-            <NIcon size="20"><div :class="stat.icon" /></NIcon>
-          </div>
+          <!-- 数据区域 -->
           <div class="relative z-10 flex flex-col gap-2px">
             <span class="text-12px text-gray-400 font-medium leading-tight dark:text-gray-500">{{ stat.label }}</span>
             <div class="flex items-baseline gap-4px">
-              <span class="text-22px text-gray-800 font-bold leading-none tracking-tight dark:text-gray-100">
-                {{ stat.value }}
+              <span
+                class="stat-card-number text-24px text-gray-800 font-bold leading-none tracking-tight dark:text-gray-100"
+              >
+                {{ stat.animValue }}
               </span>
               <span class="text-11px text-gray-400">{{ stat.unit }}</span>
             </div>
@@ -655,6 +702,46 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ---- 统计卡片微交互 ---- */
+.stat-card {
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 8px 24px -4px rgba(0, 0, 0, 0.08),
+    0 2px 6px -1px rgba(0, 0, 0, 0.04);
+}
+
+.stat-card-watermark {
+  opacity: 0.06;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stat-card:hover .stat-card-watermark {
+  opacity: 0.12;
+  transform: scale(1.15) rotate(6deg);
+}
+
+.stat-card-icon {
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stat-card:hover .stat-card-icon {
+  transform: scale(1.08);
+  box-shadow:
+    0 4px 12px -2px rgba(0, 0, 0, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.stat-card-number {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 暗色模式渐变覆盖 */
+:root.dark .stat-card-icon {
+  filter: brightness(0.85) saturate(1.2);
+}
+
+/* ---- 原有样式 ---- */
 :deep(.sider-layout-card-content) {
   overflow: hidden !important;
   scrollbar-width: none;
