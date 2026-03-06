@@ -74,10 +74,16 @@ const datasourceActiveTab = ref('databases');
 const schemaActiveTab = ref('tables');
 
 // ─── 工具函数 ─────────────────────────────────────────────────
+const propsCache = new Map<string, Record<string, unknown>>();
+
 function parseProps(json: string | undefined): Record<string, unknown> {
   if (!json) return {};
+  if (propsCache.has(json)) return propsCache.get(json)!;
   try {
-    return JSON.parse(json);
+    const parsed = JSON.parse(json);
+    if (propsCache.size > 5000) propsCache.clear();
+    propsCache.set(json, parsed);
+    return parsed;
   } catch {
     return {};
   }
@@ -153,17 +159,9 @@ async function loadTables() {
   if (!changeRes.error) dbChanges.value = changeRes.data?.rows ?? [];
   listLoading.value = false;
 
-  // 异步批量获取每张表的字段数量（不阻塞表列表展示）
-  if (tables.value.length) {
-    const counts = new Map<string, number>();
-    const results = await Promise.all(
-      tables.value.map(t => fetchGetColumns(t.uuid).then(r => ({ uuid: t.uuid, data: r })))
-    );
-    for (const r of results) {
-      if (!r.data.error) counts.set(r.uuid, r.data.data?.length ?? 0);
-    }
-    tableColumnCounts.value = counts;
-  }
+  // 异步批量获取每张表的字段数量已移除，避免触发表级10s接口超时
+  // 后续若需字段数应由后端在 getTables 原生接口中直接合并返回
+  // tableColumnCounts.value = new Map<string, number>();
 }
 
 async function loadColumns() {
@@ -297,13 +295,13 @@ const filteredTables = computed(() =>
   tables.value.filter(t => !tableSearch.value || t.displayName.toLowerCase().includes(tableSearch.value.toLowerCase()))
 );
 
-const sortedColumns = computed(() =>
-  [...columns.value].sort((a, b) => {
-    const pa = (parseProps(a.properties).ordinalPosition as number) ?? 999;
-    const pb = (parseProps(b.properties).ordinalPosition as number) ?? 999;
-    return pa - pb;
-  })
-);
+const sortedColumns = computed(() => {
+  const mapped = columns.value.map(col => ({
+    col,
+    pos: (parseProps(col.properties).ordinalPosition as number) ?? 999
+  }));
+  return mapped.sort((a, b) => a.pos - b.pos).map(item => item.col);
+});
 
 // ─── 通用分页配置 ────────────────────────────────────────────────
 const paginationProps = {
