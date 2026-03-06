@@ -256,9 +256,11 @@ async function handleDelete(datasourceId: CommonType.IdType) {
 }
 
 async function handleTestConnection(datasourceId: CommonType.IdType) {
-  const { error } = await fetchTestConnectionById(datasourceId);
-  if (!error) {
+  const { error, data: testData } = await fetchTestConnectionById(datasourceId);
+  if (!error && testData === true) {
     window.$message?.success('连接成功');
+  } else {
+    window.$message?.error('连接失败，请检查配置');
   }
 }
 

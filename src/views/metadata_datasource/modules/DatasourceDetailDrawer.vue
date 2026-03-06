@@ -50,8 +50,12 @@ function handleClose() {
 
 async function handleTestConnection() {
   if (!props.datasourceId) return;
-  const { error } = await fetchTestConnectionById(props.datasourceId);
-  if (!error) window.$message?.success('连接成功');
+  const { error, data } = await fetchTestConnectionById(props.datasourceId);
+  if (!error && data === true) {
+    window.$message?.success('连接成功');
+  } else {
+    window.$message?.error('连接失败');
+  }
 }
 
 async function handleRefresh() {

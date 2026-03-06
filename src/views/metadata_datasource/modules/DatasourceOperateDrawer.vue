@@ -295,10 +295,11 @@ async function handleTestConnection() {
   testStatus.value = 'testing';
   const testModel = jsonClone(model.value);
   testModel.connParams = JSON.stringify(connModel.value);
-  const { error } = await fetchTestConnection(testModel);
-  testStatus.value = error ? 'fail' : 'success';
+  const { error, data } = await fetchTestConnection(testModel);
+  const success = !error && data === true;
+  testStatus.value = success ? 'success' : 'fail';
   testLoading.value = false;
-  if (!error) window.$message?.success('连接测试通过');
+  if (success) window.$message?.success('连接测试通过');
   else window.$message?.error('连接失败，请检查配置');
 }
 
