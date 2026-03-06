@@ -118,7 +118,7 @@ declare namespace Api {
       parentUuid: string;
       entityUuid: string;
       datasourceId: CommonType.IdType;
-      entityLevel: 'database' | 'table' | 'column';
+      entityLevel: 'database' | 'schema' | 'table' | 'column';
       changeType: string;
       databaseName: string;
       tableName: string;

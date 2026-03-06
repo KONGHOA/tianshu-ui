@@ -14,7 +14,7 @@ import {
   NText
 } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
-import { fetchGetColumns, fetchGetDatabases, fetchGetTables } from '@/service/api/metadata/catalog';
+import { fetchGetColumns, fetchGetDatabases, fetchGetSchemas, fetchGetTables } from '@/service/api/metadata/catalog';
 
 interface Props {
   datasourceId: CommonType.IdType | null;
@@ -28,10 +28,14 @@ type ColumnEntry = Api.Metadata.EntityInstance;
 // 数据库列表
 const dbLoading = ref(false);
 const databases = ref<Api.Metadata.EntityInstance[]>([]);
+const expandedDbNames = ref<string[]>([]);
 
-// 每个数据库对应的表（按 uuid 索引）
+// 三层架构：schema 列表（按 db uuid 索引）
+const schemaMap = ref<Record<string, { loading: boolean; data: Api.Metadata.EntityInstance[] }>>({});
+const expandedSchemaNames = ref<string[]>([]);
+
+// 表列表（按 schemaUuid 索引）
 const tableMap = ref<Record<string, { loading: boolean; data: TableEntry[] }>>({});
-const expandedNames = ref<string[]>([]);
 
 // 列弹窗
 const columnModalVisible = ref(false);
@@ -39,7 +43,7 @@ const columnModalTitle = ref('');
 const columnLoading = ref(false);
 const columnData = ref<ColumnEntry[]>([]);
 
-// 表名搜索（作用于所有已展开数据库的表）
+// 表名搜索
 const tableSearch = ref('');
 
 async function loadDatabases() {
@@ -51,14 +55,27 @@ async function loadDatabases() {
   dbLoading.value = false;
 }
 
-async function loadTables(dbUuid: string) {
-  if (tableMap.value[dbUuid]) return; // 已加载，跳过
-  tableMap.value[dbUuid] = { loading: true, data: [] };
-  const { data, error } = await fetchGetTables(dbUuid);
-  tableMap.value[dbUuid] = { loading: false, data: error ? [] : (data ?? []) };
+async function loadSchemas(dbUuid: string) {
+  if (schemaMap.value[dbUuid]) return;
+  schemaMap.value[dbUuid] = { loading: true, data: [] };
+  const { data, error } = await fetchGetSchemas(dbUuid);
+  schemaMap.value[dbUuid] = { loading: false, data: error ? [] : (data ?? []) };
 }
 
-watch(expandedNames, (next, prev) => {
+async function loadTables(parentUuid: string) {
+  if (tableMap.value[parentUuid]) return;
+  tableMap.value[parentUuid] = { loading: true, data: [] };
+  const { data, error } = await fetchGetTables(parentUuid);
+  tableMap.value[parentUuid] = { loading: false, data: error ? [] : (data ?? []) };
+}
+
+// 展开 database → 加载 schema
+watch(expandedDbNames, (next, prev) => {
+  next.filter(n => !prev.includes(n)).forEach(uuid => loadSchemas(uuid));
+});
+
+// 三层：展开 schema → 加载表
+watch(expandedSchemaNames, (next, prev) => {
   next.filter(n => !prev.includes(n)).forEach(uuid => loadTables(uuid));
 });
 
@@ -67,8 +84,10 @@ watch(
   () => props.datasourceId,
   () => {
     databases.value = [];
+    schemaMap.value = {};
     tableMap.value = {};
-    expandedNames.value = [];
+    expandedDbNames.value = [];
+    expandedSchemaNames.value = [];
     tableSearch.value = '';
     loadDatabases();
   }
@@ -76,8 +95,8 @@ watch(
 
 onMounted(loadDatabases);
 
-function filteredTables(dbUuid: string): TableEntry[] {
-  const tables = tableMap.value[dbUuid]?.data ?? [];
+function filteredTables(parentUuid: string): TableEntry[] {
+  const tables = tableMap.value[parentUuid]?.data ?? [];
   const q = tableSearch.value.trim().toLowerCase();
   if (!q) return tables;
   return tables.filter(
@@ -176,7 +195,7 @@ const columnTableColumns: DataTableColumns<ColumnEntry> = [
       <NSpin :show="dbLoading" class="min-h-120px">
         <NEmpty v-if="!dbLoading && databases.length === 0" description="暂无数据库，请先刷新数据源" class="py-40px" />
 
-        <NCollapse v-else v-model:expanded-names="expandedNames" accordion class="p-4px">
+        <NCollapse v-else v-model:expanded-names="expandedDbNames" accordion class="p-4px">
           <NCollapseItem v-for="db in databases" :key="db.uuid" :name="db.uuid">
             <template #header>
               <div class="flex items-center gap-8px">
@@ -184,29 +203,57 @@ const columnTableColumns: DataTableColumns<ColumnEntry> = [
                   <div class="i-mdi-database-outline" />
                 </NIcon>
                 <span class="text-13px font-medium">{{ db.displayName || db.fullyQualifiedName }}</span>
-                <NTag v-if="tableMap[db.uuid]?.data.length" size="tiny" :bordered="false" class="ml-4px">
-                  {{ tableMap[db.uuid].data.length }} 张表
-                </NTag>
               </div>
             </template>
 
             <div class="px-4px py-8px">
-              <NSpin :show="tableMap[db.uuid]?.loading" class="min-h-60px">
+              <!-- database → schema → table（统一三层架构） -->
+              <NSpin :show="schemaMap[db.uuid]?.loading" class="min-h-60px">
                 <NEmpty
-                  v-if="!tableMap[db.uuid]?.loading && filteredTables(db.uuid).length === 0"
-                  :description="tableSearch ? '无匹配结果' : '暂无表数据'"
+                  v-if="!schemaMap[db.uuid]?.loading && !schemaMap[db.uuid]?.data.length"
+                  description="暂无 Schema 数据"
                   size="small"
                   class="py-20px"
                 />
-                <NDataTable
-                  v-else
-                  :data="filteredTables(db.uuid)"
-                  :columns="tableColumns"
-                  :bordered="false"
-                  size="small"
-                  :pagination="filteredTables(db.uuid).length > 10 ? { pageSize: 10, simple: true } : false"
-                  row-class-name="hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                />
+                <NCollapse v-else v-model:expanded-names="expandedSchemaNames" class="pl-4px">
+                  <NCollapseItem
+                    v-for="schema in schemaMap[db.uuid]?.data ?? []"
+                    :key="schema.uuid"
+                    :name="schema.uuid"
+                  >
+                    <template #header>
+                      <div class="flex items-center gap-8px">
+                        <NIcon size="14" class="flex-shrink-0 text-purple-400">
+                          <div class="i-mdi-layers-outline" />
+                        </NIcon>
+                        <span class="text-13px">{{ schema.displayName || schema.fullyQualifiedName }}</span>
+                        <NTag v-if="tableMap[schema.uuid]?.data.length" size="tiny" :bordered="false" class="ml-4px">
+                          {{ tableMap[schema.uuid].data.length }} 张表
+                        </NTag>
+                      </div>
+                    </template>
+
+                    <div class="px-4px py-8px">
+                      <NSpin :show="tableMap[schema.uuid]?.loading" class="min-h-60px">
+                        <NEmpty
+                          v-if="!tableMap[schema.uuid]?.loading && filteredTables(schema.uuid).length === 0"
+                          :description="tableSearch ? '无匹配结果' : '暂无表数据'"
+                          size="small"
+                          class="py-20px"
+                        />
+                        <NDataTable
+                          v-else
+                          :data="filteredTables(schema.uuid)"
+                          :columns="tableColumns"
+                          :bordered="false"
+                          size="small"
+                          :pagination="filteredTables(schema.uuid).length > 10 ? { pageSize: 10, simple: true } : false"
+                          row-class-name="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                        />
+                      </NSpin>
+                    </div>
+                  </NCollapseItem>
+                </NCollapse>
               </NSpin>
             </div>
           </NCollapseItem>

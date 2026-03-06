@@ -28,6 +28,7 @@ import { useAuth } from '@/hooks/business/auth';
 import { defaultTransform, useNaivePaginatedTable, useTableOperate } from '@/hooks/common/table';
 import { useDict } from '@/hooks/business/dict';
 import SvgIcon from '@/components/custom/svg-icon.vue';
+import { getDatasourceIcon } from '@/utils/datasourceIcon';
 import DatasourceOperateDrawer from './modules/DatasourceOperateDrawer.vue';
 import CategoryOperateDrawer from './modules/CategoryOperateDrawer.vue';
 
@@ -519,16 +520,11 @@ onMounted(() => {
                   >
                     <div class="max-w-[calc(100%-70px)] flex items-center gap-10px">
                       <div class="h-32px w-32px flex-center flex-shrink-0 rounded-6px bg-gray-50 dark:bg-gray-800">
-                        <NIcon v-if="item.datasourceType === 'mysql'" size="20" class="text-gray-500">
-                          <icon-mdi-database-search />
-                        </NIcon>
-                        <NIcon v-else-if="item.datasourceType === 'hive'" size="20" class="text-gray-500">
-                          <icon-mdi-bee />
-                        </NIcon>
-                        <NIcon v-else-if="item.datasourceType === 'vertica'" size="20" class="text-gray-500">
-                          <icon-mdi-grid />
-                        </NIcon>
-                        <NIcon v-else size="20" class="text-gray-500"><icon-mdi-database /></NIcon>
+                        <img
+                          :src="getDatasourceIcon(item.datasourceType)"
+                          :alt="item.datasourceType"
+                          class="h-22px w-22px object-contain"
+                        />
                       </div>
                       <div class="flex flex-col overflow-hidden">
                         <span

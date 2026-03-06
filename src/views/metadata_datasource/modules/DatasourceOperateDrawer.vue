@@ -14,6 +14,7 @@ import {
   NTreeSelect
 } from 'naive-ui';
 import { jsonClone } from '@sa/utils';
+import { getDatasourceIcon } from '@/utils/datasourceIcon';
 import { fetchCreateDatasource, fetchTestConnection, fetchUpdateDatasource } from '@/service/api/metadata/datasource';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { $t } from '@/locales';
@@ -37,51 +38,17 @@ const currentStep = ref(1);
 
 // ────────────── 数据源类型定义 ──────────────
 const SERVICE_TYPES = [
-  {
-    key: 'mysql',
-    label: 'MySQL',
-    icon: 'i-mdi-database-search',
-    port: 3306,
-    color: '#F97316',
-    bgColor: '#FFF7ED',
-    desc: '开源关系型数据库'
-  },
-  {
-    key: 'postgresql',
-    label: 'PostgreSQL',
-    icon: 'i-mdi-elephant',
-    port: 5432,
-    color: '#2563EB',
-    bgColor: '#EFF6FF',
-    desc: '对象关系型数据库'
-  },
-  {
-    key: 'oracle',
-    label: 'Oracle',
-    icon: 'i-mdi-alpha-o-circle-outline',
-    port: 1521,
-    color: '#DC2626',
-    bgColor: '#FEF2F2',
-    desc: '企业级关系型数据库'
-  },
-  {
-    key: 'clickhouse',
-    label: 'ClickHouse',
-    icon: 'i-mdi-table-arrow-right',
-    port: 8123,
-    color: '#D97706',
-    bgColor: '#FFFBEB',
-    desc: '列式 OLAP 分析数据库'
-  },
-  {
-    key: 'hive',
-    label: 'Hive',
-    icon: 'i-mdi-bee',
-    port: 10000,
-    color: '#CA8A04',
-    bgColor: '#FEFCE8',
-    desc: 'Apache Hive 大数据仓库'
-  }
+  { key: 'mysql', label: 'MySQL', port: 3306, desc: '开源关系型数据库' },
+  { key: 'postgresql', label: 'PostgreSQL', port: 5432, desc: '对象关系型数据库' },
+  { key: 'oracle', label: 'Oracle', port: 1521, desc: '企业级关系型数据库' },
+  { key: 'clickhouse', label: 'ClickHouse', port: 8123, desc: '列式 OLAP 分析数据库' },
+  { key: 'hive', label: 'Hive', port: 10000, desc: 'Apache Hive 大数据仓库' },
+  { key: 'doris', label: 'Doris', port: 9030, desc: '实时分析型 MPP 数据库' },
+  { key: 'greenplum', label: 'Greenplum', port: 5432, desc: '大规模并行处理数据库' },
+  { key: 'mariadb', label: 'MariaDB', port: 3306, desc: 'MySQL 分支关系型数据库' },
+  { key: 'sqlite', label: 'SQLite', port: 0, desc: '轻量级嵌入式数据库' },
+  { key: 'starrocks', label: 'StarRocks', port: 9030, desc: '高性能实时分析数据库' },
+  { key: 'vertica', label: 'Vertica', port: 5433, desc: '列式分析型数据库' }
 ] as const;
 
 type ServiceKey = (typeof SERVICE_TYPES)[number]['key'];
@@ -186,6 +153,63 @@ const connectionHelp: Record<ServiceKey, { title: string; items: { icon: string;
         label: 'Kerberos',
         text: '启用后需提供 principal、keytab 路径；服务端 principal 写入 JDBC URL'
       }
+    ]
+  },
+  doris: {
+    title: 'Doris 连接说明',
+    items: [
+      { icon: 'i-mdi-server-network', label: '主机地址', text: 'Doris FE 节点的 IP 地址或域名' },
+      { icon: 'i-mdi-numeric', label: '端口', text: 'MySQL 协议端口默认 9030' },
+      { icon: 'i-mdi-database', label: '数据库', text: '可选，填写后仅同步该数据库' },
+      { icon: 'i-mdi-account-key', label: '用户名', text: '默认用户名为 root' },
+      { icon: 'i-mdi-lock-outline', label: '密码', text: '密码将加密存储' }
+    ]
+  },
+  greenplum: {
+    title: 'Greenplum 连接说明',
+    items: [
+      { icon: 'i-mdi-server-network', label: '主机地址', text: 'Greenplum Master 节点的 IP 或域名' },
+      { icon: 'i-mdi-numeric', label: '端口', text: '默认 5432，与 PostgreSQL 兼容' },
+      { icon: 'i-mdi-database', label: '数据库', text: '需指定具体数据库名称' },
+      { icon: 'i-mdi-account-key', label: '用户名', text: '需要对应 schema 的访问权限' },
+      { icon: 'i-mdi-lock-outline', label: '密码', text: '密码将加密存储' }
+    ]
+  },
+  mariadb: {
+    title: 'MariaDB 连接说明',
+    items: [
+      { icon: 'i-mdi-server-network', label: '主机地址', text: 'MariaDB 服务器的 IP 地址或域名' },
+      { icon: 'i-mdi-numeric', label: '端口', text: '默认 3306，与 MySQL 相同' },
+      { icon: 'i-mdi-database', label: '数据库', text: '可选，填写后仅同步该数据库' },
+      { icon: 'i-mdi-account-key', label: '用户名', text: '需要 SELECT 权限；推荐使用只读账号' },
+      { icon: 'i-mdi-lock-outline', label: '密码', text: '密码将加密存储' }
+    ]
+  },
+  sqlite: {
+    title: 'SQLite 连接说明',
+    items: [
+      { icon: 'i-mdi-file-outline', label: '文件路径', text: 'SQLite 数据库文件的绝对路径，如 /data/app.db' },
+      { icon: 'i-mdi-information-outline', label: '说明', text: 'SQLite 为嵌入式数据库，无需主机、端口和认证信息' }
+    ]
+  },
+  starrocks: {
+    title: 'StarRocks 连接说明',
+    items: [
+      { icon: 'i-mdi-server-network', label: '主机地址', text: 'StarRocks FE 节点的 IP 地址或域名' },
+      { icon: 'i-mdi-numeric', label: '端口', text: 'MySQL 协议端口默认 9030' },
+      { icon: 'i-mdi-database', label: '数据库', text: '可选，填写后仅同步该数据库' },
+      { icon: 'i-mdi-account-key', label: '用户名', text: '默认用户名为 root' },
+      { icon: 'i-mdi-lock-outline', label: '密码', text: '密码将加密存储' }
+    ]
+  },
+  vertica: {
+    title: 'Vertica 连接说明',
+    items: [
+      { icon: 'i-mdi-server-network', label: '主机地址', text: 'Vertica 服务器的 IP 地址或域名' },
+      { icon: 'i-mdi-numeric', label: '端口', text: '默认 5433' },
+      { icon: 'i-mdi-database', label: '数据库', text: '需指定具体数据库名称' },
+      { icon: 'i-mdi-account-key', label: '用户名', text: '需要对应 schema 的查询权限' },
+      { icon: 'i-mdi-lock-outline', label: '密码', text: '密码将加密存储' }
     ]
   }
 };
@@ -313,13 +337,12 @@ watch(visible, v => {
         <div class="w-full flex flex-col">
           <!-- 标题行 -->
           <div class="flex items-center gap-10px">
-            <div
-              class="h-30px w-30px flex-center flex-shrink-0 rounded-8px"
-              :style="{ background: selectedTypeInfo.bgColor }"
-            >
-              <NIcon :size="16" :style="{ color: selectedTypeInfo.color }">
-                <div :class="selectedTypeInfo.icon" />
-              </NIcon>
+            <div class="h-30px w-30px flex-center flex-shrink-0 rounded-8px bg-gray-50 dark:bg-gray-800">
+              <img
+                :src="getDatasourceIcon(model.datasourceType)"
+                :alt="selectedTypeInfo.label"
+                class="h-20px w-20px object-contain"
+              />
             </div>
             <span class="text-15px text-gray-900 font-semibold dark:text-gray-100">
               {{ drawerTitle }}
@@ -398,10 +421,12 @@ watch(visible, v => {
               </div>
 
               <!-- 图标 -->
-              <div class="mb-12px h-52px w-52px flex-center rounded-12px" :style="{ background: type.bgColor }">
-                <NIcon :size="28" :style="{ color: type.color }">
-                  <div :class="type.icon" />
-                </NIcon>
+              <div class="mb-12px h-52px w-52px flex-center rounded-12px bg-gray-50 dark:bg-gray-800">
+                <img
+                  :src="getDatasourceIcon(type.key)"
+                  :alt="type.label"
+                  class="h-36px w-36px object-contain"
+                />
               </div>
 
               <!-- 名称 -->
@@ -675,13 +700,12 @@ watch(visible, v => {
           <!-- 右侧：帮助面板 -->
           <div class="w-240px flex-shrink-0 overflow-y-auto bg-gray-50/80 px-16px py-16px dark:bg-[#18181c]">
             <div class="mb-12px flex items-center gap-8px">
-              <div
-                class="h-24px w-24px flex-center flex-shrink-0 rounded-6px"
-                :style="{ background: selectedTypeInfo.bgColor }"
-              >
-                <NIcon :size="13" :style="{ color: selectedTypeInfo.color }">
-                  <div :class="selectedTypeInfo.icon" />
-                </NIcon>
+              <div class="h-24px w-24px flex-center flex-shrink-0 rounded-6px bg-gray-50 dark:bg-gray-800">
+                <img
+                  :src="getDatasourceIcon(model.datasourceType)"
+                  :alt="selectedTypeInfo.label"
+                  class="h-16px w-16px object-contain"
+                />
               </div>
               <span class="text-12px text-gray-700 font-semibold dark:text-gray-200">
                 {{ currentHelp.title }}

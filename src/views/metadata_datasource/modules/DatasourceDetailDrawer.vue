@@ -162,7 +162,10 @@ function getTypeTagType(type?: string): 'warning' | 'info' | 'success' | 'defaul
           </NTabPane>
 
           <NTabPane name="catalog" tab="数据目录">
-            <CatalogTab v-if="activeTab === 'catalog'" :datasource-id="props.datasourceId" />
+            <CatalogTab
+              v-if="activeTab === 'catalog'"
+              :datasource-id="props.datasourceId"
+            />
           </NTabPane>
 
           <NTabPane name="schemaChange" tab="架构变更">

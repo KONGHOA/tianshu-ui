@@ -25,6 +25,7 @@ import {
 import { fetchGetColumns, fetchGetDatabases, fetchGetTables } from '@/service/api/metadata/catalog';
 import { fetchGetSchemaChangeList } from '@/service/api/metadata/schema-change';
 import { useAuth } from '@/hooks/business/auth';
+import { getDatasourceIcon } from '@/utils/datasourceIcon';
 import ProfileTab from './modules/ProfileTab.vue';
 
 defineOptions({ name: 'MetadataDatasourceExplorer' });
@@ -74,25 +75,7 @@ function parseProps(json: string | undefined): Record<string, unknown> {
   }
 }
 
-function getDbTypeIcon(type?: string) {
-  const map: Record<string, string> = {
-    mysql: 'i-mdi-database-search',
-    postgresql: 'i-mdi-elephant',
-    oracle: 'i-mdi-alpha-o-circle-outline',
-    clickhouse: 'i-mdi-table-arrow-right'
-  };
-  return map[type?.toLowerCase() ?? ''] ?? 'i-mdi-database';
-}
 
-function getDbTypeColor(type?: string) {
-  const map: Record<string, string> = {
-    mysql: '#F97316',
-    postgresql: '#2563EB',
-    oracle: '#DC2626',
-    clickhouse: '#D97706'
-  };
-  return map[type?.toLowerCase() ?? ''] ?? '#6B7280';
-}
 
 // ─── 数据加载 ─────────────────────────────────────────────────
 async function loadDatasource() {
@@ -459,15 +442,12 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
         <div class="flex items-center justify-between gap-16px">
           <!-- 左侧：图标 + 名称 + 标签 -->
           <div class="flex items-center gap-14px">
-            <!-- eslint-disable-next-line vue/no-static-inline-styles -->
-            <div
-              class="h-44px w-44px flex-center flex-shrink-0 rounded-10px"
-              :style="{ background: getDbTypeColor(datasource?.datasourceType) + '20' }"
-            >
-              <!-- eslint-disable-next-line vue/no-static-inline-styles -->
-              <NIcon :size="24" :style="{ color: getDbTypeColor(datasource?.datasourceType) }">
-                <div :class="getDbTypeIcon(datasource?.datasourceType)" />
-              </NIcon>
+            <div class="h-44px w-44px flex-center flex-shrink-0 rounded-10px bg-gray-50 dark:bg-gray-800">
+              <img
+                :src="getDatasourceIcon(datasource?.datasourceType)"
+                :alt="datasource?.datasourceType"
+                class="h-32px w-32px object-contain"
+              />
             </div>
             <div class="flex flex-col gap-4px">
               <div class="flex items-center gap-8px">
