@@ -25,6 +25,9 @@ declare module "@elegant-router/types" {
     "404": "/404";
     "500": "/500";
     "about": "/about";
+    "dataingest": "/dataingest";
+    "dataingest_instance": "/dataingest/instance";
+    "dataingest_job": "/dataingest/job";
     "demo": "/demo";
     "demo_demo": "/demo/demo";
     "demo_tree": "/demo/tree";
@@ -100,6 +103,7 @@ declare module "@elegant-router/types" {
     | "404"
     | "500"
     | "about"
+    | "dataingest"
     | "demo"
     | "home"
     | "iframe-page"
@@ -135,6 +139,8 @@ declare module "@elegant-router/types" {
     | "social-callback"
     | "user-center"
     | "about"
+    | "dataingest_instance"
+    | "dataingest_job"
     | "demo_demo"
     | "demo_tree"
     | "home"

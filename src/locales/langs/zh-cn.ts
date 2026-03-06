@@ -304,6 +304,9 @@ const local: App.I18n.Schema = {
     metadata_tag: '标签管理',
     'metadata_tag-category': '标签分类管理',
     'metadata_schema-change': 'Schema变更记录',
+    dataingest: '数据接入管理',
+    dataingest_job: '接入作业',
+    dataingest_instance: '执行历史',
     about: '关于'
   },
   menu: {

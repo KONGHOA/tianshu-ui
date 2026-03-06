@@ -51,6 +51,35 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'dataingest',
+    path: '/dataingest',
+    component: 'layout.base',
+    meta: {
+      title: 'dataingest',
+      i18nKey: 'route.dataingest'
+    },
+    children: [
+      {
+        name: 'dataingest_instance',
+        path: '/dataingest/instance',
+        component: 'view.dataingest_instance',
+        meta: {
+          title: 'dataingest_instance',
+          i18nKey: 'route.dataingest_instance'
+        }
+      },
+      {
+        name: 'dataingest_job',
+        path: '/dataingest/job',
+        component: 'view.dataingest_job',
+        meta: {
+          title: 'dataingest_job',
+          i18nKey: 'route.dataingest_job'
+        }
+      }
+    ]
+  },
+  {
     name: 'demo',
     path: '/demo',
     component: 'layout.base',

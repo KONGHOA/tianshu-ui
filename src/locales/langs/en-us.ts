@@ -308,6 +308,9 @@ const local: App.I18n.Schema = {
     metadata_tag: 'Tag Management',
     'metadata_tag-category': 'Tag Category Management',
     'metadata_schema-change': 'Schema Change History',
+    dataingest: 'Data Ingest',
+    dataingest_job: 'Ingest Jobs',
+    dataingest_instance: 'Execution History',
     about: 'About'
   },
   menu: {

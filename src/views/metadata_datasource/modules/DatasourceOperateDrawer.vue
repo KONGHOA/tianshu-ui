@@ -213,7 +213,7 @@ function handleUpdateModelWhenEdit() {
   model.value = createDefaultModel();
   connModel.value = { host: '', port: 3306, database: '', username: '', password: '', properties: {} };
   testStatus.value = 'idle';
-  currentStep.value = 1;
+  currentStep.value = isEdit.value ? 2 : 1;
 
   if (isEdit.value && props.rowData) {
     Object.assign(model.value, jsonClone(props.rowData));
@@ -719,7 +719,7 @@ watch(visible, v => {
 
           <!-- 右侧导航 -->
           <NSpace :size="12">
-            <NButton v-if="currentStep > 1" @click="goBack">
+            <NButton v-if="currentStep > (isEdit ? 2 : 1)" @click="goBack">
               <template #icon>
                 <NIcon><div class="i-mdi-arrow-left" /></NIcon>
               </template>
