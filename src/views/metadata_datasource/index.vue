@@ -383,6 +383,24 @@ function getTagType(type: string) {
   return 'default';
 }
 
+/** 品牌色图标背景 */
+function getIconBg(type?: string): string {
+  const map: Record<string, string> = {
+    mysql: 'bg-orange-50 dark:bg-orange-900/20',
+    postgresql: 'bg-blue-50 dark:bg-blue-900/20',
+    oracle: 'bg-red-50 dark:bg-red-900/20',
+    clickhouse: 'bg-yellow-50 dark:bg-yellow-900/20',
+    hive: 'bg-amber-50 dark:bg-amber-900/20',
+    doris: 'bg-indigo-50 dark:bg-indigo-900/20',
+    greenplum: 'bg-green-50 dark:bg-green-900/20',
+    mariadb: 'bg-sky-50 dark:bg-sky-900/20',
+    sqlite: 'bg-cyan-50 dark:bg-cyan-900/20',
+    starrocks: 'bg-violet-50 dark:bg-violet-900/20',
+    vertica: 'bg-teal-50 dark:bg-teal-900/20'
+  };
+  return map[type ?? ''] ?? 'bg-gray-50 dark:bg-gray-800';
+}
+
 function getStatusMeta(status?: string) {
   if (status === '0') {
     return {
@@ -554,10 +572,13 @@ onMounted(() => {
                 >
                   <!-- Card Header -->
                   <div
-                    class="flex items-center justify-between border-b border-gray-100 p-12px dark:border-gray-800/60"
+                    class="flex items-center justify-between border-b border-gray-100 px-14px py-12px dark:border-gray-800/60"
                   >
                     <div class="max-w-[calc(100%-70px)] flex items-center gap-10px">
-                      <div class="h-32px w-32px flex-center flex-shrink-0 rounded-6px bg-gray-50 dark:bg-gray-800">
+                      <div
+                        class="h-34px w-34px flex-center flex-shrink-0 rounded-8px"
+                        :class="getIconBg(item.datasourceType)"
+                      >
                         <img
                           :src="getDatasourceIcon(item.datasourceType)"
                           :alt="item.datasourceType"
@@ -566,19 +587,20 @@ onMounted(() => {
                       </div>
                       <div class="flex flex-col overflow-hidden">
                         <span
-                          class="truncate text-15px text-gray-800 font-bold dark:text-gray-100"
+                          class="truncate text-14px text-gray-800 font-semibold dark:text-gray-100"
                           :title="item.datasourceName"
                         >
                           {{ item.datasourceName }}
                         </span>
-                        <span class="truncate text-12px text-gray-400">ID: {{ item.datasourceId }}</span>
+                        <span class="truncate text-11px text-gray-400">ID: {{ item.datasourceId }}</span>
                       </div>
                     </div>
                     <NTag
                       :type="getTagType(item.datasourceType)"
                       size="small"
                       :bordered="false"
-                      class="rounded-4px font-medium"
+                      round
+                      class="text-11px font-medium"
                     >
                       {{ item.datasourceType?.toUpperCase() }}
                     </NTag>
@@ -657,7 +679,7 @@ onMounted(() => {
             <NEmpty v-else description="暂无数据源，请先新增或切换分类" class="h-full min-h-260px justify-center" />
           </div>
 
-          <div class="mt-20px flex justify-end">
+          <div class="mt-16px flex justify-end border-t border-gray-100 pt-14px dark:border-gray-800/50">
             <NPagination
               v-model:page="searchParams.pageNum!"
               v-model:page-size="searchParams.pageSize!"
