@@ -14,9 +14,9 @@ import {
   NTreeSelect
 } from 'naive-ui';
 import { jsonClone } from '@sa/utils';
-import { getDatasourceIcon } from '@/utils/datasourceIcon';
 import { fetchCreateDatasource, fetchTestConnection, fetchUpdateDatasource } from '@/service/api/metadata/datasource';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
+import { getDatasourceIcon } from '@/utils/datasourceIcon';
 import { $t } from '@/locales';
 import DictRadio from '@/components/custom/dict-radio.vue';
 
@@ -422,11 +422,7 @@ watch(visible, v => {
 
               <!-- 图标 -->
               <div class="mb-12px h-52px w-52px flex-center rounded-12px bg-gray-50 dark:bg-gray-800">
-                <img
-                  :src="getDatasourceIcon(type.key)"
-                  :alt="type.label"
-                  class="h-36px w-36px object-contain"
-                />
+                <img :src="getDatasourceIcon(type.key)" :alt="type.label" class="h-36px w-36px object-contain" />
               </div>
 
               <!-- 名称 -->

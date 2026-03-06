@@ -75,8 +75,6 @@ function parseProps(json: string | undefined): Record<string, unknown> {
   }
 }
 
-
-
 // ─── 数据加载 ─────────────────────────────────────────────────
 async function loadDatasource() {
   if (!datasourceId.value) return;

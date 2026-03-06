@@ -335,52 +335,44 @@ const animInactive = useAnimatedCount(() => statsData.value.inactiveCount);
 
 const statCards = computed(() => [
   {
-    label: '数据源总量',
+    label: '数据源总数',
     value: statsData.value.totalCount,
     animValue: animTotal.value,
     iconSrc: statTotalIcon,
     gradient: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
     gradientDark: 'linear-gradient(135deg, rgba(30,58,138,0.25) 0%, rgba(30,64,175,0.15) 100%)',
     border: 'border-t-blue-500',
-    unit: '个',
-    subText: '全部数据源'
+    unit: '个'
   },
   {
-    label: '接入类型',
+    label: '数据源类型',
     value: statsData.value.typeCount,
     animValue: animTypes.value,
     iconSrc: statTypesIcon,
     gradient: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)',
     gradientDark: 'linear-gradient(135deg, rgba(154,52,18,0.25) 0%, rgba(194,65,12,0.15) 100%)',
     border: 'border-t-orange-500',
-    unit: '种',
-    subText: '类型数量'
+    unit: '种'
   },
   {
-    label: '运行中',
+    label: '在线数量',
     value: statsData.value.activeCount,
     animValue: animActive.value,
     iconSrc: statActiveIcon,
     gradient: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)',
     gradientDark: 'linear-gradient(135deg, rgba(6,78,59,0.25) 0%, rgba(4,120,87,0.15) 100%)',
     border: 'border-t-green-500',
-    unit: '个',
-    subText: statsData.value.totalCount
-      ? `占比 ${Math.round((statsData.value.activeCount / statsData.value.totalCount) * 100)}%`
-      : '占比 0%'
+    unit: '个'
   },
   {
-    label: '已停用',
+    label: '离线数量',
     value: statsData.value.inactiveCount,
     animValue: animInactive.value,
     iconSrc: statInactiveIcon,
     gradient: 'linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%)',
     gradientDark: 'linear-gradient(135deg, rgba(127,29,29,0.25) 0%, rgba(153,27,27,0.15) 100%)',
     border: 'border-t-red-500',
-    unit: '个',
-    subText: statsData.value.totalCount
-      ? `占比 ${Math.round((statsData.value.inactiveCount / statsData.value.totalCount) * 100)}%`
-      : '占比 0%'
+    unit: '个'
   }
 ]);
 
@@ -419,7 +411,7 @@ onMounted(() => {
     <NGrid :x-gap="16" :y-gap="16" :cols="4" responsive="screen">
       <NGridItem v-for="stat in statCards" :key="stat.label">
         <div
-          class="stat-card group relative flex items-center gap-16px overflow-hidden border border-t-2 border-gray-200 rounded-12px bg-white px-18px py-14px shadow-sm dark:border-gray-800 dark:bg-[#18181c]"
+          class="stat-card group relative flex items-center gap-16px overflow-hidden border border-t-2 border-gray-200 rounded-12px bg-white px-18px py-20px shadow-sm dark:border-gray-800 dark:bg-[#18181c]"
           :class="stat.border"
         >
           <!-- 背景水印图标 -->
@@ -446,7 +438,6 @@ onMounted(() => {
               </span>
               <span class="text-11px text-gray-400">{{ stat.unit }}</span>
             </div>
-            <span class="mt-3px text-11px text-gray-400">{{ stat.subText }}</span>
           </div>
         </div>
       </NGridItem>

@@ -33,4 +33,3 @@ const iconMap: Record<string, string> = {
 export function getDatasourceIcon(type?: string | null): string {
   return iconMap[type?.toLowerCase() ?? ''] ?? iconGeneric;
 }
-
