@@ -133,6 +133,7 @@ declare namespace Api {
         datasourceId?: number | string;
         entityLevel?: string;
         databaseName?: string;
+        schemaName?: string;
         tableName?: string;
       } & Api.Common.CommonSearchParams
     >;
