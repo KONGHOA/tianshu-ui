@@ -262,6 +262,9 @@ async function handleTestConnection(datasourceId: CommonType.IdType) {
   } else {
     window.$message?.error('连接失败，请检查配置');
   }
+  // 刷新列表和统计以反映最新连接状态
+  getData();
+  loadStats();
 }
 
 async function handleRefresh(datasourceId: CommonType.IdType) {
@@ -404,17 +407,24 @@ function getIconBg(type?: string): string {
 }
 
 function getStatusMeta(status?: string) {
-  if (status === '0') {
+  if (status === '1') {
     return {
-      text: '正常',
+      text: '在线',
       dot: 'bg-green-500',
       textColor: 'text-green-600 dark:text-green-400'
     };
   }
+  if (status === '2') {
+    return {
+      text: '离线',
+      dot: 'bg-red-500',
+      textColor: 'text-red-600 dark:text-red-400'
+    };
+  }
   return {
-    text: '停用',
-    dot: 'bg-red-500',
-    textColor: 'text-red-600 dark:text-red-400'
+    text: '未检测',
+    dot: 'bg-gray-400',
+    textColor: 'text-gray-500 dark:text-gray-400'
   };
 }
 

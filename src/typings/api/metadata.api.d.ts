@@ -20,7 +20,10 @@ declare namespace Api {
       datasourceName: string;
       datasourceType: string;
       connParams: string;
+      /** 连接状态: '0'=未检测 '1'=在线 '2'=离线 */
       status: string;
+      /** 最近一次连接检测时间 */
+      lastCheckTime?: string;
       sourceOrgCode?: string;
       sourceOrgName?: string;
       sourceDept?: string;

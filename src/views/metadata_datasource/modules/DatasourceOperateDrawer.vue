@@ -20,7 +20,6 @@ import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { useDict } from '@/hooks/business/dict';
 import { getDatasourceIcon } from '@/utils/datasourceIcon';
 import { $t } from '@/locales';
-import DictRadio from '@/components/custom/dict-radio.vue';
 import DictSelect from '@/components/custom/dict-select.vue';
 
 defineOptions({ name: 'DatasourceOperateDrawer' });
@@ -77,7 +76,7 @@ function createDefaultModel(): Model {
     datasourceName: '',
     datasourceType: 'mysql',
     connParams: '{}',
-    status: '0',
+    status: null,
     sourceOrgCode: null,
     sourceOrgName: null,
     sourceDept: null,
@@ -560,10 +559,6 @@ watch(visible, v => {
                   placeholder="选择数据源分类（可选）"
                   clearable
                 />
-              </NFormItem>
-
-              <NFormItem label="状态" path="status">
-                <DictRadio v-model:value="model.status" dict-code="sys_normal_disable" />
               </NFormItem>
 
               <NFormItem label="备注" path="remark">
