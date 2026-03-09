@@ -12,6 +12,7 @@ export function useDict(dictType: string, immediate: boolean = true) {
   const data = ref<Api.System.DictData[]>([]);
   const record = ref<Record<string, string>>({});
   const options = ref<CommonType.Option[]>([]);
+  const loading = ref(false);
 
   async function getData() {
     const dicts = dictStore.getDict(dictType);
@@ -19,15 +20,21 @@ export function useDict(dictType: string, immediate: boolean = true) {
       data.value = dicts;
       return;
     }
-    const { data: dictData, error } = await fetchGetDictDataByType(dictType);
-    if (error) return;
-    dictData.forEach(dict => {
-      if (dict.dictLabel?.startsWith(`dict.${dictType}.`)) {
-        dict.dictLabel = $t(dict.dictLabel as App.I18n.I18nKey);
-      }
-    });
-    dictStore.setDict(dictType, dictData);
-    data.value = dictData;
+    loading.value = true;
+    try {
+      const { data: rawData, error } = await fetchGetDictDataByType(dictType);
+      if (error) return;
+      const dictData = rawData ?? [];
+      dictData.forEach(dict => {
+        if (dict.dictLabel?.startsWith(`dict.${dictType}.`)) {
+          dict.dictLabel = $t(dict.dictLabel as App.I18n.I18nKey);
+        }
+      });
+      dictStore.setDict(dictType, dictData);
+      data.value = dictData;
+    } finally {
+      loading.value = false;
+    }
   }
 
   async function getRecord() {
@@ -75,6 +82,7 @@ export function useDict(dictType: string, immediate: boolean = true) {
 
   return {
     data,
+    loading,
     record,
     options,
     getData,

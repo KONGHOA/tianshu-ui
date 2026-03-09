@@ -8,6 +8,7 @@ import {
   NIcon,
   NInput,
   NInputNumber,
+  NSelect,
   NSpace,
   NSwitch,
   NTag,
@@ -16,9 +17,11 @@ import {
 import { jsonClone } from '@sa/utils';
 import { fetchCreateDatasource, fetchTestConnection, fetchUpdateDatasource } from '@/service/api/metadata/datasource';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
+import { useDict } from '@/hooks/business/dict';
 import { getDatasourceIcon } from '@/utils/datasourceIcon';
 import { $t } from '@/locales';
 import DictRadio from '@/components/custom/dict-radio.vue';
+import DictSelect from '@/components/custom/dict-select.vue';
 
 defineOptions({ name: 'DatasourceOperateDrawer' });
 
@@ -75,9 +78,87 @@ function createDefaultModel(): Model {
     datasourceType: 'mysql',
     connParams: '{}',
     status: '0',
+    sourceOrgCode: null,
+    sourceOrgName: null,
+    sourceDept: null,
+    sourceType: null,
+    sourceSystem: null,
+    contactPerson: null,
+    contactPhone: null,
     remark: '',
     categoryId: null
   };
+}
+
+// ────────────── 级联字典 ──────────────
+const { data: orgData } = useDict('meta_source_org');
+const { data: deptData } = useDict('meta_source_dept');
+const { data: systemData } = useDict('meta_source_system');
+const { data: sourceTypeL2Data } = useDict('meta_source_type_l2');
+
+// 来源类型一级/二级中间态（不持久化）
+const sourceTypeL1 = ref<string | null>(null);
+const sourceTypeL2 = ref<string | null>(null);
+
+// 来源部门：按来源单位代码过滤
+const filteredDeptOptions = computed(() => {
+  if (!model.value.sourceOrgCode) return [];
+  return deptData.value
+    .filter(d => d.remark === model.value.sourceOrgCode)
+    .map(d => ({ label: d.dictLabel, value: d.dictValue }));
+});
+
+// 来源系统：按来源单位代码过滤
+const filteredSystemOptions = computed(() => {
+  if (!model.value.sourceOrgCode) return [];
+  return systemData.value
+    .filter(d => d.remark === model.value.sourceOrgCode)
+    .map(d => ({ label: d.dictLabel, value: d.dictValue }));
+});
+
+// 来源类型二级：按一级代码过滤
+const sourceTypeL2Options = computed(() => {
+  if (!sourceTypeL1.value) return [];
+  return sourceTypeL2Data.value
+    .filter(d => d.remark === sourceTypeL1.value)
+    .map(d => ({ label: d.dictLabel, value: d.dictValue }));
+});
+
+// 选择来源单位 → 自动填充名称 + 清空下级
+watch(
+  () => model.value.sourceOrgCode,
+  code => {
+    const org = orgData.value.find(d => d.dictValue === code);
+    model.value.sourceOrgName = org?.dictLabel ?? null;
+    model.value.sourceDept = null;
+    model.value.sourceSystem = null;
+  }
+);
+
+// 选择来源类型一级 → 清空二级
+watch(sourceTypeL1, () => {
+  sourceTypeL2.value = null;
+  model.value.sourceType = null;
+});
+
+// 选择来源类型二级 → 拼合5位代码
+watch(sourceTypeL2, l2 => {
+  if (sourceTypeL1.value && l2) {
+    model.value.sourceType = sourceTypeL1.value + l2;
+  } else {
+    model.value.sourceType = null;
+  }
+});
+
+// 编辑回填：从已有 sourceType 拆解回一级/二级
+function initSourceType(code: string | null | undefined) {
+  if (!code || code.length < 3) {
+    sourceTypeL1.value = null;
+    sourceTypeL2.value = null;
+    return;
+  }
+  sourceTypeL1.value = code.substring(0, 2);
+  sourceTypeL2.value = code.substring(2);
 }
 
 // Kerberos 开关（双向绑定到 connModel.properties）
@@ -239,6 +320,9 @@ function handleUpdateModelWhenEdit() {
   testStatus.value = 'idle';
   currentStep.value = isEdit.value ? 2 : 1;
 
+  sourceTypeL1.value = null;
+  sourceTypeL2.value = null;
+
   if (isEdit.value && props.rowData) {
     Object.assign(model.value, jsonClone(props.rowData));
     if (model.value.connParams) {
@@ -248,6 +332,7 @@ function handleUpdateModelWhenEdit() {
         /* ignore */
       }
     }
+    initSourceType(model.value.sourceType);
   }
 }
 
@@ -491,6 +576,76 @@ watch(visible, v => {
                   show-count
                 />
               </NFormItem>
+
+              <!-- 数据来源信息 -->
+              <NDivider class="my-16px!">
+                <span class="text-12px text-gray-400">数据来源信息</span>
+              </NDivider>
+
+              <NFormItem label="来源单位" path="sourceOrgCode">
+                <DictSelect
+                  v-model:value="model.sourceOrgCode"
+                  dict-code="meta_source_org"
+                  placeholder="选择来源单位（可选）"
+                  clearable
+                  filterable
+                  immediate
+                />
+              </NFormItem>
+
+              <div class="grid grid-cols-2 gap-x-16px">
+                <NFormItem label="来源部门" path="sourceDept">
+                  <NSelect
+                    v-model:value="model.sourceDept"
+                    :options="filteredDeptOptions"
+                    :disabled="!model.sourceOrgCode"
+                    placeholder="请先选择来源单位"
+                    clearable
+                    filterable
+                  />
+                </NFormItem>
+                <NFormItem label="来源应用系统" path="sourceSystem">
+                  <NSelect
+                    v-model:value="model.sourceSystem"
+                    :options="filteredSystemOptions"
+                    :disabled="!model.sourceOrgCode"
+                    placeholder="请先选择来源单位"
+                    clearable
+                    filterable
+                  />
+                </NFormItem>
+              </div>
+
+              <div class="grid grid-cols-2 gap-x-16px">
+                <NFormItem label="来源类型（一级）" path="sourceType">
+                  <DictSelect
+                    v-model:value="sourceTypeL1"
+                    dict-code="meta_source_type_l1"
+                    placeholder="选择一级分类"
+                    clearable
+                    immediate
+                  />
+                </NFormItem>
+                <NFormItem label="来源类型（二级）">
+                  <NSelect
+                    v-model:value="sourceTypeL2"
+                    :options="sourceTypeL2Options"
+                    :disabled="!sourceTypeL1"
+                    placeholder="选择二级分类"
+                    clearable
+                    filterable
+                  />
+                </NFormItem>
+              </div>
+
+              <div class="grid grid-cols-2 gap-x-16px">
+                <NFormItem label="数据联系人" path="contactPerson">
+                  <NInput v-model:value="model.contactPerson" placeholder="联系人姓名" :maxlength="64" />
+                </NFormItem>
+                <NFormItem label="联系电话" path="contactPhone">
+                  <NInput v-model:value="model.contactPhone" placeholder="手机号码" :maxlength="20" />
+                </NFormItem>
+              </div>
             </NForm>
           </div>
         </div>

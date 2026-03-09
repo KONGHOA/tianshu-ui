@@ -21,6 +21,13 @@ declare namespace Api {
       datasourceType: string;
       connParams: string;
       status: string;
+      sourceOrgCode?: string;
+      sourceOrgName?: string;
+      sourceDept?: string;
+      sourceType?: string;
+      sourceSystem?: string;
+      contactPerson?: string;
+      contactPhone?: string;
       remark: string;
     }>;
 
@@ -31,7 +38,20 @@ declare namespace Api {
     type DatasourceOperateParams = CommonType.RecordNullable<
       Pick<
         Datasource,
-        'datasourceId' | 'categoryId' | 'datasourceName' | 'datasourceType' | 'connParams' | 'status' | 'remark'
+        | 'datasourceId'
+        | 'categoryId'
+        | 'datasourceName'
+        | 'datasourceType'
+        | 'connParams'
+        | 'status'
+        | 'sourceOrgCode'
+        | 'sourceOrgName'
+        | 'sourceDept'
+        | 'sourceType'
+        | 'sourceSystem'
+        | 'contactPerson'
+        | 'contactPhone'
+        | 'remark'
       >
     >;
 
