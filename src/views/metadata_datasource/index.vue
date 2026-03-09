@@ -35,6 +35,7 @@ import statInactiveIcon from '@/assets/imgs/stats/stat-inactive.svg';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import DatasourceOperateDrawer from './modules/DatasourceOperateDrawer.vue';
 import CategoryOperateDrawer from './modules/CategoryOperateDrawer.vue';
+import DatasourceSyncDrawer from './modules/DatasourceSyncDrawer.vue';
 
 defineOptions({
   name: 'MetadataDatasourceList'
@@ -279,6 +280,15 @@ async function handleRefresh(datasourceId: CommonType.IdType) {
 function handleDatasourceSubmitted() {
   getData();
   loadStats();
+}
+
+// ---- 同步调度管理逻辑 ----
+const syncDrawerVisible = ref(false);
+const activeSyncDatasourceId = ref<CommonType.IdType>();
+
+function handleOpenSyncConfig(datasourceId: CommonType.IdType) {
+  activeSyncDatasourceId.value = datasourceId;
+  syncDrawerVisible.value = true;
 }
 
 async function edit(datasourceId: CommonType.IdType) {
@@ -639,7 +649,7 @@ onMounted(() => {
 
                   <!-- Card Actions -->
                   <div
-                    class="grid grid-cols-4 border-t border-gray-100 bg-gray-50/50 dark:border-gray-800/60 dark:bg-[#202024]/50"
+                    class="grid grid-cols-5 border-t border-gray-100 bg-gray-50/50 dark:border-gray-800/60 dark:bg-[#202024]/50"
                     @click.stop
                   >
                     <NButton
@@ -662,6 +672,16 @@ onMounted(() => {
                     >
                       <template #icon><icon-material-symbols-drive-file-rename-outline-outline /></template>
                       编辑
+                    </NButton>
+                    <NButton
+                      v-if="hasAuth('metadata:datasource:edit')"
+                      size="small"
+                      quaternary
+                      class="rounded-none!"
+                      @click="handleOpenSyncConfig(item.datasourceId)"
+                    >
+                      <template #icon><icon-mdi-calendar-clock /></template>
+                      调度
                     </NButton>
                     <NButton
                       v-if="hasAuth('metadata:datasource:edit')"
@@ -723,6 +743,9 @@ onMounted(() => {
       :tree-data="categoryTreeData"
       @submitted="getCategoryTree"
     />
+
+    <!-- 数据源同步弹窗 -->
+    <DatasourceSyncDrawer v-model:visible="syncDrawerVisible" :datasource-id="activeSyncDatasourceId" />
   </div>
 </template>
 

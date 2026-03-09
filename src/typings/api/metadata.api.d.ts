@@ -162,5 +162,39 @@ declare namespace Api {
     >;
 
     type SchemaChangeList = Common.PaginatingQueryRecord<SchemaChange>;
+
+    /** 数据源同步调度任务 */
+    type SyncTask = Common.CommonRecord<{
+      datasourceId: CommonType.IdType;
+      jobId?: CommonType.IdType;
+      cronExpression: string;
+      status: number;
+      remark: string;
+      createTime: string;
+    }>;
+
+    type SyncTaskOperateParams = CommonType.RecordNullable<
+      Pick<SyncTask, 'datasourceId' | 'cronExpression' | 'status' | 'remark'>
+    >;
+
+    /** 数据源同步执行记录 */
+    type SyncRecord = Common.CommonRecord<{
+      recordId: CommonType.IdType;
+      datasourceId: CommonType.IdType;
+      startTime: string;
+      endTime: string;
+      status: 'RUNNING' | 'SUCCESS' | 'FAIL';
+      errorMsg: string;
+      createTime: string;
+    }>;
+
+    type SyncRecordSearchParams = CommonType.RecordNullable<
+      {
+        datasourceId: CommonType.IdType;
+        status?: string;
+      } & Api.Common.CommonSearchParams
+    >;
+
+    type SyncRecordList = Common.PaginatingQueryRecord<SyncRecord>;
   }
 }
