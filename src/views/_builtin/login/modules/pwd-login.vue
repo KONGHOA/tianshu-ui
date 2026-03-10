@@ -5,7 +5,6 @@ import { useLoading } from '@sa/hooks';
 import CryptoJS from 'crypto-js';
 import { fetchCaptchaCode, fetchTenantList } from '@/service/api';
 import { useAuthStore } from '@/store/modules/auth';
-import { useRouterPush } from '@/hooks/common/router';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { localStg } from '@/utils/storage';
 import { decryptWithAes, encryptWithAes } from '@/utils/crypto';
@@ -18,7 +17,6 @@ defineOptions({
 });
 
 const authStore = useAuthStore();
-const { toggleLoginModule } = useRouterPush();
 const { formRef, validate } = useNaiveForm();
 const { loading: codeLoading, startLoading: startCodeLoading, endLoading: endCodeLoading } = useLoading();
 const { loading: tenantLoading, startLoading: startTenantLoading, endLoading: endTenantLoading } = useLoading();
@@ -118,8 +116,6 @@ handleLoginRember();
 
 <template>
   <div>
-    <div class="mb-5px text-32px text-black font-600 dark:text-white">登录到您的账户</div>
-    <div class="pb-18px text-16px text-#858585">欢迎回来！请输入您的账户信息</div>
     <NForm
       ref="formRef"
       :model="model"
@@ -161,9 +157,6 @@ handleLoginRember();
       <NSpace vertical :size="12" class="mb-8px">
         <div class="mx-6px mb-8px flex-y-center justify-between">
           <NCheckbox v-model:checked="remberMe" size="large">{{ $t('page.login.pwdLogin.rememberMe') }}</NCheckbox>
-          <NA type="primary" class="text-18px" @click="toggleLoginModule('reset-pwd')">
-            {{ $t('page.login.pwdLogin.forgetPassword') }}
-          </NA>
         </div>
         <NButton type="primary" size="large" block :loading="authStore.loginLoading" @click="handleSubmit">
           {{ $t('common.login') }}
