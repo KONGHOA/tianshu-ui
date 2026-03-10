@@ -4,7 +4,6 @@ import type { SelectOption } from 'naive-ui';
 import { useLoading } from '@sa/hooks';
 import CryptoJS from 'crypto-js';
 import { fetchCaptchaCode, fetchTenantList } from '@/service/api';
-import { fetchSocialAuthBinding } from '@/service/api/system';
 import { useAuthStore } from '@/store/modules/auth';
 import { useRouterPush } from '@/hooks/common/router';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
