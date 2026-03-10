@@ -154,15 +154,6 @@ export const generatedRoutes: GeneratedRoute[] = [
     },
     children: [
       {
-        name: 'metadata_catalog',
-        path: '/metadata/catalog',
-        component: 'view.metadata_catalog',
-        meta: {
-          title: 'metadata_catalog',
-          i18nKey: 'route.metadata_catalog'
-        }
-      },
-      {
         name: 'metadata_datasource',
         path: '/metadata/datasource',
         component: 'view.metadata_datasource',
@@ -180,15 +171,6 @@ export const generatedRoutes: GeneratedRoute[] = [
           i18nKey: 'route.metadata_datasource-explorer',
           hideInMenu: true,
           activeMenu: 'metadata_datasource'
-        }
-      },
-      {
-        name: 'metadata_schema-change',
-        path: '/metadata/schema-change',
-        component: 'view.metadata_schema-change',
-        meta: {
-          title: 'metadata_schema-change',
-          i18nKey: 'route.metadata_schema-change'
         }
       },
       {
