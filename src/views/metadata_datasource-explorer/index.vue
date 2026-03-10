@@ -98,6 +98,112 @@ function formatDateTime(dt: string | null | undefined): string {
   }
 }
 
+type ChangeTagType = 'default' | 'error' | 'success' | 'warning' | 'info';
+
+interface ChangeTypeInfo {
+  text: string;
+  type: ChangeTagType;
+}
+
+interface NormalizedChange {
+  level: string;
+  normalized: string;
+}
+
+function normalizeChange(row: Api.Metadata.SchemaChange): NormalizedChange {
+  return {
+    normalized: String(row.changeType || '')
+      .trim()
+      .toUpperCase()
+      .replaceAll('-', '_')
+      .replaceAll(' ', '_'),
+    level: String(row.entityLevel || '')
+      .trim()
+      .toLowerCase()
+  };
+}
+
+function matchesAny(normalized: string, keywords: string[]): boolean {
+  return keywords.some(keyword => normalized.includes(keyword));
+}
+
+function resolveLevelChange(levelName: string, normalized: string): ChangeTypeInfo | null {
+  const levelMap: Record<string, ChangeTypeInfo[]> = {
+    column: [
+      { text: '字段注释变更', type: 'warning' },
+      { text: '字段类型变更', type: 'warning' },
+      { text: '字段新增', type: 'success' },
+      { text: '字段删除', type: 'error' }
+    ],
+    table: [
+      { text: '表注释变更', type: 'warning' },
+      { text: '表属性变更', type: 'info' },
+      { text: '表新增', type: 'success' },
+      { text: '表删除', type: 'error' }
+    ],
+    schema: [
+      { text: 'Schema注释变更', type: 'warning' },
+      { text: 'Schema新增', type: 'success' },
+      { text: 'Schema删除', type: 'error' }
+    ],
+    database: [
+      { text: '数据库注释变更', type: 'warning' },
+      { text: '数据库新增', type: 'success' },
+      { text: '数据库删除', type: 'error' }
+    ]
+  };
+  const keywordMap: Record<string, string[][]> = {
+    column: [
+      ['COMMENT', 'CHANGE'],
+      ['TYPE', 'CHANGE'],
+      ['ADD', 'CREATE'],
+      ['DROP', 'DELETE', 'REMOVE']
+    ],
+    table: [['COMMENT', 'CHANGE'], ['PROPERTY'], ['ADD', 'CREATE'], ['DROP', 'DELETE', 'REMOVE']],
+    schema: [
+      ['COMMENT', 'CHANGE'],
+      ['ADD', 'CREATE'],
+      ['DROP', 'DELETE', 'REMOVE']
+    ],
+    database: [
+      ['COMMENT', 'CHANGE'],
+      ['ADD', 'CREATE'],
+      ['DROP', 'DELETE', 'REMOVE']
+    ]
+  };
+  const infos = levelMap[levelName];
+  const keywords = keywordMap[levelName];
+  if (!infos || !keywords) {
+    return null;
+  }
+  const matchIndex = keywords.findIndex(group => matchesAny(normalized, group));
+  return matchIndex >= 0 ? infos[matchIndex] : null;
+}
+
+function resolveGenericChange(normalized: string): ChangeTypeInfo {
+  const rules: Array<{ keywords: string[]; info: ChangeTypeInfo }> = [
+    { keywords: ['COMMENT', 'CHANGE'], info: { text: '注释变更', type: 'warning' } },
+    { keywords: ['PROPERTY'], info: { text: '属性变更', type: 'info' } },
+    { keywords: ['TYPE', 'CHANGE'], info: { text: '类型变更', type: 'warning' } },
+    { keywords: ['ADD', 'CREATE'], info: { text: '新增', type: 'success' } },
+    { keywords: ['DROP', 'DELETE', 'REMOVE'], info: { text: '删除', type: 'error' } },
+    { keywords: ['MODIFY', 'ALTER', 'CHANGE'], info: { text: '变更', type: 'warning' } }
+  ];
+  const matchedRule = rules.find(rule => matchesAny(normalized, rule.keywords));
+  return matchedRule?.info ?? { text: normalized, type: 'default' };
+}
+
+function getChangeTypeInfo(row: Api.Metadata.SchemaChange): {
+  text: string;
+  type: ChangeTagType;
+} {
+  const change = normalizeChange(row);
+  return (
+    resolveLevelChange(change.level, change.normalized) ??
+    resolveGenericChange(change.normalized) ?? { text: row.changeType, type: 'default' }
+  );
+}
+
 const connParamsObj = computed(() => {
   if (!datasource.value?.connParams) return {};
   return parseProps(datasource.value.connParams);
@@ -577,11 +683,7 @@ const dbChangeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
     key: 'changeType',
     width: 110,
     render: row => {
-      const typeMap: Record<string, { text: string; type: 'default' | 'error' | 'success' | 'warning' | 'info' }> = {
-        ADDED: { text: '新增', type: 'success' },
-        DELETED: { text: '删除', type: 'error' }
-      };
-      const t = typeMap[row.changeType] ?? { text: row.changeType, type: 'default' };
+      const t = getChangeTypeInfo(row);
       return (
         <NTag size="small" type={t.type} bordered={false}>
           {t.text}
@@ -622,11 +724,7 @@ const schemaLevelChangeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
     key: 'changeType',
     width: 110,
     render: row => {
-      const typeMap: Record<string, { text: string; type: 'default' | 'error' | 'success' | 'warning' | 'info' }> = {
-        ADDED: { text: '新增', type: 'success' },
-        DELETED: { text: '删除', type: 'error' }
-      };
-      const t = typeMap[row.changeType] ?? { text: row.changeType, type: 'default' };
+      const t = getChangeTypeInfo(row);
       return (
         <NTag size="small" type={t.type} bordered={false}>
           {t.text}
@@ -671,12 +769,7 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
     key: 'changeType',
     width: 120,
     render: row => {
-      const typeMap: Record<string, { text: string; type: 'default' | 'error' | 'success' | 'warning' | 'info' }> = {
-        ADDED: { text: '新增', type: 'success' },
-        DELETED: { text: '删除', type: 'error' },
-        TYPE_CHANGED: { text: '类型变更', type: 'warning' }
-      };
-      const t = typeMap[row.changeType] ?? { text: row.changeType, type: 'default' };
+      const t = getChangeTypeInfo(row);
       return (
         <NTag size="small" type={t.type} bordered={false}>
           {t.text}

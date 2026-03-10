@@ -183,7 +183,7 @@ declare namespace Api {
       datasourceId: CommonType.IdType;
       startTime: string;
       endTime: string;
-      status: 'RUNNING' | 'SUCCESS' | 'FAIL';
+      status: 'QUEUED' | 'RUNNING' | 'SUCCESS' | 'FAIL' | 'SKIPPED';
       errorMsg: string;
       createTime: string;
     }>;

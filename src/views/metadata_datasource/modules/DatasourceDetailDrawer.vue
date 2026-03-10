@@ -62,7 +62,7 @@ async function handleRefresh() {
   if (!props.datasourceId) return;
   const { error } = await fetchRefreshDatasource(props.datasourceId);
   if (!error) {
-    window.$message?.success('元数据刷新成功');
+    window.$message?.success('已提交同步任务');
     emit('refresh');
   }
 }

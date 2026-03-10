@@ -271,7 +271,7 @@ async function handleTestConnection(datasourceId: CommonType.IdType) {
 async function handleRefresh(datasourceId: CommonType.IdType) {
   const { error } = await fetchRefreshDatasource(datasourceId);
   if (!error) {
-    window.$message?.success('刷新成功');
+    window.$message?.success('已提交同步任务');
     getData();
     loadStats();
   }

@@ -192,12 +192,15 @@ watch(activeTab, val => {
 function getStatusTagType(status: string) {
   if (status === 'SUCCESS') return 'success';
   if (status === 'FAIL') return 'error';
+  if (status === 'SKIPPED') return 'warning';
   return 'info';
 }
 
 function getStatusText(status: string) {
+  if (status === 'QUEUED') return '排队中';
   if (status === 'SUCCESS') return '成功';
   if (status === 'FAIL') return '失败';
+  if (status === 'SKIPPED') return '已跳过';
   return '运行中';
 }
 
@@ -282,9 +285,11 @@ function handlePageSizeChange(pageSize: number) {
                   v-model:value="recordSearchParams.status"
                   :options="[
                     { label: '全部状态', value: '' },
+                    { label: '排队中', value: 'QUEUED' },
                     { label: '成功', value: 'SUCCESS' },
                     { label: '失败', value: 'FAIL' },
-                    { label: '运行中', value: 'RUNNING' }
+                    { label: '运行中', value: 'RUNNING' },
+                    { label: '已跳过', value: 'SKIPPED' }
                   ]"
                   placeholder="状态筛选"
                   class="w-160px"

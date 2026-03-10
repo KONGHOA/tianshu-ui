@@ -43,17 +43,110 @@ watch(
 
 onMounted(loadData);
 
-function getChangeTypeInfo(changeType: string): {
+type TagType = 'success' | 'error' | 'warning' | 'info' | 'default';
+
+interface ChangeTypeInfo {
   label: string;
-  type: 'success' | 'error' | 'warning' | 'info' | 'default';
+  type: TagType;
+}
+
+interface NormalizedChange {
+  level: string;
+  normalized: string;
+}
+
+function normalizeChange(row: ChangeRow): NormalizedChange {
+  return {
+    normalized: String(row.changeType || '')
+      .trim()
+      .toUpperCase()
+      .replaceAll('-', '_')
+      .replaceAll(' ', '_'),
+    level: String(row.entityLevel || '')
+      .trim()
+      .toLowerCase()
+  };
+}
+
+function matchesAny(normalized: string, keywords: string[]): boolean {
+  return keywords.some(keyword => normalized.includes(keyword));
+}
+
+function resolveLevelChange(level: string, normalized: string): ChangeTypeInfo | null {
+  const levelMap: Record<string, ChangeTypeInfo[]> = {
+    column: [
+      { label: '字段注释变更', type: 'warning' },
+      { label: '字段类型变更', type: 'warning' },
+      { label: '字段新增', type: 'success' },
+      { label: '字段删除', type: 'error' }
+    ],
+    table: [
+      { label: '表注释变更', type: 'warning' },
+      { label: '表属性变更', type: 'info' },
+      { label: '表新增', type: 'success' },
+      { label: '表删除', type: 'error' }
+    ],
+    schema: [
+      { label: 'Schema注释变更', type: 'warning' },
+      { label: 'Schema新增', type: 'success' },
+      { label: 'Schema删除', type: 'error' }
+    ],
+    database: [
+      { label: '数据库注释变更', type: 'warning' },
+      { label: '数据库新增', type: 'success' },
+      { label: '数据库删除', type: 'error' }
+    ]
+  };
+  const keywordMap: Record<string, string[][]> = {
+    column: [
+      ['COMMENT', 'CHANGE'],
+      ['TYPE', 'CHANGE'],
+      ['ADD', 'CREATE'],
+      ['DROP', 'DELETE', 'REMOVE']
+    ],
+    table: [['COMMENT', 'CHANGE'], ['PROPERTY'], ['ADD', 'CREATE'], ['DROP', 'DELETE', 'REMOVE']],
+    schema: [
+      ['COMMENT', 'CHANGE'],
+      ['ADD', 'CREATE'],
+      ['DROP', 'DELETE', 'REMOVE']
+    ],
+    database: [
+      ['COMMENT', 'CHANGE'],
+      ['ADD', 'CREATE'],
+      ['DROP', 'DELETE', 'REMOVE']
+    ]
+  };
+  const infos = levelMap[level];
+  const keywords = keywordMap[level];
+  if (!infos || !keywords) {
+    return null;
+  }
+  const matchIndex = keywords.findIndex(group => matchesAny(normalized, group));
+  return matchIndex >= 0 ? infos[matchIndex] : null;
+}
+
+function resolveGenericChange(normalized: string): ChangeTypeInfo {
+  const rules: Array<{ keywords: string[]; info: ChangeTypeInfo }> = [
+    { keywords: ['COMMENT', 'CHANGE'], info: { label: '注释变更', type: 'warning' } },
+    { keywords: ['PROPERTY'], info: { label: '属性变更', type: 'info' } },
+    { keywords: ['TYPE', 'CHANGE'], info: { label: '类型变更', type: 'warning' } },
+    { keywords: ['ADD', 'CREATE'], info: { label: '新增', type: 'success' } },
+    { keywords: ['DROP', 'DELETE', 'REMOVE'], info: { label: '删除', type: 'error' } },
+    { keywords: ['MODIFY', 'ALTER', 'CHANGE'], info: { label: '变更', type: 'warning' } }
+  ];
+  const matchedRule = rules.find(rule => matchesAny(normalized, rule.keywords));
+  return matchedRule?.info ?? { label: normalized, type: 'default' };
+}
+
+function getChangeTypeInfo(row: ChangeRow): {
+  label: string;
+  type: TagType;
 } {
-  const upper = changeType?.toUpperCase() ?? '';
-  if (upper.startsWith('ADD') || upper.startsWith('CREATE')) return { label: changeType, type: 'success' };
-  if (upper.startsWith('DROP') || upper.startsWith('DELETE') || upper.startsWith('REMOVE'))
-    return { label: changeType, type: 'error' };
-  if (upper.startsWith('MODIFY') || upper.startsWith('ALTER') || upper.startsWith('CHANGE'))
-    return { label: changeType, type: 'warning' };
-  return { label: changeType, type: 'info' };
+  const change = normalizeChange(row);
+  return (
+    resolveLevelChange(change.level, change.normalized) ??
+    resolveGenericChange(change.normalized) ?? { label: row.changeType, type: 'default' }
+  );
 }
 
 const expandCol: DataTableExpandColumn<ChangeRow> = {
@@ -97,7 +190,7 @@ const columns: DataTableColumns<ChangeRow> = [
     key: 'changeType',
     width: 160,
     render: row => {
-      const info = getChangeTypeInfo(row.changeType);
+      const info = getChangeTypeInfo(row);
       return h(NTag, { size: 'small', type: info.type, bordered: false }, { default: () => info.label });
     }
   },

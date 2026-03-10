@@ -35,9 +35,9 @@ export function fetchTestConnection(data: Api.Metadata.DatasourceOperateParams) 
   return request<boolean>({ url: '/metadata/datasource/testConnection', method: 'post', data });
 }
 
-/** 刷新数据源元数据 */
+/** 刷新数据源元数据（兼容旧调用，实际提交异步同步任务） */
 export function fetchRefreshDatasource(datasourceId: CommonType.IdType) {
-  return request<boolean>({ url: `/metadata/datasource/refresh/${datasourceId}`, method: 'post' });
+  return request<boolean>({ url: `/metadata/sync/trigger/${datasourceId}`, method: 'post' });
 }
 
 /** 获取数据源下拉列表 */
