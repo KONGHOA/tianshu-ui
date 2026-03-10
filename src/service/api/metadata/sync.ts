@@ -15,6 +15,16 @@ export function fetchTriggerSyncNow(datasourceId: CommonType.IdType) {
   return request<boolean>({ url: `/metadata/sync/trigger/${datasourceId}`, method: 'post' });
 }
 
+/** 立即触发新增表同步 */
+export function fetchTriggerNewTablesSync(datasourceId: CommonType.IdType) {
+  return request<boolean>({ url: `/metadata/sync/trigger/${datasourceId}/new-tables`, method: 'post' });
+}
+
+/** 立即触发指定表同步 */
+export function fetchTriggerTableSync(datasourceId: CommonType.IdType, data: Api.Metadata.TableSyncParams) {
+  return request<boolean>({ url: `/metadata/sync/trigger/${datasourceId}/table`, method: 'post', data });
+}
+
 /** 获取同步执行记录分页列表 */
 export function fetchGetSyncRecordList(params?: Api.Metadata.SyncRecordSearchParams) {
   return request<Api.Metadata.SyncRecordList>({ url: '/metadata/sync/record/page', method: 'get', params });

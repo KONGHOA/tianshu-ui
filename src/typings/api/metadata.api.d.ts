@@ -177,6 +177,13 @@ declare namespace Api {
       Pick<SyncTask, 'datasourceId' | 'cronExpression' | 'status' | 'remark'>
     >;
 
+    type SyncMode = 'FULL' | 'NEW_TABLES_ONLY' | 'TABLE_SCOPED';
+
+    type TableSyncParams = {
+      schemaName: string;
+      tableName: string;
+    };
+
     /** 数据源同步执行记录 */
     type SyncRecord = Common.CommonRecord<{
       recordId: CommonType.IdType;
@@ -184,6 +191,9 @@ declare namespace Api {
       startTime: string;
       endTime: string;
       status: 'QUEUED' | 'RUNNING' | 'SUCCESS' | 'FAIL' | 'SKIPPED';
+      syncMode?: SyncMode;
+      schemaName?: string;
+      tableName?: string;
       errorMsg: string;
       createTime: string;
     }>;

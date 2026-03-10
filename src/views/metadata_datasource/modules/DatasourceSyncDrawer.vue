@@ -25,7 +25,9 @@ import {
   fetchCreateOrUpdateSyncSchedule,
   fetchGetSyncRecordList,
   fetchGetSyncSchedule,
-  fetchTriggerSyncNow
+  fetchTriggerNewTablesSync,
+  fetchTriggerSyncNow,
+  fetchTriggerTableSync
 } from '@/service/api/metadata/sync';
 
 defineOptions({
@@ -132,6 +134,12 @@ async function handleSaveSchedule() {
 }
 
 const isTriggering = ref(false);
+const isTriggeringNewTables = ref(false);
+const isTriggeringTable = ref(false);
+const tableSyncForm = reactive<Api.Metadata.TableSyncParams>({
+  schemaName: '',
+  tableName: ''
+});
 
 async function handleTriggerNow() {
   if (!props.datasourceId) return;
@@ -139,7 +147,44 @@ async function handleTriggerNow() {
   const { error } = await fetchTriggerSyncNow(props.datasourceId);
   isTriggering.value = false;
   if (!error) {
-    message.success('已触发同步');
+    message.success('已提交全量同步任务');
+    if (activeTab.value === 'record') {
+      setTimeout(loadRecords, 1000);
+    }
+  }
+}
+
+async function handleTriggerNewTables() {
+  if (!props.datasourceId) return;
+  isTriggeringNewTables.value = true;
+  const { error } = await fetchTriggerNewTablesSync(props.datasourceId);
+  isTriggeringNewTables.value = false;
+  if (!error) {
+    message.success('已提交新增表同步任务');
+    if (activeTab.value === 'record') {
+      setTimeout(loadRecords, 1000);
+    }
+  }
+}
+
+async function handleTriggerTable() {
+  if (!props.datasourceId) return;
+  if (!tableSyncForm.schemaName.trim()) {
+    message.error('请输入 Schema 名称');
+    return;
+  }
+  if (!tableSyncForm.tableName.trim()) {
+    message.error('请输入表名称');
+    return;
+  }
+  isTriggeringTable.value = true;
+  const { error } = await fetchTriggerTableSync(props.datasourceId, {
+    schemaName: tableSyncForm.schemaName.trim(),
+    tableName: tableSyncForm.tableName.trim()
+  });
+  isTriggeringTable.value = false;
+  if (!error) {
+    message.success(`已提交表 ${tableSyncForm.schemaName.trim()}.${tableSyncForm.tableName.trim()} 同步任务`);
     if (activeTab.value === 'record') {
       setTimeout(loadRecords, 1000);
     }
@@ -202,6 +247,17 @@ function getStatusText(status: string) {
   if (status === 'FAIL') return '失败';
   if (status === 'SKIPPED') return '已跳过';
   return '运行中';
+}
+
+function getSyncModeText(item: Api.Metadata.SyncRecord) {
+  if (item.syncMode === 'NEW_TABLES_ONLY') return '新增表同步';
+  if (item.syncMode === 'TABLE_SCOPED') {
+    if (item.schemaName && item.tableName) {
+      return `单表同步: ${item.schemaName}.${item.tableName}`;
+    }
+    return '单表同步';
+  }
+  return '全量同步';
 }
 
 function handlePageChange(page: number) {
@@ -268,11 +324,33 @@ function handlePageSizeChange(pageSize: number) {
                 <NFormItem label="备注" path="remark">
                   <NInput v-model:value="scheduleForm.remark" type="textarea" placeholder="请输入备注" />
                 </NFormItem>
+
+                <NFormItem label="立即同步">
+                  <div class="w-full flex-col gap-12px">
+                    <NSpace>
+                      <NButton type="info" ghost :loading="isTriggering" @click="handleTriggerNow">全量同步</NButton>
+                      <NButton ghost :loading="isTriggeringNewTables" @click="handleTriggerNewTables">
+                        同步新增表
+                      </NButton>
+                    </NSpace>
+                    <div class="rounded-8px bg-gray-50 p-12px dark:bg-[#22252b]">
+                      <div class="mb-8px text-13px text-gray-700 font-medium dark:text-gray-200">同步指定表</div>
+                      <div class="flex flex-col gap-8px">
+                        <NInput v-model:value="tableSyncForm.schemaName" placeholder="请输入 Schema 名称，如 public" />
+                        <NInput v-model:value="tableSyncForm.tableName" placeholder="请输入表名称，如 user_info" />
+                        <div class="flex justify-end">
+                          <NButton type="primary" secondary :loading="isTriggeringTable" @click="handleTriggerTable">
+                            同步指定表
+                          </NButton>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </NFormItem>
               </NForm>
 
               <div class="mt-8 flex justify-end gap-4">
                 <NButton @click="drawerVisible = false">取消</NButton>
-                <NButton type="info" ghost :loading="isTriggering" @click="handleTriggerNow">立即运行</NButton>
                 <NButton type="primary" :loading="isSaving" @click="handleSaveSchedule">保存配置</NButton>
               </div>
             </NSpin>
@@ -309,6 +387,7 @@ function handlePageSizeChange(pageSize: number) {
                     :time="item.startTime"
                   >
                     <div class="mt-1 text-12px text-gray-500">结束时间: {{ item.endTime || '-' }}</div>
+                    <div class="mt-1 text-12px text-gray-500">同步范围: {{ getSyncModeText(item) }}</div>
                     <div
                       v-if="item.errorMsg"
                       class="mt-2 max-h-100px w-full overflow-y-auto rounded bg-red-50 p-2 text-12px text-red-500"

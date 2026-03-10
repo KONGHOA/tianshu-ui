@@ -23,6 +23,7 @@ import {
 } from '@/service/api/metadata/datasource';
 import { fetchGetColumns, fetchGetDatabases, fetchGetSchemas, fetchGetTables } from '@/service/api/metadata/catalog';
 import { fetchGetSchemaChangeList } from '@/service/api/metadata/schema-change';
+import { fetchTriggerTableSync } from '@/service/api/metadata/sync';
 import { useAuth } from '@/hooks/business/auth';
 import { getDatasourceIcon } from '@/utils/datasourceIcon';
 import ProfileTab from './modules/ProfileTab.vue';
@@ -64,6 +65,7 @@ const tableColumnCounts = ref<Map<string, number>>(new Map());
 const datasourceLoading = ref(false);
 const listLoading = ref(false);
 const refreshing = ref(false);
+const tableSyncing = ref(false);
 
 const dbSearch = ref('');
 const schemaSearch = ref('');
@@ -357,10 +359,23 @@ async function handleRefresh() {
   refreshing.value = true;
   await fetchRefreshDatasource(datasourceId.value);
   refreshing.value = false;
-  window.$message?.success('刷新已触发，元数据将在后台同步');
+  window.$message?.success('已提交全量同步任务');
   if (level.value === 'datasource') loadDatabases();
   else if (level.value === 'database') loadSchemas();
   else if (level.value === 'schema') loadTables();
+}
+
+async function handleSyncCurrentTable() {
+  if (!datasourceId.value || !schemaName.value || !tableName.value) return;
+  tableSyncing.value = true;
+  const { error } = await fetchTriggerTableSync(datasourceId.value, {
+    schemaName: schemaName.value,
+    tableName: tableName.value
+  });
+  tableSyncing.value = false;
+  if (!error) {
+    window.$message?.success(`已提交表 ${schemaName.value}.${tableName.value} 同步任务`);
+  }
 }
 
 // ─── 监听路由变化自动加载 ────────────────────────────────────
@@ -920,6 +935,19 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
                 <NIcon><div class="i-mdi-refresh" /></NIcon>
               </template>
               刷新元数据
+            </NButton>
+            <NButton
+              v-if="level === 'table' && hasAuth('metadata:datasource:edit')"
+              size="small"
+              type="warning"
+              secondary
+              :loading="tableSyncing"
+              @click="handleSyncCurrentTable"
+            >
+              <template #icon>
+                <NIcon><div class="i-mdi-table-sync" /></NIcon>
+              </template>
+              同步当前表
             </NButton>
           </div>
         </div>
