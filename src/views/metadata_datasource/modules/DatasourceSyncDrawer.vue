@@ -338,7 +338,7 @@ function handlePageSizeChange(pageSize: number) {
 
 <template>
   <NDrawer v-model:show="drawerVisible" display-directive="show" :width="560">
-    <NDrawerContent title="数据源同步" :native-scrollbar="false" closable>
+    <NDrawerContent title="元数据同步" :native-scrollbar="false" closable>
       <div class="h-full flex-col">
         <NTabs v-model:value="activeTab" type="line" animated>
           <NTabPane name="schedule" tab="定时调度">
