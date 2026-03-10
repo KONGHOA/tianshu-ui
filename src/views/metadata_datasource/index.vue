@@ -19,7 +19,8 @@ import type { TreeOption } from 'naive-ui';
 import {
   fetchBatchDeleteDatasource,
   fetchGetDatasourceList,
-  fetchGetDatasourceStats
+  fetchGetDatasourceStats,
+  fetchTestConnectionById
 } from '@/service/api/metadata/datasource';
 import { fetchDeleteCategory, fetchGetCategoryTree } from '@/service/api/metadata/datasourceCategory';
 import { useAuth } from '@/hooks/business/auth';
@@ -250,6 +251,17 @@ async function handleDelete(datasourceId: CommonType.IdType) {
       loadStats();
     }
   });
+}
+
+async function handleTestConnection(datasourceId: CommonType.IdType) {
+  const { error, data: testData } = await fetchTestConnectionById(datasourceId);
+  if (!error && testData === true) {
+    window.$message?.success('连接成功');
+  } else {
+    window.$message?.error('连接失败，请检查配置');
+  }
+  getData();
+  loadStats();
 }
 
 function handleDatasourceSubmitted() {
@@ -658,7 +670,13 @@ onMounted(() => {
                       <template #icon><icon-mdi-calendar-clock /></template>
                       调度
                     </NButton>
-                    <NButton v-if="hasAuth('metadata:datasource:edit')" size="small" quaternary class="rounded-none!">
+                    <NButton
+                      v-if="hasAuth('metadata:datasource:query')"
+                      size="small"
+                      quaternary
+                      class="rounded-none!"
+                      @click="handleTestConnection(item.datasourceId)"
+                    >
                       <template #icon><icon-mdi-connection /></template>
                       测试
                     </NButton>
