@@ -147,7 +147,7 @@ async function handleTriggerNow() {
   const { error } = await fetchTriggerSyncNow(props.datasourceId);
   isTriggering.value = false;
   if (!error) {
-    message.success('已提交全量同步任务');
+    message.success('已提交全量同步元数据任务');
     if (activeTab.value === 'record') {
       setTimeout(loadRecords, 1000);
     }
@@ -257,7 +257,7 @@ function getSyncModeText(item: Api.Metadata.SyncRecord) {
     }
     return '单表同步';
   }
-  return '全量同步';
+  return '全量同步元数据';
 }
 
 function getTriggerSourceText(triggerSource?: string) {
@@ -392,7 +392,9 @@ function handlePageSizeChange(pageSize: number) {
                 <NFormItem label="立即同步">
                   <div class="w-full flex-col gap-12px">
                     <NSpace>
-                      <NButton type="info" ghost :loading="isTriggering" @click="handleTriggerNow">全量同步</NButton>
+                      <NButton type="info" ghost :loading="isTriggering" @click="handleTriggerNow">
+                        全量同步元数据
+                      </NButton>
                       <NButton ghost :loading="isTriggeringNewTables" @click="handleTriggerNewTables">
                         同步新增表
                       </NButton>

@@ -359,7 +359,7 @@ async function handleRefresh() {
   refreshing.value = true;
   await fetchRefreshDatasource(datasourceId.value);
   refreshing.value = false;
-  window.$message?.success('已提交全量同步任务');
+  window.$message?.success('已提交全量同步元数据任务');
   if (level.value === 'datasource') loadDatabases();
   else if (level.value === 'database') loadSchemas();
   else if (level.value === 'schema') loadTables();
@@ -934,7 +934,7 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
               <template #icon>
                 <NIcon><div class="i-mdi-refresh" /></NIcon>
               </template>
-              刷新元数据
+              全量同步元数据
             </NButton>
             <NButton
               v-if="level === 'table' && hasAuth('metadata:datasource:edit')"
@@ -1051,7 +1051,7 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
                   striped
                   class="min-h-200px"
                 />
-                <NEmpty v-else-if="!listLoading" description="暂无数据库，请先刷新元数据" class="py-60px" />
+                <NEmpty v-else-if="!listLoading" description="暂无数据库，请先执行全量同步元数据" class="py-60px" />
               </NSpin>
             </NTabPane>
 
@@ -1216,7 +1216,7 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
                   striped
                   class="min-h-200px"
                 />
-                <NEmpty v-else-if="!listLoading" description="暂无数据库结构，请先刷新元数据" class="py-60px" />
+                <NEmpty v-else-if="!listLoading" description="暂无数据库结构，请先执行全量同步元数据" class="py-60px" />
               </NSpin>
             </NTabPane>
 

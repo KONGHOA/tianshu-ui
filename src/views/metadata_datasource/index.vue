@@ -20,7 +20,6 @@ import {
   fetchBatchDeleteDatasource,
   fetchGetDatasourceList,
   fetchGetDatasourceStats,
-  fetchRefreshDatasource,
   fetchTestConnectionById
 } from '@/service/api/metadata/datasource';
 import { fetchDeleteCategory, fetchGetCategoryTree } from '@/service/api/metadata/datasourceCategory';
@@ -266,15 +265,6 @@ async function handleTestConnection(datasourceId: CommonType.IdType) {
   // 刷新列表和统计以反映最新连接状态
   getData();
   loadStats();
-}
-
-async function handleRefresh(datasourceId: CommonType.IdType) {
-  const { error } = await fetchRefreshDatasource(datasourceId);
-  if (!error) {
-    window.$message?.success('已提交同步任务');
-    getData();
-    loadStats();
-  }
 }
 
 function handleDatasourceSubmitted() {
@@ -649,7 +639,7 @@ onMounted(() => {
 
                   <!-- Card Actions -->
                   <div
-                    class="grid grid-cols-5 border-t border-gray-100 bg-gray-50/50 dark:border-gray-800/60 dark:bg-[#202024]/50"
+                    class="grid grid-cols-4 border-t border-gray-100 bg-gray-50/50 dark:border-gray-800/60 dark:bg-[#202024]/50"
                     @click.stop
                   >
                     <NButton
@@ -688,18 +678,6 @@ onMounted(() => {
                       size="small"
                       quaternary
                       class="rounded-none!"
-                      @click="handleRefresh(item.datasourceId)"
-                    >
-                      <template #icon><icon-mdi-refresh /></template>
-                      刷新
-                    </NButton>
-                    <NButton
-                      v-if="hasAuth('metadata:datasource:query')"
-                      size="small"
-                      quaternary
-                      type="primary"
-                      class="rounded-none!"
-                      @click="handleTestConnection(item.datasourceId)"
                     >
                       <template #icon><icon-mdi-connection /></template>
                       测试

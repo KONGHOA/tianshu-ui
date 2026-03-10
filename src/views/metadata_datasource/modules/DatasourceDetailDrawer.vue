@@ -136,7 +136,7 @@ function getTypeTagType(type?: string): 'warning' | 'info' | 'success' | 'defaul
               <template #icon>
                 <NIcon><div class="i-mdi-refresh" /></NIcon>
               </template>
-              刷新元数据
+              全量同步元数据
             </NButton>
             <NButton v-if="hasAuth('metadata:datasource:edit')" size="small" type="primary" @click="handleEdit">
               <template #icon>
