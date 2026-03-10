@@ -192,8 +192,14 @@ declare namespace Api {
       endTime: string;
       status: 'QUEUED' | 'RUNNING' | 'SUCCESS' | 'FAIL' | 'SKIPPED';
       syncMode?: SyncMode;
+      triggerSource?: 'initial' | 'manual' | 'schedule' | string;
       schemaName?: string;
       tableName?: string;
+      durationMs?: number;
+      summaryJson?: string;
+      failedStage?: string;
+      failedSchemaName?: string;
+      failedTableName?: string;
       errorMsg: string;
       createTime: string;
     }>;

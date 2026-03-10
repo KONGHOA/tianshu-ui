@@ -260,6 +260,70 @@ function getSyncModeText(item: Api.Metadata.SyncRecord) {
   return '全量同步';
 }
 
+function getTriggerSourceText(triggerSource?: string) {
+  if (triggerSource === 'initial') return '新建触发';
+  if (triggerSource === 'schedule') return '定时触发';
+  if (triggerSource === 'manual') return '手动触发';
+  return '未知来源';
+}
+
+function formatDuration(durationMs?: number) {
+  if (!durationMs || durationMs < 0) return '-';
+  if (durationMs < 1000) return `${durationMs} ms`;
+  if (durationMs < 60_000) return `${(durationMs / 1000).toFixed(1)} s`;
+  const minutes = Math.floor(durationMs / 60_000);
+  const seconds = Math.round((durationMs % 60_000) / 1000);
+  return `${minutes} 分 ${seconds} 秒`;
+}
+
+function parseSummary(summaryJson?: string) {
+  if (!summaryJson) return null;
+  try {
+    return JSON.parse(summaryJson) as Record<string, number>;
+  } catch {
+    return null;
+  }
+}
+
+function getSummaryText(item: Api.Metadata.SyncRecord) {
+  const summary = parseSummary(item.summaryJson);
+  if (!summary) return '';
+
+  const segments: string[] = [];
+  if (summary.schemaScanned) segments.push(`扫描 Schema ${summary.schemaScanned}`);
+  if (summary.tableScanned) segments.push(`扫描表 ${summary.tableScanned}`);
+  if (summary.tableFetched) segments.push(`抓取表 ${summary.tableFetched}`);
+  if (summary.tableAdded) segments.push(`新增表 ${summary.tableAdded}`);
+  if (summary.tableDeleted) segments.push(`删除表 ${summary.tableDeleted}`);
+  if (summary.columnAdded) segments.push(`新增字段 ${summary.columnAdded}`);
+  if (summary.columnDeleted) segments.push(`删除字段 ${summary.columnDeleted}`);
+  if (summary.commentChanged) segments.push(`注释变更 ${summary.commentChanged}`);
+  if (summary.propertyChanged) segments.push(`属性变更 ${summary.propertyChanged}`);
+  if (summary.typeChanged) segments.push(`类型变更 ${summary.typeChanged}`);
+  if (summary.skippedTables) segments.push(`跳过表 ${summary.skippedTables}`);
+  return segments.join('，');
+}
+
+function getFailedStageText(stage?: string) {
+  if (!stage) return '-';
+  if (stage === 'FETCH_TABLES') return '抓取表清单';
+  if (stage === 'FETCH_COLUMNS') return '抓取字段';
+  if (stage === 'PERSIST_DATABASE') return '写入数据库层级';
+  if (stage === 'PERSIST_SCHEMA') return '写入 Schema';
+  if (stage === 'PERSIST_METADATA') return '写入元数据';
+  return stage;
+}
+
+function getFailedTargetText(item: Api.Metadata.SyncRecord) {
+  if (item.failedSchemaName && item.failedTableName) {
+    return `${item.failedSchemaName}.${item.failedTableName}`;
+  }
+  if (item.failedSchemaName) {
+    return item.failedSchemaName;
+  }
+  return '-';
+}
+
 function handlePageChange(page: number) {
   recordSearchParams.value.pageNum = page;
   loadRecords();
@@ -384,10 +448,20 @@ function handlePageSizeChange(pageSize: number) {
                     :key="item.recordId"
                     :type="getStatusTagType(item.status)"
                     :title="getStatusText(item.status)"
-                    :time="item.startTime"
                   >
+                    <div class="mt-1 text-12px text-gray-500">开始时间: {{ item.startTime || '-' }}</div>
                     <div class="mt-1 text-12px text-gray-500">结束时间: {{ item.endTime || '-' }}</div>
+                    <div class="mt-1 text-12px text-gray-500">
+                      触发来源: {{ getTriggerSourceText(item.triggerSource) }}
+                    </div>
                     <div class="mt-1 text-12px text-gray-500">同步范围: {{ getSyncModeText(item) }}</div>
+                    <div class="mt-1 text-12px text-gray-500">执行耗时: {{ formatDuration(item.durationMs) }}</div>
+                    <div v-if="getSummaryText(item)" class="mt-1 text-12px text-gray-500">
+                      执行摘要: {{ getSummaryText(item) }}
+                    </div>
+                    <div v-if="item.failedStage" class="mt-1 text-12px text-amber-600">
+                      失败定位: {{ getFailedStageText(item.failedStage) }} / {{ getFailedTargetText(item) }}
+                    </div>
                     <div
                       v-if="item.errorMsg"
                       class="mt-2 max-h-100px w-full overflow-y-auto rounded bg-red-50 p-2 text-12px text-red-500"
