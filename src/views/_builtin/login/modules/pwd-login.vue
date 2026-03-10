@@ -26,7 +26,7 @@ const { loading: tenantLoading, startLoading: startTenantLoading, endLoading: en
 
 const codeUrl = ref<string>();
 const captchaEnabled = ref<boolean>(false);
-const registerEnabled = ref<boolean>(false);
+
 const remberMe = ref<boolean>(false);
 
 const tenantEnabled = ref<boolean>(false);
@@ -115,20 +115,6 @@ function handleLoginRember() {
 }
 
 handleLoginRember();
-
-// async function handleRegister() {
-//   const { data, error } = await fetchGetConfigDetail('sys.account.registerUser');
-//   if (error) return;
-//   registerEnabled.value = data.configValue === 'true';
-// }
-
-// handleRegister();
-
-async function handleSocialLogin(type: Api.System.SocialSource) {
-  const { data, error } = await fetchSocialAuthBinding(type, model.tenantId);
-  if (error) return;
-  window.location.href = data;
-}
 </script>
 
 <template>
@@ -183,37 +169,8 @@ async function handleSocialLogin(type: Api.System.SocialSource) {
         <NButton type="primary" size="large" block :loading="authStore.loginLoading" @click="handleSubmit">
           {{ $t('common.login') }}
         </NButton>
-        <NButton v-if="registerEnabled" size="large" block @click="toggleLoginModule('register')">
-          {{ $t('page.login.common.register') }}
-        </NButton>
       </NSpace>
     </NForm>
-
-    <NDivider>
-      <div class="color-#858585">{{ $t('page.login.pwdLogin.otherAccountLogin') }}</div>
-    </NDivider>
-
-    <div class="w-full flex-y-center gap-16px">
-      <NButton class="flex-1" @click="handleSocialLogin('gitee')">
-        <template #icon>
-          <icon-simple-icons-gitee class="color-#c71d23" />
-        </template>
-        <span class="ml-6px">Gitee</span>
-      </NButton>
-      <NButton class="flex-1" @click="handleSocialLogin('github')">
-        <template #icon>
-          <icon-mdi-github class="color-#010409" />
-        </template>
-        <span class="ml-6px">GitHub</span>
-      </NButton>
-    </div>
-
-    <div class="mt-24px w-full text-center text-18px text-#858585">
-      您还没有账户？
-      <NA type="primary" class="text-18px" @click="toggleLoginModule('register')">
-        {{ $t('page.login.common.register') }}
-      </NA>
-    </div>
   </div>
 </template>
 

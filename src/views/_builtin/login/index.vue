@@ -42,23 +42,20 @@ const activeModule = computed(() => moduleMap[props.module || 'pwd-login']);
   <div class="scroll box-border size-full flex">
     <div class="relative box-border hidden h-full w-65vw overflow-hidden bg-primary-50 xl:block dark:bg-primary-900">
       <div class="relative z-100 flex items-center pl-30px pt-30px">
-        <SystemLogo class="fill-primary text-32px" />
-        <h3 class="ml-10px text-20px font-400">{{ $t('system.title') }}</h3>
+        <SystemLogo class="fill-primary text-64px" />
+        <h3 class="ml-16px text-32px font-500">{{ $t('system.title') }}</h3>
       </div>
       <div class="absolute inset-x-0 inset-b-10.5% inset-t-0 z-10 m-auto w-40%">
         <img class="size-full" :src="loginBackground" />
       </div>
-      <div class="absolute bottom-80px w-full text-center">
-        <h1 class="text-24px font-400">{{ $t('page.login.common.title') }}</h1>
-        <p class="mt-8px text-14px color-gray-500">{{ $t('page.login.common.subTitle') }}</p>
-      </div>
+
       <WaveBg />
     </div>
     <div class="relative h-full flex-1 xl:m-auto sm:!w-full">
       <header class="flex-y-center justify-between px-30px pt-30px xl:justify-end">
         <div class="relative z-100 flex items-center xl:hidden">
-          <SystemLogo class="fill-primary text-32px" />
-          <h3 class="ml-10px text-20px font-400">{{ $t('system.title') }}</h3>
+          <SystemLogo class="fill-primary text-48px" />
+          <h3 class="ml-12px text-28px font-500">{{ $t('system.title') }}</h3>
         </div>
         <div class="flex items-center justify-end">
           <ThemeSchemaSwitch
