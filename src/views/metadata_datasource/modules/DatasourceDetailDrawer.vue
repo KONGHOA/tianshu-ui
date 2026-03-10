@@ -81,6 +81,12 @@ function getTypeTagType(type?: string): 'warning' | 'info' | 'success' | 'defaul
   if (type === 'clickhouse') return 'success';
   return 'default';
 }
+
+function getDatasourceStatusMeta(status?: string) {
+  if (status === '1') return { label: '在线', type: 'success' as const };
+  if (status === '2') return { label: '离线', type: 'error' as const };
+  return { label: '未检测', type: 'default' as const };
+}
 </script>
 
 <template>
@@ -115,12 +121,12 @@ function getTypeTagType(type?: string): 'warning' | 'info' | 'success' | 'defaul
               </NTag>
               <NTag
                 v-if="datasource?.status"
-                :type="datasource.status === '0' ? 'success' : 'error'"
+                :type="getDatasourceStatusMeta(datasource.status).type"
                 size="small"
                 :bordered="false"
                 class="flex-shrink-0"
               >
-                {{ datasource.status === '0' ? '运行中' : '已停用' }}
+                {{ getDatasourceStatusMeta(datasource.status).label }}
               </NTag>
             </div>
           </NSpin>

@@ -70,11 +70,15 @@ const statCards = computed(() => [
 ]);
 
 function getStatusType(status?: string) {
-  return status === '0' ? 'success' : 'error';
+  if (status === '1') return 'success';
+  if (status === '2') return 'error';
+  return 'default';
 }
 
 function getStatusLabel(status?: string) {
-  return status === '0' ? '运行中' : '已停用';
+  if (status === '1') return '在线';
+  if (status === '2') return '离线';
+  return '未检测';
 }
 </script>
 

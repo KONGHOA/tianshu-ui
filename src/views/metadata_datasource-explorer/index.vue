@@ -28,6 +28,28 @@ import { useAuth } from '@/hooks/business/auth';
 import { getDatasourceIcon } from '@/utils/datasourceIcon';
 import ProfileTab from './modules/ProfileTab.vue';
 
+function getDatasourceStatusMeta(status?: string) {
+  if (status === '1') {
+    return {
+      text: '在线',
+      type: 'success' as const,
+      dot: 'bg-green-500'
+    };
+  }
+  if (status === '2') {
+    return {
+      text: '离线',
+      type: 'error' as const,
+      dot: 'bg-red-500'
+    };
+  }
+  return {
+    text: '未检测',
+    type: 'default' as const,
+    dot: 'bg-gray-400'
+  };
+}
+
 defineOptions({ name: 'MetadataDatasourceExplorer' });
 
 const route = useRoute();
@@ -889,16 +911,16 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
                   v-if="level === 'datasource' && datasource?.status"
                   size="small"
                   :bordered="false"
-                  :type="datasource.status === '0' ? 'success' : 'error'"
+                  :type="getDatasourceStatusMeta(datasource.status).type"
                   round
                 >
                   <template #icon>
                     <div
                       class="mr-2px h-6px w-6px rounded-full"
-                      :class="datasource.status === '0' ? 'bg-green-500' : 'bg-red-500'"
+                      :class="getDatasourceStatusMeta(datasource.status).dot"
                     />
                   </template>
-                  {{ datasource.status === '0' ? '运行中' : '已停用' }}
+                  {{ getDatasourceStatusMeta(datasource.status).text }}
                 </NTag>
                 <NTag v-if="level === 'database'" size="small" :bordered="false" round>DATABASE</NTag>
                 <NTag v-if="level === 'schema'" size="small" :bordered="false" type="default" round>SCHEMA</NTag>
@@ -1123,8 +1145,8 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
                       </div>
                       <div class="flex items-start gap-8px">
                         <span class="w-72px flex-shrink-0 text-gray-400">状态</span>
-                        <NTag size="tiny" :bordered="false" :type="datasource?.status === '0' ? 'success' : 'error'">
-                          {{ datasource?.status === '0' ? '运行中' : '已停用' }}
+                        <NTag size="tiny" :bordered="false" :type="getDatasourceStatusMeta(datasource?.status).type">
+                          {{ getDatasourceStatusMeta(datasource?.status).text }}
                         </NTag>
                       </div>
                       <div v-if="datasource?.remark" class="flex items-start gap-8px">
