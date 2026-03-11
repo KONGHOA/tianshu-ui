@@ -32,6 +32,23 @@ const connParam = computed<Api.Metadata.ConnParam | null>(() => {
   }
 });
 
+const filterConfig = computed<Api.Metadata.DatasourceFilterConfig | null>(() => {
+  if (!props.datasource?.filterConfig) return null;
+  try {
+    return JSON.parse(props.datasource.filterConfig);
+  } catch {
+    return null;
+  }
+});
+
+const hasFilterConfig = computed(() => {
+  const schemaIncludes = filterConfig.value?.schemaFilterPattern?.includes?.length ?? 0;
+  const schemaExcludes = filterConfig.value?.schemaFilterPattern?.excludes?.length ?? 0;
+  const tableIncludes = filterConfig.value?.tableFilterPattern?.includes?.length ?? 0;
+  const tableExcludes = filterConfig.value?.tableFilterPattern?.excludes?.length ?? 0;
+  return schemaIncludes + schemaExcludes + tableIncludes + tableExcludes > 0;
+});
+
 const maskedPassword = computed(() => (connParam.value?.password ? '••••••••' : '-'));
 
 const statCards = computed(() => [
@@ -154,5 +171,57 @@ function getStatusLabel(status?: string) {
         </div>
       </NGridItem>
     </NGrid>
+
+    <div class="border border-gray-100 rounded-10px p-16px dark:border-gray-800">
+      <div class="mb-12px flex items-center gap-8px text-13px text-gray-700 font-medium dark:text-gray-200">
+        <NIcon size="15" class="text-amber-500"><div class="i-mdi-filter-variant" /></NIcon>
+        同步过滤规则
+      </div>
+
+      <div
+        v-if="!hasFilterConfig"
+        class="rounded-8px bg-gray-50 px-12px py-10px text-12px text-gray-500 dark:bg-[#202024] dark:text-gray-400"
+      >
+        当前未配置过滤器，默认同步该数据源下全部可见元数据。
+      </div>
+
+      <div v-else class="grid gap-12px md:grid-cols-2">
+        <div class="rounded-8px bg-gray-50 px-12px py-12px dark:bg-[#202024]">
+          <div class="mb-8px text-12px text-gray-700 font-medium dark:text-gray-200">Schema 过滤</div>
+          <div class="flex flex-col gap-8px text-12px">
+            <div>
+              <span class="mr-8px text-gray-400">includes</span>
+              <span class="text-gray-700 dark:text-gray-200">
+                {{ filterConfig?.schemaFilterPattern?.includes?.join(' , ') || '-' }}
+              </span>
+            </div>
+            <div>
+              <span class="mr-8px text-gray-400">excludes</span>
+              <span class="text-gray-700 dark:text-gray-200">
+                {{ filterConfig?.schemaFilterPattern?.excludes?.join(' , ') || '-' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-8px bg-gray-50 px-12px py-12px dark:bg-[#202024]">
+          <div class="mb-8px text-12px text-gray-700 font-medium dark:text-gray-200">Table 过滤</div>
+          <div class="flex flex-col gap-8px text-12px">
+            <div>
+              <span class="mr-8px text-gray-400">includes</span>
+              <span class="text-gray-700 dark:text-gray-200">
+                {{ filterConfig?.tableFilterPattern?.includes?.join(' , ') || '-' }}
+              </span>
+            </div>
+            <div>
+              <span class="mr-8px text-gray-400">excludes</span>
+              <span class="text-gray-700 dark:text-gray-200">
+                {{ filterConfig?.tableFilterPattern?.excludes?.join(' , ') || '-' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

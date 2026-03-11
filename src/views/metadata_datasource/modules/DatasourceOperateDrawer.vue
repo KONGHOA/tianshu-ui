@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import {
   NButton,
   NDivider,
+  NDynamicTags,
   NForm,
   NFormItem,
   NIcon,
@@ -35,7 +36,7 @@ const emit = defineEmits<{ (e: 'submitted'): void }>();
 const visible = defineModel<boolean>('visible', { default: false });
 
 // ────────────── 步骤管理 ──────────────
-const STEPS = ['选择类型', '基本信息', '连接配置'];
+const STEPS = ['选择类型', '基本信息', '连接配置', '过滤器'];
 const currentStep = ref(1);
 
 // ────────────── 数据源类型定义 ──────────────
@@ -54,11 +55,16 @@ const SERVICE_TYPES = [
 ] as const;
 
 type ServiceKey = (typeof SERVICE_TYPES)[number]['key'];
+type FilterModel = {
+  schemaFilterPattern: Api.Metadata.FilterPattern;
+  tableFilterPattern: Api.Metadata.FilterPattern;
+};
 
 // ────────────── 数据模型 ──────────────
 type Model = Api.Metadata.DatasourceOperateParams;
 
 const model = ref<Model>(createDefaultModel());
+const filterModel = ref<FilterModel>(createDefaultFilterModel());
 const connModel = ref<{
   host: string;
   port: number;
@@ -86,6 +92,32 @@ function createDefaultModel(): Model {
     contactPhone: null,
     remark: '',
     categoryId: null
+  };
+}
+
+function createDefaultFilterModel(): FilterModel {
+  return {
+    schemaFilterPattern: { includes: [], excludes: [] },
+    tableFilterPattern: { includes: [], excludes: [] }
+  };
+}
+
+function normalizeParsedFilterModel(value: unknown): FilterModel {
+  const defaultModel = createDefaultFilterModel();
+  if (!value || typeof value !== 'object') {
+    return defaultModel;
+  }
+
+  const parsed = value as Api.Metadata.DatasourceFilterConfig;
+  return {
+    schemaFilterPattern: {
+      includes: parsed.schemaFilterPattern?.includes ?? [],
+      excludes: parsed.schemaFilterPattern?.excludes ?? []
+    },
+    tableFilterPattern: {
+      includes: parsed.tableFilterPattern?.includes ?? [],
+      excludes: parsed.tableFilterPattern?.excludes ?? []
+    }
   };
 }
 
@@ -315,6 +347,7 @@ const connRules = computed(() => ({
 // ────────────── 初始化 ──────────────
 function handleUpdateModelWhenEdit() {
   model.value = createDefaultModel();
+  filterModel.value = createDefaultFilterModel();
   connModel.value = { host: '', port: 3306, database: '', username: '', password: '', properties: {} };
   testStatus.value = 'idle';
   currentStep.value = isEdit.value ? 2 : 1;
@@ -329,6 +362,17 @@ function handleUpdateModelWhenEdit() {
         Object.assign(connModel.value, JSON.parse(model.value.connParams as string));
       } catch {
         /* ignore */
+      }
+    }
+    if (model.value.filterConfig) {
+      try {
+        const parsed =
+          typeof model.value.filterConfig === 'string'
+            ? JSON.parse(model.value.filterConfig)
+            : model.value.filterConfig;
+        filterModel.value = normalizeParsedFilterModel(parsed);
+      } catch {
+        filterModel.value = createDefaultFilterModel();
       }
     }
     initSourceType(model.value.sourceType);
@@ -356,6 +400,13 @@ async function goNext() {
       currentStep.value = 3;
     } catch {
       /* validation failed, stay on step 2 */
+    }
+  } else if (currentStep.value === 3) {
+    try {
+      await validateStep3();
+      currentStep.value = 4;
+    } catch {
+      /* validation failed, stay on step 3 */
     }
   }
 }
@@ -389,12 +440,9 @@ async function handleTestConnection() {
 
 // ────────────── 提交 ──────────────
 async function handleSubmit() {
-  try {
-    await validateStep3();
-  } catch {
-    return;
-  }
   model.value.connParams = JSON.stringify(connModel.value);
+  const normalizedFilterConfig = normalizeFilterConfig(filterModel.value);
+  model.value.filterConfig = normalizedFilterConfig ? JSON.stringify(normalizedFilterConfig) : null;
 
   const fn = isEdit.value ? fetchUpdateDatasource : fetchCreateDatasource;
   const { error } = await fn(model.value);
@@ -405,6 +453,25 @@ async function handleSubmit() {
   emit('submitted');
 }
 
+function normalizeFilterConfig(config: FilterModel) {
+  const normalizePattern = (pattern?: Api.Metadata.FilterPattern) => {
+    if (!pattern) return null;
+    const includes = [...new Set((pattern.includes ?? []).map(v => v.trim()).filter(Boolean))];
+    const excludes = [...new Set((pattern.excludes ?? []).map(v => v.trim()).filter(Boolean))];
+    if (!includes.length && !excludes.length) return null;
+    return { includes, excludes };
+  };
+
+  const schemaFilterPattern = normalizePattern(config.schemaFilterPattern);
+  const tableFilterPattern = normalizePattern(config.tableFilterPattern);
+
+  if (!schemaFilterPattern && !tableFilterPattern) {
+    return null;
+  }
+
+  return { schemaFilterPattern, tableFilterPattern };
+}
+
 watch(visible, v => {
   if (v) {
     handleUpdateModelWhenEdit();
@@ -412,6 +479,16 @@ watch(visible, v => {
     restoreStep3();
   }
 });
+
+watch(
+  () => [visible.value, props.operateType, props.rowData] as const,
+  ([isVisible]) => {
+    if (!isVisible) return;
+    handleUpdateModelWhenEdit();
+    restoreStep2();
+    restoreStep3();
+  }
+);
 </script>
 
 <template>
@@ -878,6 +955,83 @@ watch(visible, v => {
             </div>
           </div>
         </div>
+
+        <!-- ── Step 4: 过滤器 ── -->
+        <div v-else-if="currentStep === 4" class="flex flex-1 gap-0 overflow-hidden">
+          <div class="flex-1 overflow-y-auto border-r border-gray-100 px-20px py-4px dark:border-gray-800">
+            <div
+              class="mb-16px rounded-10px bg-amber-50 px-14px py-12px text-12px text-amber-700 leading-relaxed dark:bg-amber-900/10 dark:text-amber-300"
+            >
+              过滤器只影响后续元数据同步范围，不改变连接测试。支持填写正则表达式；未命中 includes 的对象不会同步，命中
+              excludes 的对象会被排除。
+            </div>
+
+            <div class="flex flex-col gap-16px">
+              <div class="border border-gray-200 rounded-12px px-16px py-14px dark:border-gray-700">
+                <div class="mb-12px flex items-center justify-between">
+                  <div>
+                    <div class="text-14px text-gray-900 font-semibold dark:text-gray-100">Schema 过滤</div>
+                    <div class="mt-4px text-12px text-gray-500 dark:text-gray-400">
+                      MySQL 类数据源这里实际对应库名；PostgreSQL 对应 schema 名称。
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-12px">
+                  <div class="mb-6px text-12px text-gray-600 font-medium dark:text-gray-300">includes</div>
+                  <NDynamicTags v-model:value="filterModel.schemaFilterPattern.includes" />
+                  <div class="mt-6px text-12px text-gray-400 dark:text-gray-500">
+                    仅同步命中的库/Schema，如 `^ods_.*$`
+                  </div>
+                </div>
+
+                <div>
+                  <div class="mb-6px text-12px text-gray-600 font-medium dark:text-gray-300">excludes</div>
+                  <NDynamicTags v-model:value="filterModel.schemaFilterPattern.excludes" />
+                  <div class="mt-6px text-12px text-gray-400 dark:text-gray-500">
+                    从同步结果中排除命中的库/Schema，如 `^tmp_.*$`
+                  </div>
+                </div>
+              </div>
+
+              <div class="border border-gray-200 rounded-12px px-16px py-14px dark:border-gray-700">
+                <div class="mb-12px">
+                  <div class="text-14px text-gray-900 font-semibold dark:text-gray-100">Table 过滤</div>
+                  <div class="mt-4px text-12px text-gray-500 dark:text-gray-400">
+                    用于限制需要同步的表范围。建议先用 includes 缩小范围，再用 excludes 补充剔除特殊表。
+                  </div>
+                </div>
+
+                <div class="mb-12px">
+                  <div class="mb-6px text-12px text-gray-600 font-medium dark:text-gray-300">includes</div>
+                  <NDynamicTags v-model:value="filterModel.tableFilterPattern.includes" />
+                  <div class="mt-6px text-12px text-gray-400 dark:text-gray-500">
+                    仅同步命中的表，如 `^(user|order)_.*$`
+                  </div>
+                </div>
+
+                <div>
+                  <div class="mb-6px text-12px text-gray-600 font-medium dark:text-gray-300">excludes</div>
+                  <NDynamicTags v-model:value="filterModel.tableFilterPattern.excludes" />
+                  <div class="mt-6px text-12px text-gray-400 dark:text-gray-500">
+                    排除命中的表，如 `^bak_.*$`、`^tmp_.*$`
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="w-240px flex-shrink-0 overflow-y-auto bg-gray-50/80 px-16px py-16px dark:bg-[#18181c]">
+            <div class="mb-12px text-12px text-gray-700 font-semibold dark:text-gray-200">规则说明</div>
+            <div class="flex flex-col gap-10px text-12px text-gray-500 leading-relaxed dark:text-gray-400">
+              <div>1. 未配置过滤器时，同步该数据源下全部可见对象。</div>
+              <div>2. 配置 includes 后，仅保留匹配 includes 的对象。</div>
+              <div>3. 配置 excludes 后，命中 excludes 的对象会被排除。</div>
+              <div>4. 正则区分写法，不需要写分隔符，直接输入表达式即可。</div>
+              <div>5. 过滤器只影响后续同步，不影响已存在连接配置。</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ═══ FOOTER ═══ -->
@@ -898,14 +1052,14 @@ watch(visible, v => {
             </NButton>
 
             <!-- Step 1 / 2: 下一步 -->
-            <NButton v-if="currentStep < 3" type="primary" @click="goNext">
+            <NButton v-if="currentStep < 4" type="primary" @click="goNext">
               下一步
               <template #icon>
                 <NIcon><div class="i-mdi-arrow-right" /></NIcon>
               </template>
             </NButton>
 
-            <!-- Step 3: 保存 -->
+            <!-- Step 4: 保存 -->
             <NButton v-else type="primary" @click="handleSubmit">
               <template #icon>
                 <NIcon><div class="i-mdi-check" /></NIcon>

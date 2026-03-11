@@ -142,6 +142,30 @@ const connParamsObj = computed(() => {
   return parseProps(datasource.value.connParams);
 });
 
+const filterConfigObj = computed<Api.Metadata.DatasourceFilterConfig | null>(() => {
+  if (!datasource.value?.filterConfig) return null;
+  try {
+    return JSON.parse(datasource.value.filterConfig);
+  } catch {
+    return null;
+  }
+});
+
+const filterSummary = computed(() => {
+  const schemaIncludes = filterConfigObj.value?.schemaFilterPattern?.includes ?? [];
+  const schemaExcludes = filterConfigObj.value?.schemaFilterPattern?.excludes ?? [];
+  const tableIncludes = filterConfigObj.value?.tableFilterPattern?.includes ?? [];
+  const tableExcludes = filterConfigObj.value?.tableFilterPattern?.excludes ?? [];
+  const activeRuleCount = schemaIncludes.length + schemaExcludes.length + tableIncludes.length + tableExcludes.length;
+  return {
+    activeRuleCount,
+    schemaIncludes,
+    schemaExcludes,
+    tableIncludes,
+    tableExcludes
+  };
+});
+
 const displayedPassword = computed(() => {
   const password = connParamsObj.value.password;
   if (!password) return '-';
@@ -992,6 +1016,62 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                       <span class="max-w-220px text-right text-gray-800 leading-6 dark:text-gray-200">
                         {{ datasource?.remark || '-' }}
                       </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="overview-detail-card rounded-16px bg-white p-18px shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
+                >
+                  <div
+                    class="mb-14px flex items-center gap-6px text-13px text-gray-700 font-semibold dark:text-gray-200"
+                  >
+                    <NIcon :size="16" class="text-amber-500"><div class="i-mdi-filter-variant" /></NIcon>
+                    同步过滤规则
+                  </div>
+
+                  <div
+                    v-if="filterSummary.activeRuleCount === 0"
+                    class="rounded-12px bg-gray-50 px-14px py-12px text-13px text-gray-500 leading-6 dark:bg-[#24242b] dark:text-gray-400"
+                  >
+                    当前未配置过滤规则。全量同步时将纳入该数据源下全部可见对象。
+                  </div>
+
+                  <div v-else class="grid gap-12px text-13px">
+                    <div class="rounded-12px bg-amber-50/70 px-14px py-12px dark:bg-amber-900/10">
+                      <div class="mb-6px text-12px text-amber-700 font-semibold dark:text-amber-300">Schema 过滤</div>
+                      <div class="flex flex-col gap-8px">
+                        <div class="flex items-start justify-between gap-12px">
+                          <span class="text-gray-400">includes</span>
+                          <span class="max-w-220px text-right text-gray-800 leading-6 dark:text-gray-200">
+                            {{ filterSummary.schemaIncludes.join(' , ') || '-' }}
+                          </span>
+                        </div>
+                        <div class="flex items-start justify-between gap-12px">
+                          <span class="text-gray-400">excludes</span>
+                          <span class="max-w-220px text-right text-gray-800 leading-6 dark:text-gray-200">
+                            {{ filterSummary.schemaExcludes.join(' , ') || '-' }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="rounded-12px bg-sky-50/70 px-14px py-12px dark:bg-sky-900/10">
+                      <div class="mb-6px text-12px text-sky-700 font-semibold dark:text-sky-300">Table 过滤</div>
+                      <div class="flex flex-col gap-8px">
+                        <div class="flex items-start justify-between gap-12px">
+                          <span class="text-gray-400">includes</span>
+                          <span class="max-w-220px text-right text-gray-800 leading-6 dark:text-gray-200">
+                            {{ filterSummary.tableIncludes.join(' , ') || '-' }}
+                          </span>
+                        </div>
+                        <div class="flex items-start justify-between gap-12px">
+                          <span class="text-gray-400">excludes</span>
+                          <span class="max-w-220px text-right text-gray-800 leading-6 dark:text-gray-200">
+                            {{ filterSummary.tableExcludes.join(' , ') || '-' }}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

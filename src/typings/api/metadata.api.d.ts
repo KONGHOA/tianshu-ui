@@ -15,6 +15,16 @@ declare namespace Api {
       properties?: Record<string, string>;
     };
 
+    type FilterPattern = {
+      includes?: string[];
+      excludes?: string[];
+    };
+
+    type DatasourceFilterConfig = {
+      schemaFilterPattern?: FilterPattern;
+      tableFilterPattern?: FilterPattern;
+    };
+
     /** 数据源 */
     type Datasource = Common.CommonRecord<{
       datasourceId: CommonType.IdType;
@@ -22,6 +32,7 @@ declare namespace Api {
       datasourceName: string;
       datasourceType: string;
       connParams: string;
+      filterConfig?: string;
       /** 连接状态: '0'=未检测 '1'=在线 '2'=离线 */
       status: string;
       /** 最近一次连接检测时间 */
@@ -48,6 +59,7 @@ declare namespace Api {
         | 'datasourceName'
         | 'datasourceType'
         | 'connParams'
+        | 'filterConfig'
         | 'status'
         | 'sourceOrgCode'
         | 'sourceOrgName'
