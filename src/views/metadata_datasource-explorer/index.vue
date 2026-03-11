@@ -16,6 +16,7 @@ import {
   NTag
 } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
+import dayjs from 'dayjs';
 import {
   fetchGetDatasource,
   fetchGetDatasourceSummary,
@@ -27,6 +28,8 @@ import { fetchTriggerTableSync } from '@/service/api/metadata/sync';
 import { useAuth } from '@/hooks/business/auth';
 import { getDatasourceIcon } from '@/utils/datasourceIcon';
 import ProfileTab from './modules/ProfileTab.vue';
+import DatabaseProfileTab from './modules/DatabaseProfileTab.vue';
+import ChangeTimeline from './modules/ChangeTimeline.vue';
 
 function getDatasourceStatusMeta(status?: string) {
   if (status === '1') {
@@ -94,8 +97,9 @@ const schemaSearch = ref('');
 const tableSearch = ref('');
 const activeTab = ref('columns');
 const dbActiveTab = ref('schemas');
-const datasourceActiveTab = ref('databases');
+const datasourceActiveTab = ref('overview');
 const schemaActiveTab = ref('tables');
+const showPassword = ref(false);
 
 // ─── 工具函数 ─────────────────────────────────────────────────
 const propsCache = new Map<string, Record<string, unknown>>();
@@ -116,121 +120,32 @@ function parseProps(json: string | undefined): Record<string, unknown> {
 function formatDateTime(dt: string | null | undefined): string {
   if (!dt) return '暂无';
   try {
-    return new Date(dt).toLocaleString('zh-CN');
+    return dayjs(dt).format('YYYY-MM-DD HH:mm:ss');
   } catch {
     return dt;
   }
 }
 
+function getMetricTagClass(type: ChangeTagType | 'neutral' | 'primary' = 'neutral'): string {
+  if (type === 'success') return 'metric-tag metric-tag--success';
+  if (type === 'error') return 'metric-tag metric-tag--error';
+  if (type === 'warning') return 'metric-tag metric-tag--warning';
+  if (type === 'info') return 'metric-tag metric-tag--info';
+  if (type === 'primary') return 'metric-tag metric-tag--primary';
+  return 'metric-tag metric-tag--neutral';
+}
+
 type ChangeTagType = 'default' | 'error' | 'success' | 'warning' | 'info';
-
-interface ChangeTypeInfo {
-  text: string;
-  type: ChangeTagType;
-}
-
-interface NormalizedChange {
-  level: string;
-  normalized: string;
-}
-
-function normalizeChange(row: Api.Metadata.SchemaChange): NormalizedChange {
-  return {
-    normalized: String(row.changeType || '')
-      .trim()
-      .toUpperCase()
-      .replaceAll('-', '_')
-      .replaceAll(' ', '_'),
-    level: String(row.entityLevel || '')
-      .trim()
-      .toLowerCase()
-  };
-}
-
-function matchesAny(normalized: string, keywords: string[]): boolean {
-  return keywords.some(keyword => normalized.includes(keyword));
-}
-
-function resolveLevelChange(levelName: string, normalized: string): ChangeTypeInfo | null {
-  const levelMap: Record<string, ChangeTypeInfo[]> = {
-    column: [
-      { text: '字段注释变更', type: 'warning' },
-      { text: '字段类型变更', type: 'warning' },
-      { text: '字段新增', type: 'success' },
-      { text: '字段删除', type: 'error' }
-    ],
-    table: [
-      { text: '表注释变更', type: 'warning' },
-      { text: '表属性变更', type: 'info' },
-      { text: '表新增', type: 'success' },
-      { text: '表删除', type: 'error' }
-    ],
-    schema: [
-      { text: 'Schema注释变更', type: 'warning' },
-      { text: 'Schema新增', type: 'success' },
-      { text: 'Schema删除', type: 'error' }
-    ],
-    database: [
-      { text: '数据库注释变更', type: 'warning' },
-      { text: '数据库新增', type: 'success' },
-      { text: '数据库删除', type: 'error' }
-    ]
-  };
-  const keywordMap: Record<string, string[][]> = {
-    column: [
-      ['COMMENT', 'CHANGE'],
-      ['TYPE', 'CHANGE'],
-      ['ADD', 'CREATE'],
-      ['DROP', 'DELETE', 'REMOVE']
-    ],
-    table: [['COMMENT', 'CHANGE'], ['PROPERTY'], ['ADD', 'CREATE'], ['DROP', 'DELETE', 'REMOVE']],
-    schema: [
-      ['COMMENT', 'CHANGE'],
-      ['ADD', 'CREATE'],
-      ['DROP', 'DELETE', 'REMOVE']
-    ],
-    database: [
-      ['COMMENT', 'CHANGE'],
-      ['ADD', 'CREATE'],
-      ['DROP', 'DELETE', 'REMOVE']
-    ]
-  };
-  const infos = levelMap[levelName];
-  const keywords = keywordMap[levelName];
-  if (!infos || !keywords) {
-    return null;
-  }
-  const matchIndex = keywords.findIndex(group => matchesAny(normalized, group));
-  return matchIndex >= 0 ? infos[matchIndex] : null;
-}
-
-function resolveGenericChange(normalized: string): ChangeTypeInfo {
-  const rules: Array<{ keywords: string[]; info: ChangeTypeInfo }> = [
-    { keywords: ['COMMENT', 'CHANGE'], info: { text: '注释变更', type: 'warning' } },
-    { keywords: ['PROPERTY'], info: { text: '属性变更', type: 'info' } },
-    { keywords: ['TYPE', 'CHANGE'], info: { text: '类型变更', type: 'warning' } },
-    { keywords: ['ADD', 'CREATE'], info: { text: '新增', type: 'success' } },
-    { keywords: ['DROP', 'DELETE', 'REMOVE'], info: { text: '删除', type: 'error' } },
-    { keywords: ['MODIFY', 'ALTER', 'CHANGE'], info: { text: '变更', type: 'warning' } }
-  ];
-  const matchedRule = rules.find(rule => matchesAny(normalized, rule.keywords));
-  return matchedRule?.info ?? { text: normalized, type: 'default' };
-}
-
-function getChangeTypeInfo(row: Api.Metadata.SchemaChange): {
-  text: string;
-  type: ChangeTagType;
-} {
-  const change = normalizeChange(row);
-  return (
-    resolveLevelChange(change.level, change.normalized) ??
-    resolveGenericChange(change.normalized) ?? { text: row.changeType, type: 'default' }
-  );
-}
 
 const connParamsObj = computed(() => {
   if (!datasource.value?.connParams) return {};
   return parseProps(datasource.value.connParams);
+});
+
+const displayedPassword = computed(() => {
+  const password = connParamsObj.value.password;
+  if (!password) return '-';
+  return showPassword.value ? String(password) : '••••••••';
 });
 
 // ─── 数据加载 ─────────────────────────────────────────────────
@@ -458,14 +373,15 @@ const paginationProps = {
 // ─── 数据库列定义 ────────────────────────────────────────────────
 const databaseColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   {
-    title: '序号',
+    title: '#',
     key: 'index',
-    width: 60,
+    width: 48,
     render: (_row, index) => <span class="text-12px text-gray-400 tabular-nums">{index + 1}</span>
   },
   {
-    title: '数据库名',
+    title: '数据库',
     key: 'displayName',
+    minWidth: 220,
     render: row => (
       <div class="flex cursor-pointer items-center gap-8px" onClick={() => openDatabase(row)}>
         <div class="h-28px w-28px flex-center flex-shrink-0 rounded-6px from-blue-50 to-blue-100/60 bg-gradient-to-br dark:from-blue-900/20 dark:to-blue-800/10">
@@ -473,26 +389,27 @@ const databaseColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
             <div class="i-mdi-database" />
           </NIcon>
         </div>
-        <span class="text-13px text-gray-800 font-medium dark:text-gray-200 hover:text-primary hover:underline">
+        <span class="text-13px text-gray-800 font-semibold dark:text-gray-100 hover:text-primary">
           {row.displayName}
         </span>
       </div>
     )
   },
   {
-    title: '描述',
+    title: '说明',
     key: 'description',
+    minWidth: 180,
     ellipsis: { tooltip: true },
     render: row => row.description || <span class="text-gray-300">-</span>
   },
   {
-    title: '更新时间',
+    title: '更新于',
     key: 'updateTime',
-    width: 170,
+    width: 144,
     render: row => {
       const t = row.updateTime ?? row.createTime;
       return t ? (
-        <span class="text-12px text-gray-400 tabular-nums">{new Date(t).toLocaleString('zh-CN')}</span>
+        <span class="text-12px text-gray-400 tabular-nums">{formatDateTime(t)}</span>
       ) : (
         <span class="text-gray-300">-</span>
       );
@@ -503,14 +420,15 @@ const databaseColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 // ─── 数据库结构列定义 ──────────────────────────────────────────
 const schemaColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   {
-    title: '序号',
+    title: '#',
     key: 'index',
-    width: 60,
+    width: 48,
     render: (_row, index) => <span class="text-12px text-gray-400 tabular-nums">{index + 1}</span>
   },
   {
-    title: '结构名',
+    title: '结构',
     key: 'displayName',
+    minWidth: 220,
     render: row => (
       <div class="flex cursor-pointer items-center gap-8px" onClick={() => openSchema(row)}>
         <div class="h-28px w-28px flex-center flex-shrink-0 rounded-6px from-purple-50 to-purple-100/60 bg-gradient-to-br dark:from-purple-900/20 dark:to-purple-800/10">
@@ -518,26 +436,27 @@ const schemaColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
             <div class="i-mdi-layers-outline" />
           </NIcon>
         </div>
-        <span class="text-13px text-gray-800 font-medium dark:text-gray-200 hover:text-primary hover:underline">
+        <span class="text-13px text-gray-800 font-semibold dark:text-gray-100 hover:text-primary">
           {row.displayName}
         </span>
       </div>
     )
   },
   {
-    title: '描述',
+    title: '说明',
     key: 'description',
+    minWidth: 180,
     ellipsis: { tooltip: true },
     render: row => row.description || <span class="text-gray-300">-</span>
   },
   {
-    title: '更新时间',
+    title: '更新于',
     key: 'updateTime',
-    width: 170,
+    width: 144,
     render: row => {
       const t = row.updateTime ?? row.createTime;
       return t ? (
-        <span class="text-12px text-gray-400 tabular-nums">{new Date(t).toLocaleString('zh-CN')}</span>
+        <span class="text-12px text-gray-400 tabular-nums">{formatDateTime(t)}</span>
       ) : (
         <span class="text-gray-300">-</span>
       );
@@ -548,9 +467,9 @@ const schemaColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 // ─── 表格列定义 ───────────────────────────────────────────────
 const tableColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   {
-    title: '序号',
+    title: '#',
     key: 'index',
-    width: 52,
+    width: 48,
     render: (_row, index) => <span class="text-12px text-gray-400 tabular-nums">{index + 1}</span>
   },
   {
@@ -572,11 +491,11 @@ const tableColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
               <div class={isView ? 'i-mdi-eye-outline' : 'i-mdi-table'} />
             </NIcon>
           </div>
-          <span class="text-13px text-gray-800 font-medium dark:text-gray-200 hover:text-primary hover:underline">
+          <span class="text-13px text-gray-800 font-semibold dark:text-gray-100 hover:text-primary">
             {row.displayName}
           </span>
           {isView && (
-            <NTag size="tiny" bordered={false} type="warning">
+            <NTag size="small" bordered={false} class={getMetricTagClass('warning')}>
               {type}
             </NTag>
           )}
@@ -585,15 +504,16 @@ const tableColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
     }
   },
   {
-    title: '描述',
+    title: '说明',
     key: 'description',
+    minWidth: 160,
     ellipsis: { tooltip: true },
     render: row => row.description || <span class="text-gray-300">-</span>
   },
   {
-    title: '字段数',
+    title: '字段',
     key: 'columnCount',
-    width: 80,
+    width: 72,
     align: 'center',
     render: row => {
       const count = tableColumnCounts.value.get(row.uuid);
@@ -605,9 +525,9 @@ const tableColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
     }
   },
   {
-    title: '数据量',
+    title: '行数',
     key: 'tableRows',
-    width: 100,
+    width: 92,
     align: 'right',
     render: row => {
       const p = parseProps(row.properties);
@@ -618,13 +538,13 @@ const tableColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
     }
   },
   {
-    title: '更新时间',
+    title: '更新于',
     key: 'updateTime',
-    width: 170,
+    width: 144,
     render: row => {
       const t = row.updateTime ?? row.createTime;
       return t ? (
-        <span class="text-12px text-gray-400 tabular-nums">{new Date(t).toLocaleString('zh-CN')}</span>
+        <span class="text-12px text-gray-400 tabular-nums">{formatDateTime(t)}</span>
       ) : (
         <span class="text-gray-300">-</span>
       );
@@ -634,20 +554,25 @@ const tableColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 
 const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   {
-    title: '序号',
+    title: '#',
     key: 'index',
-    width: 60,
+    width: 48,
     render: (_row, index) => <span class="text-12px text-gray-400 tabular-nums">{index + 1}</span>
   },
-  { title: '字段名', key: 'displayName', render: row => <span class="font-medium">{row.displayName}</span> },
+  {
+    title: '字段',
+    key: 'displayName',
+    minWidth: 160,
+    render: row => <span class="text-gray-800 font-semibold dark:text-gray-100">{row.displayName}</span>
+  },
   {
     title: '类型',
     key: 'type',
-    width: 160,
+    width: 132,
     render: row => {
       const p = parseProps(row.properties);
       return (
-        <NTag size="small" bordered={false} type="info">
+        <NTag size="small" bordered={false} class={getMetricTagClass('primary')}>
           {String(p.type ?? '-')}
         </NTag>
       );
@@ -656,7 +581,7 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   {
     title: '主键',
     key: 'pk',
-    width: 60,
+    width: 56,
     align: 'center',
     render: row => {
       const p = parseProps(row.properties);
@@ -674,22 +599,22 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   {
     title: '可空',
     key: 'nullable',
-    width: 60,
+    width: 62,
     align: 'center',
     render: row => {
       const p = parseProps(row.properties);
       const isNullable = p.nullable === true || p.nullable === 'true' || p.nullable === '1' || p.nullable === 1;
       return (
-        <NTag size="tiny" bordered={false} type={isNullable ? 'default' : 'error'}>
+        <NTag size="small" bordered={false} class={getMetricTagClass(isNullable ? 'neutral' : 'error')}>
           {isNullable ? 'YES' : 'NO'}
         </NTag>
       );
     }
   },
   {
-    title: '默认值',
+    title: '默认',
     key: 'default',
-    width: 120,
+    width: 108,
     render: row => {
       const p = parseProps(row.properties);
       const v = p.defaultValue as string | undefined;
@@ -701,136 +626,20 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
     }
   },
   {
-    title: '注释',
+    title: '说明',
     key: 'description',
+    minWidth: 160,
     ellipsis: { tooltip: true },
     render: row => row.description || <span class="text-gray-400">-</span>
-  }
-];
-
-const dbChangeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
-  {
-    title: '序号',
-    key: 'index',
-    width: 60,
-    render: (_row, index) => <span class="text-12px text-gray-400 tabular-nums">{index + 1}</span>
-  },
-  {
-    title: '变更类型',
-    key: 'changeType',
-    width: 110,
-    render: row => {
-      const t = getChangeTypeInfo(row);
-      return (
-        <NTag size="small" type={t.type} bordered={false}>
-          {t.text}
-        </NTag>
-      );
-    }
-  },
-  { title: '表名', key: 'tableName', render: row => <span class="font-medium">{row.tableName || '-'}</span> },
-  {
-    title: '变更前',
-    key: 'changeBefore',
-    ellipsis: { tooltip: true },
-    render: row => row.changeBefore || <span class="text-gray-400">-</span>
-  },
-  {
-    title: '变更后',
-    key: 'changeAfter',
-    ellipsis: { tooltip: true },
-    render: row => row.changeAfter || <span class="text-gray-400">-</span>
-  },
-  {
-    title: '时间',
-    key: 'createTime',
-    width: 160,
-    render: row => (row.createTime ? new Date(row.createTime).toLocaleString('zh-CN') : '-')
-  }
-];
-
-const schemaLevelChangeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
-  {
-    title: '序号',
-    key: 'index',
-    width: 60,
-    render: (_row, index) => <span class="text-12px text-gray-400 tabular-nums">{index + 1}</span>
-  },
-  {
-    title: '变更类型',
-    key: 'changeType',
-    width: 110,
-    render: row => {
-      const t = getChangeTypeInfo(row);
-      return (
-        <NTag size="small" type={t.type} bordered={false}>
-          {t.text}
-        </NTag>
-      );
-    }
-  },
-  {
-    title: '数据库结构',
-    key: 'schemaName',
-    render: row => <span class="font-medium">{row.databaseName ? `${row.databaseName}` : '-'}</span>
-  },
-  {
-    title: '变更前',
-    key: 'changeBefore',
-    ellipsis: { tooltip: true },
-    render: row => row.changeBefore || <span class="text-gray-400">-</span>
-  },
-  {
-    title: '变更后',
-    key: 'changeAfter',
-    ellipsis: { tooltip: true },
-    render: row => row.changeAfter || <span class="text-gray-400">-</span>
-  },
-  {
-    title: '时间',
-    key: 'createTime',
-    width: 160,
-    render: row => (row.createTime ? new Date(row.createTime).toLocaleString('zh-CN') : '-')
-  }
-];
-
-const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
-  {
-    title: '序号',
-    key: 'index',
-    width: 60,
-    render: (_row, index) => <span class="text-12px text-gray-400 tabular-nums">{index + 1}</span>
-  },
-  {
-    title: '变更类型',
-    key: 'changeType',
-    width: 120,
-    render: row => {
-      const t = getChangeTypeInfo(row);
-      return (
-        <NTag size="small" type={t.type} bordered={false}>
-          {t.text}
-        </NTag>
-      );
-    }
-  },
-  { title: '字段名', key: 'columnName', width: 140 },
-  { title: '变更前', key: 'changeBefore', ellipsis: { tooltip: true } },
-  { title: '变更后', key: 'changeAfter', ellipsis: { tooltip: true } },
-  {
-    title: '时间',
-    key: 'createTime',
-    width: 160,
-    render: row => (row.createTime ? new Date(row.createTime).toLocaleString('zh-CN') : '-')
   }
 ];
 </script>
 
 <template>
-  <div class="h-full flex flex-col bg-[#f7f8fa] dark:bg-[#101014]">
+  <div class="explorer-page min-h-full grow-0 bg-[#f7f8fa] dark:bg-[#101014]">
     <!-- ══ 顶部面包屑 ══ -->
     <div
-      class="flex-shrink-0 border-b border-gray-200/60 bg-white px-24px py-10px dark:border-gray-800 dark:bg-[#18181c]"
+      class="explorer-breadcrumb flex-shrink-0 border-b border-gray-200/60 bg-white px-24px py-10px dark:border-gray-800 dark:bg-[#18181c]"
     >
       <NBreadcrumb>
         <NBreadcrumbItem @click="navTo('list')">
@@ -881,7 +690,7 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
 
     <!-- ══ 实体 Header ══ -->
     <div
-      class="flex-shrink-0 border-b border-gray-200/60 from-white to-gray-50/80 bg-gradient-to-r px-24px py-20px dark:border-gray-800 dark:from-[#18181c] dark:to-[#1a1a20]"
+      class="explorer-header flex-shrink-0 border-b border-gray-200/60 from-white to-gray-50/80 bg-gradient-to-r px-24px py-20px dark:border-gray-800 dark:from-[#18181c] dark:to-[#1a1a20]"
     >
       <NSpin :show="datasourceLoading" :size="16">
         <div class="flex items-center justify-between gap-16px">
@@ -936,9 +745,8 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
                   最近同步: {{ formatDateTime(summary.lastSyncTime) }}
                 </span>
                 <span v-if="level === 'datasource' && summary" class="flex items-center gap-4px">
-                  <NIcon :size="13" class="text-gray-300"><div class="i-mdi-database-outline" /></NIcon>
-                  {{ summary.databaseCount }} 个数据库 · {{ summary.tableCount }} 张表 ·
-                  {{ summary.columnCount }} 个字段
+                  <NIcon :size="13" class="text-gray-300"><div class="i-mdi-table-large" /></NIcon>
+                  {{ summary.tableCount }} 张表 · {{ summary.columnCount }} 个字段
                 </span>
               </div>
             </div>
@@ -977,67 +785,11 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
     </div>
 
     <!-- ══ 主内容区 ══ -->
-    <div class="flex-1 overflow-y-auto p-20px">
+    <div class="explorer-body p-20px pb-24px">
       <!-- ── Level 1: 数据源 → Tabs (数据库 / 概览) ── -->
       <template v-if="level === 'datasource'">
-        <!-- 统计指标条 -->
         <div
-          class="mb-16px overflow-hidden rounded-12px bg-white shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
-        >
-          <div class="grid grid-cols-4 divide-x divide-gray-100 dark:divide-gray-800">
-            <div
-              v-for="stat in [
-                {
-                  label: '数据库',
-                  value: summary?.databaseCount,
-                  icon: 'i-mdi-database-outline',
-                  color: '#2563EB',
-                  bg: 'from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/10'
-                },
-                {
-                  label: '数据表',
-                  value: summary?.tableCount,
-                  icon: 'i-mdi-table-large',
-                  color: '#7C3AED',
-                  bg: 'from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/10'
-                },
-                {
-                  label: '字段数',
-                  value: summary?.columnCount,
-                  icon: 'i-mdi-table-column',
-                  color: '#059669',
-                  bg: 'from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10'
-                },
-                {
-                  label: '近7天变更',
-                  value: summary?.recentChangeCount,
-                  icon: 'i-mdi-history',
-                  color: '#D97706',
-                  bg: 'from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10'
-                }
-              ]"
-              :key="stat.label"
-              class="flex items-center gap-14px px-20px py-16px"
-            >
-              <!-- eslint-disable-next-line vue/no-static-inline-styles -->
-              <div class="h-42px w-42px flex-center flex-shrink-0 rounded-12px bg-gradient-to-br" :class="stat.bg">
-                <!-- eslint-disable-next-line vue/no-static-inline-styles -->
-                <NIcon :size="20" :style="{ color: stat.color }"><div :class="stat.icon" /></NIcon>
-              </div>
-              <div>
-                <p class="text-11px text-gray-400 font-medium tracking-wider uppercase">{{ stat.label }}</p>
-                <p class="mt-2px text-22px text-gray-900 font-bold tabular-nums dark:text-gray-50">
-                  <NSkeleton v-if="datasourceLoading" text class="w-36px" />
-                  <span v-else>{{ stat.value ?? 0 }}</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 数据库 / 概览 Tabs -->
-        <div
-          class="overflow-hidden rounded-12px bg-white shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
+          class="explorer-surface explorer-tabs overflow-hidden rounded-16px bg-white shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
         >
           <NTabs
             v-model:value="datasourceActiveTab"
@@ -1045,6 +797,207 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
             :tab-style="{ padding: '14px 20px' }"
             pane-style="padding: 0"
           >
+            <NTabPane name="overview">
+              <template #tab>
+                <div class="flex items-center gap-6px">
+                  <NIcon :size="15"><div class="i-mdi-information-outline" /></NIcon>
+                  概览
+                </div>
+              </template>
+
+              <div
+                class="overview-banner border-b border-gray-100/80 from-[#f8fbff] to-[#f7f8fa] bg-gradient-to-r px-24px py-22px dark:border-gray-800 dark:from-[#20232a] dark:to-[#1e1e24]"
+              >
+                <div class="min-w-0">
+                  <div class="text-11px text-gray-400 tracking-wider uppercase">数据源概览</div>
+                  <p class="mt-10px max-w-760px text-14px text-gray-500 leading-7 dark:text-gray-400">
+                    {{ datasource?.remark || '查看该数据源的同步情况、元数据规模以及接入信息。' }}
+                  </p>
+                </div>
+                <div class="grid mt-20px gap-12px md:grid-cols-2 xl:grid-cols-4">
+                  <div
+                    class="overview-stat rounded-16px bg-white px-16px py-14px ring-1 ring-gray-100 dark:bg-[#24242b] dark:ring-gray-700"
+                  >
+                    <div class="text-12px text-gray-400">最近同步</div>
+                    <div class="mt-8px text-16px text-gray-900 font-semibold dark:text-gray-50">
+                      {{ formatDateTime(summary?.lastSyncTime) }}
+                    </div>
+                  </div>
+                  <div
+                    class="overview-stat rounded-16px bg-white px-16px py-14px ring-1 ring-gray-100 dark:bg-[#24242b] dark:ring-gray-700"
+                  >
+                    <div class="text-12px text-gray-400">数据表</div>
+                    <div class="mt-8px text-24px text-gray-900 font-semibold dark:text-gray-50">
+                      {{ summary?.tableCount ?? 0 }}
+                    </div>
+                  </div>
+                  <div
+                    class="overview-stat rounded-16px bg-white px-16px py-14px ring-1 ring-gray-100 dark:bg-[#24242b] dark:ring-gray-700"
+                  >
+                    <div class="text-12px text-gray-400">字段数</div>
+                    <div class="mt-8px text-24px text-gray-900 font-semibold dark:text-gray-50">
+                      {{ summary?.columnCount ?? 0 }}
+                    </div>
+                  </div>
+                  <div
+                    class="overview-stat rounded-16px bg-white px-16px py-14px ring-1 ring-gray-100 dark:bg-[#24242b] dark:ring-gray-700"
+                  >
+                    <div class="text-12px text-gray-400">近7天变更</div>
+                    <div class="mt-8px text-24px text-gray-900 font-semibold dark:text-gray-50">
+                      {{ summary?.recentChangeCount ?? 0 }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid gap-18px p-20px xl:grid-cols-3">
+                <div
+                  class="overview-detail-card rounded-16px bg-white p-18px shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
+                >
+                  <div
+                    class="mb-14px flex items-center gap-6px text-13px text-gray-700 font-semibold dark:text-gray-200"
+                  >
+                    <NIcon :size="16" class="text-gray-400"><div class="i-mdi-connection" /></NIcon>
+                    连接信息
+                  </div>
+                  <div class="grid gap-x-18px gap-y-12px text-13px md:grid-cols-2">
+                    <div
+                      class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
+                    >
+                      <span class="text-gray-400">主机地址</span>
+                      <span class="text-right text-gray-800 font-medium dark:text-gray-200">
+                        {{ connParamsObj.host || '-' }}
+                      </span>
+                    </div>
+                    <div
+                      class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
+                    >
+                      <span class="text-gray-400">端口</span>
+                      <span class="text-right text-gray-800 font-medium dark:text-gray-200">
+                        {{ connParamsObj.port || '-' }}
+                      </span>
+                    </div>
+                    <div
+                      class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
+                    >
+                      <span class="text-gray-400">连接库</span>
+                      <span class="text-right text-gray-800 font-medium dark:text-gray-200">
+                        {{ connParamsObj.database || '-' }}
+                      </span>
+                    </div>
+                    <div
+                      class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
+                    >
+                      <span class="text-gray-400">用户名</span>
+                      <span class="text-right text-gray-800 font-medium dark:text-gray-200">
+                        {{ connParamsObj.username || '-' }}
+                      </span>
+                    </div>
+                    <div class="flex items-start justify-between gap-12px md:col-span-2">
+                      <span class="text-gray-400">密码</span>
+                      <div class="flex items-center gap-8px">
+                        <span class="text-right text-gray-800 font-medium font-mono dark:text-gray-200">
+                          {{ displayedPassword }}
+                        </span>
+                        <NButton quaternary circle size="tiny" @click="showPassword = !showPassword">
+                          <template #icon>
+                            <icon-mdi-eye-off-outline v-if="showPassword" />
+                            <icon-mdi-eye-outline v-else />
+                          </template>
+                        </NButton>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="overview-detail-card rounded-16px bg-white p-18px shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
+                >
+                  <div
+                    class="mb-14px flex items-center gap-6px text-13px text-gray-700 font-semibold dark:text-gray-200"
+                  >
+                    <NIcon :size="16" class="text-gray-400"><div class="i-mdi-domain" /></NIcon>
+                    来源信息
+                  </div>
+                  <div class="grid gap-x-18px gap-y-12px text-13px md:grid-cols-2">
+                    <div
+                      class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
+                    >
+                      <span class="text-gray-400">来源机构编码</span>
+                      <span class="text-right text-gray-800 dark:text-gray-200">
+                        {{ datasource?.sourceOrgCode || '-' }}
+                      </span>
+                    </div>
+                    <div
+                      class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
+                    >
+                      <span class="text-gray-400">来源机构名称</span>
+                      <span class="text-right text-gray-800 dark:text-gray-200">
+                        {{ datasource?.sourceOrgName || '-' }}
+                      </span>
+                    </div>
+                    <div
+                      class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
+                    >
+                      <span class="text-gray-400">来源部门</span>
+                      <span class="text-right text-gray-800 dark:text-gray-200">
+                        {{ datasource?.sourceDept || '-' }}
+                      </span>
+                    </div>
+                    <div
+                      class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
+                    >
+                      <span class="text-gray-400">来源类型</span>
+                      <span class="text-right text-gray-800 dark:text-gray-200">
+                        {{ datasource?.sourceType || '-' }}
+                      </span>
+                    </div>
+                    <div class="flex items-start justify-between gap-12px md:col-span-2">
+                      <span class="text-gray-400">来源系统</span>
+                      <span class="text-right text-gray-800 dark:text-gray-200">
+                        {{ datasource?.sourceSystem || '-' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="overview-detail-card rounded-16px bg-white p-18px shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
+                >
+                  <div
+                    class="mb-14px flex items-center gap-6px text-13px text-gray-700 font-semibold dark:text-gray-200"
+                  >
+                    <NIcon :size="16" class="text-gray-400"><div class="i-mdi-account-circle-outline" /></NIcon>
+                    管理信息
+                  </div>
+                  <div class="grid gap-x-18px gap-y-12px text-13px md:grid-cols-2">
+                    <div
+                      class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
+                    >
+                      <span class="text-gray-400">联系人</span>
+                      <span class="text-right text-gray-800 dark:text-gray-200">
+                        {{ datasource?.contactPerson || '-' }}
+                      </span>
+                    </div>
+                    <div
+                      class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
+                    >
+                      <span class="text-gray-400">联系电话</span>
+                      <span class="text-right text-gray-800 dark:text-gray-200">
+                        {{ datasource?.contactPhone || '-' }}
+                      </span>
+                    </div>
+                    <div class="flex items-start justify-between gap-12px md:col-span-2">
+                      <span class="text-gray-400">备注</span>
+                      <span class="max-w-220px text-right text-gray-800 leading-6 dark:text-gray-200">
+                        {{ datasource?.remark || '-' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </NTabPane>
+
             <NTabPane name="databases">
               <template #tab>
                 <div class="flex items-center gap-6px">
@@ -1053,155 +1006,58 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
                   <span class="ml-2px text-11px text-gray-400">({{ filteredDatabases.length }})</span>
                 </div>
               </template>
+
               <div
-                class="flex items-center justify-end border-b border-gray-100/80 px-20px py-10px dark:border-gray-800"
+                class="explorer-toolbar flex flex-col gap-14px border-b border-gray-100/80 px-20px py-18px md:flex-row md:items-end md:justify-between dark:border-gray-800"
               >
-                <NInput v-model:value="dbSearch" size="small" placeholder="搜索数据库" clearable class="w-220px">
-                  <template #prefix>
-                    <NIcon class="text-gray-300"><div class="i-mdi-magnify" /></NIcon>
-                  </template>
-                </NInput>
+                <div>
+                  <div class="text-11px text-gray-400 tracking-wider uppercase">数据库清单</div>
+                  <div class="mt-6px text-22px text-gray-900 font-semibold tracking-tight dark:text-gray-50">
+                    数据库
+                  </div>
+                  <div class="mt-4px text-13px text-gray-400">
+                    当前已同步 {{ filteredDatabases.length }} 个数据库节点，可继续进入下一级查看 schema、表和字段。
+                  </div>
+                </div>
+                <div class="flex items-center gap-10px">
+                  <div
+                    class="rounded-full bg-gray-100 px-12px py-7px text-12px text-gray-500 dark:bg-[#24242b] dark:text-gray-400"
+                  >
+                    数据表 {{ summary?.tableCount ?? 0 }} · 字段 {{ summary?.columnCount ?? 0 }}
+                  </div>
+                  <NInput v-model:value="dbSearch" size="small" placeholder="搜索数据库" clearable class="w-240px">
+                    <template #prefix>
+                      <NIcon class="text-gray-300"><div class="i-mdi-magnify" /></NIcon>
+                    </template>
+                  </NInput>
+                </div>
               </div>
-              <NSpin :show="listLoading">
-                <NDataTable
-                  v-if="filteredDatabases.length || listLoading"
-                  :columns="databaseColumns"
-                  :data="filteredDatabases"
-                  :single-line="false"
-                  :pagination="paginationProps"
-                  size="small"
-                  striped
-                  class="min-h-200px"
-                />
-                <NEmpty v-else-if="!listLoading" description="暂无数据库，请先执行全量同步元数据" class="py-60px" />
-              </NSpin>
-            </NTabPane>
-
-            <NTabPane name="overview">
-              <template #tab>
-                <div class="flex items-center gap-6px">
-                  <NIcon :size="15"><div class="i-mdi-information-outline" /></NIcon>
-                  概览
-                </div>
-              </template>
-              <div class="p-24px">
-                <div class="grid grid-cols-2 gap-24px lg:grid-cols-3">
-                  <!-- 连接信息 -->
-                  <div class="border border-gray-100 rounded-10px p-20px dark:border-gray-800">
-                    <h4
-                      class="mb-14px flex items-center gap-6px text-13px text-gray-600 font-semibold dark:text-gray-300"
-                    >
-                      <NIcon :size="16" class="text-gray-400"><div class="i-mdi-connection" /></NIcon>
-                      连接信息
-                    </h4>
-                    <div class="flex flex-col gap-10px text-13px">
-                      <div v-if="connParamsObj.host" class="flex items-start gap-8px">
-                        <span class="w-56px flex-shrink-0 text-gray-400">主机</span>
-                        <span class="text-gray-800 font-medium font-mono dark:text-gray-200">
-                          {{ connParamsObj.host }}
-                        </span>
-                      </div>
-                      <div v-if="connParamsObj.port" class="flex items-start gap-8px">
-                        <span class="w-56px flex-shrink-0 text-gray-400">端口</span>
-                        <span class="text-gray-800 font-medium font-mono dark:text-gray-200">
-                          {{ connParamsObj.port }}
-                        </span>
-                      </div>
-                      <div v-if="connParamsObj.database" class="flex items-start gap-8px">
-                        <span class="w-56px flex-shrink-0 text-gray-400">数据库</span>
-                        <span class="text-gray-800 font-medium font-mono dark:text-gray-200">
-                          {{ connParamsObj.database }}
-                        </span>
-                      </div>
-                      <div v-if="connParamsObj.username" class="flex items-start gap-8px">
-                        <span class="w-56px flex-shrink-0 text-gray-400">用户名</span>
-                        <span class="text-gray-800 font-medium font-mono dark:text-gray-200">
-                          {{ connParamsObj.username }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 基本信息 -->
-                  <div class="border border-gray-100 rounded-10px p-20px dark:border-gray-800">
-                    <h4
-                      class="mb-14px flex items-center gap-6px text-13px text-gray-600 font-semibold dark:text-gray-300"
-                    >
-                      <NIcon :size="16" class="text-gray-400"><div class="i-mdi-information-outline" /></NIcon>
-                      基本信息
-                    </h4>
-                    <div class="flex flex-col gap-10px text-13px">
-                      <div class="flex items-start gap-8px">
-                        <span class="w-72px flex-shrink-0 text-gray-400">数据源名称</span>
-                        <span class="text-gray-800 font-medium dark:text-gray-200">
-                          {{ datasource?.datasourceName ?? '-' }}
-                        </span>
-                      </div>
-                      <div class="flex items-start gap-8px">
-                        <span class="w-72px flex-shrink-0 text-gray-400">数据源类型</span>
-                        <NTag size="tiny" :bordered="false" type="info">
-                          {{ datasource?.datasourceType?.toUpperCase() ?? '-' }}
-                        </NTag>
-                      </div>
-                      <div class="flex items-start gap-8px">
-                        <span class="w-72px flex-shrink-0 text-gray-400">状态</span>
-                        <NTag size="tiny" :bordered="false" :type="getDatasourceStatusMeta(datasource?.status).type">
-                          {{ getDatasourceStatusMeta(datasource?.status).text }}
-                        </NTag>
-                      </div>
-                      <div v-if="datasource?.remark" class="flex items-start gap-8px">
-                        <span class="w-72px flex-shrink-0 text-gray-400">备注</span>
-                        <span class="text-gray-800 dark:text-gray-200">{{ datasource.remark }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 同步统计 -->
-                  <div class="border border-gray-100 rounded-10px p-20px dark:border-gray-800">
-                    <h4
-                      class="mb-14px flex items-center gap-6px text-13px text-gray-600 font-semibold dark:text-gray-300"
-                    >
-                      <NIcon :size="16" class="text-gray-400"><div class="i-mdi-chart-bar" /></NIcon>
-                      同步统计
-                    </h4>
-                    <div class="flex flex-col gap-10px text-13px">
-                      <div class="flex items-start gap-8px">
-                        <span class="w-72px flex-shrink-0 text-gray-400">最近同步</span>
-                        <span class="text-gray-800 dark:text-gray-200">
-                          {{ formatDateTime(summary?.lastSyncTime) }}
-                        </span>
-                      </div>
-                      <div class="flex items-start gap-8px">
-                        <span class="w-72px flex-shrink-0 text-gray-400">数据库数</span>
-                        <span class="text-gray-800 font-medium tabular-nums dark:text-gray-200">
-                          {{ summary?.databaseCount ?? 0 }}
-                        </span>
-                      </div>
-                      <div class="flex items-start gap-8px">
-                        <span class="w-72px flex-shrink-0 text-gray-400">数据表数</span>
-                        <span class="text-gray-800 font-medium tabular-nums dark:text-gray-200">
-                          {{ summary?.tableCount ?? 0 }}
-                        </span>
-                      </div>
-                      <div class="flex items-start gap-8px">
-                        <span class="w-72px flex-shrink-0 text-gray-400">近7天变更</span>
-                        <span class="text-gray-800 font-medium tabular-nums dark:text-gray-200">
-                          {{ summary?.recentChangeCount ?? 0 }}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div class="px-8px py-8px">
+                <NSpin :show="listLoading">
+                  <NDataTable
+                    v-if="filteredDatabases.length || listLoading"
+                    :columns="databaseColumns"
+                    :data="filteredDatabases"
+                    :single-line="false"
+                    :pagination="paginationProps"
+                    size="small"
+                    striped
+                    class="explorer-table"
+                  />
+                  <NEmpty v-else-if="!listLoading" description="暂无数据库，请先执行全量同步元数据" class="py-80px">
+                    <template #icon><icon-mdi-database-search-outline class="text-42px text-gray-300" /></template>
+                  </NEmpty>
+                </NSpin>
               </div>
             </NTabPane>
           </NTabs>
         </div>
       </template>
 
-      <!-- ── Level 2: 数据库 → 数据库结构列表 + 结构变更 ── -->
+      <!-- ── Level 2: 数据库 → 数据库结构列表 + 变更记录 ── -->
       <template v-else-if="level === 'database'">
         <div
-          class="overflow-hidden rounded-12px bg-white shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
+          class="explorer-surface explorer-tabs overflow-hidden rounded-12px bg-white shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
         >
           <NTabs v-model:value="dbActiveTab" type="line" :tab-style="{ padding: '14px 20px' }" pane-style="padding: 0">
             <NTabPane name="schemas">
@@ -1236,7 +1092,7 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
                   :pagination="paginationProps"
                   size="small"
                   striped
-                  class="min-h-200px"
+                  class="explorer-table min-h-200px"
                 />
                 <NEmpty v-else-if="!listLoading" description="暂无数据库结构，请先执行全量同步元数据" class="py-60px" />
               </NSpin>
@@ -1246,30 +1102,31 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
               <template #tab>
                 <div class="flex items-center gap-6px">
                   <NIcon :size="15"><div class="i-mdi-swap-horizontal" /></NIcon>
-                  结构变更
-                  <span class="ml-2px text-11px text-gray-400">({{ schemaLevelChanges.length }})</span>
+                  变更记录
+                  <span class="explorer-count-pill">{{ schemaLevelChanges.length }}</span>
                 </div>
               </template>
-              <NSpin :show="listLoading">
-                <NDataTable
-                  v-if="schemaLevelChanges.length || listLoading"
-                  :columns="schemaLevelChangeColumns"
-                  :data="schemaLevelChanges"
-                  :single-line="false"
-                  :pagination="paginationProps"
-                  size="small"
-                />
-                <NEmpty v-else description="暂无结构变更记录" class="py-60px" />
-              </NSpin>
+              <div class="explorer-record-panel">
+                <ChangeTimeline :records="schemaLevelChanges" :loading="listLoading" empty-description="暂无变更记录" />
+              </div>
+            </NTabPane>
+            <NTabPane name="profile">
+              <template #tab>
+                <div class="flex items-center gap-6px">
+                  <NIcon :size="15"><div class="i-mdi-chart-box-outline" /></NIcon>
+                  数据概览
+                </div>
+              </template>
+              <DatabaseProfileTab :database-uuid="dbUuid ?? ''" :database-name="dbName ?? ''" />
             </NTabPane>
           </NTabs>
         </div>
       </template>
 
-      <!-- ── Level 3: 数据库结构 → 表列表 + 结构变更 ── -->
+      <!-- ── Level 3: 数据库结构 → 表列表 + 变更记录 ── -->
       <template v-else-if="level === 'schema'">
         <div
-          class="overflow-hidden rounded-12px bg-white shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
+          class="explorer-surface explorer-tabs overflow-hidden rounded-12px bg-white shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
         >
           <NTabs
             v-model:value="schemaActiveTab"
@@ -1303,6 +1160,7 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
                   :pagination="paginationProps"
                   size="small"
                   striped
+                  class="explorer-table"
                 />
                 <NEmpty v-else description="暂无数据表" class="py-60px" />
               </NSpin>
@@ -1312,30 +1170,22 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
               <template #tab>
                 <div class="flex items-center gap-6px">
                   <NIcon :size="15"><div class="i-mdi-swap-horizontal" /></NIcon>
-                  结构变更
-                  <span class="ml-2px text-11px text-gray-400">({{ dbChanges.length }})</span>
+                  变更记录
+                  <span class="explorer-count-pill">{{ dbChanges.length }}</span>
                 </div>
               </template>
-              <NSpin :show="listLoading">
-                <NDataTable
-                  v-if="dbChanges.length || listLoading"
-                  :columns="dbChangeColumns"
-                  :data="dbChanges"
-                  :single-line="false"
-                  :pagination="paginationProps"
-                  size="small"
-                />
-                <NEmpty v-else description="暂无表级结构变更记录" class="py-60px" />
-              </NSpin>
+              <div class="explorer-record-panel">
+                <ChangeTimeline :records="dbChanges" :loading="listLoading" empty-description="暂无表级变更记录" />
+              </div>
             </NTabPane>
           </NTabs>
         </div>
       </template>
 
-      <!-- ── Level 4: 表 → 字段列表 + 结构变更 + 数据概览 ── -->
+      <!-- ── Level 4: 表 → 字段列表 + 变更记录 + 数据概览 ── -->
       <template v-else>
         <div
-          class="overflow-hidden rounded-12px bg-white shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
+          class="explorer-surface explorer-tabs overflow-hidden rounded-12px bg-white shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
         >
           <NTabs v-model:value="activeTab" type="line" :tab-style="{ padding: '14px 20px' }" pane-style="padding: 0">
             <NTabPane name="columns">
@@ -1354,6 +1204,7 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
                   :single-line="false"
                   :pagination="paginationProps"
                   size="small"
+                  class="explorer-table"
                 />
                 <NEmpty v-else description="暂无字段信息" class="py-60px" />
               </NSpin>
@@ -1363,21 +1214,13 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
               <template #tab>
                 <div class="flex items-center gap-6px">
                   <NIcon :size="15"><div class="i-mdi-swap-horizontal" /></NIcon>
-                  结构变更
-                  <span class="ml-2px text-11px text-gray-400">({{ schemaChanges.length }})</span>
+                  变更记录
+                  <span class="explorer-count-pill">{{ schemaChanges.length }}</span>
                 </div>
               </template>
-              <NSpin :show="listLoading">
-                <NDataTable
-                  v-if="schemaChanges.length || listLoading"
-                  :columns="changeColumns"
-                  :data="schemaChanges"
-                  :single-line="false"
-                  :pagination="paginationProps"
-                  size="small"
-                />
-                <NEmpty v-else description="暂无结构变更记录" class="py-60px" />
-              </NSpin>
+              <div class="explorer-record-panel">
+                <ChangeTimeline :records="schemaChanges" :loading="listLoading" empty-description="暂无变更记录" />
+              </div>
             </NTabPane>
 
             <NTabPane name="profile">
@@ -1395,3 +1238,275 @@ const changeColumns: DataTableColumns<Api.Metadata.SchemaChange> = [
     </div>
   </div>
 </template>
+
+<style scoped>
+.explorer-page {
+  background-image:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.06), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 18rem);
+}
+
+.explorer-breadcrumb {
+  backdrop-filter: saturate(140%) blur(4px);
+}
+
+.explorer-header {
+  position: relative;
+}
+
+.explorer-header::after {
+  content: '';
+  position: absolute;
+  inset: auto 24px 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.12), rgba(16, 185, 129, 0.08), transparent 78%);
+}
+
+.explorer-body {
+  display: grid;
+  gap: 18px;
+}
+
+.explorer-surface {
+  backdrop-filter: saturate(130%);
+  box-shadow:
+    0 10px 25px rgba(15, 23, 42, 0.04),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+}
+
+.overview-banner {
+  position: relative;
+}
+
+.overview-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.38), transparent 30%),
+    linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.03), transparent);
+  pointer-events: none;
+}
+
+.overview-stat {
+  position: relative;
+  overflow: hidden;
+}
+
+.overview-stat::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, #60a5fa, #34d399);
+  opacity: 0.55;
+}
+
+.overview-detail-card {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.overview-detail-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
+}
+
+.explorer-count-pill {
+  display: inline-flex;
+  min-width: 22px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.14);
+  color: rgb(71, 85, 105);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.explorer-record-panel {
+  padding: 14px 16px 18px;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.7), rgba(255, 255, 255, 0.96)),
+    linear-gradient(135deg, rgba(59, 130, 246, 0.03), transparent 38%);
+}
+
+.explorer-record-table {
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    0 16px 30px rgba(15, 23, 42, 0.04),
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
+}
+
+.explorer-record-empty {
+  border: 1px dashed rgba(203, 213, 225, 0.9);
+  border-radius: 16px;
+  background: rgba(248, 250, 252, 0.75);
+}
+
+:deep(.dark) .explorer-count-pill {
+  background: rgba(120, 113, 108, 0.28);
+  color: rgb(231, 229, 228);
+}
+
+:deep(.dark) .explorer-record-panel {
+  background:
+    linear-gradient(180deg, rgba(24, 24, 27, 0.72), rgba(28, 28, 33, 0.96)),
+    linear-gradient(135deg, rgba(96, 165, 250, 0.05), transparent 45%);
+}
+
+:deep(.dark) .explorer-record-table {
+  border-color: rgba(63, 63, 70, 0.9);
+  background: rgba(24, 24, 27, 0.92);
+  box-shadow:
+    0 18px 34px rgba(0, 0, 0, 0.2),
+    0 1px 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+:deep(.dark) .explorer-record-empty {
+  border-color: rgba(82, 82, 91, 0.85);
+  background: rgba(24, 24, 27, 0.76);
+}
+
+.explorer-toolbar {
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.8), rgba(248, 250, 252, 0.35));
+}
+
+.explorer-table :deep(.n-data-table-wrapper) {
+  border-radius: 12px;
+}
+
+.explorer-table :deep(th) {
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.explorer-table :deep(.n-data-table-td) {
+  transition: background-color 140ms ease;
+}
+
+.explorer-table :deep(.n-data-table-tr:hover .n-data-table-td) {
+  background: rgba(59, 130, 246, 0.03);
+}
+
+.explorer-tabs :deep(.n-tabs-nav) {
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.9), rgba(248, 250, 252, 0.55));
+}
+
+.explorer-tabs :deep(.n-tabs-tab) {
+  margin: 0 4px 0 10px;
+  border-radius: 10px;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.explorer-tabs :deep(.n-tabs-tab:hover) {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.explorer-tabs :deep(.n-tabs-tab.n-tabs-tab--active) {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.metric-tag {
+  border-radius: 999px;
+  padding-inline: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.metric-tag.metric-tag--neutral {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.metric-tag.metric-tag--primary {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.metric-tag.metric-tag--info {
+  background: #e0f2fe;
+  color: #0f766e;
+}
+
+.metric-tag.metric-tag--success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.metric-tag.metric-tag--warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.metric-tag.metric-tag--error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.dark .explorer-page {
+  background-image:
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 18rem);
+}
+
+.dark .explorer-table :deep(th) {
+  background: #252932;
+  color: #94a3b8;
+}
+
+.dark .explorer-toolbar,
+.dark .explorer-tabs :deep(.n-tabs-nav) {
+  background: linear-gradient(180deg, rgba(36, 40, 46, 0.86), rgba(30, 30, 36, 0.5));
+}
+
+.dark .explorer-tabs :deep(.n-tabs-tab:hover) {
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.dark .explorer-tabs :deep(.n-tabs-tab.n-tabs-tab--active) {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.dark .metric-tag.metric-tag--neutral {
+  background: #2a3139;
+  color: #a8b5c2;
+}
+
+.dark .metric-tag.metric-tag--primary {
+  background: rgba(14, 116, 144, 0.28);
+  color: #bae6fd;
+}
+
+.dark .metric-tag.metric-tag--info {
+  background: rgba(13, 148, 136, 0.24);
+  color: #99f6e4;
+}
+
+.dark .metric-tag.metric-tag--success {
+  background: rgba(22, 163, 74, 0.24);
+  color: #bbf7d0;
+}
+
+.dark .metric-tag.metric-tag--warning {
+  background: rgba(217, 119, 6, 0.24);
+  color: #fde68a;
+}
+
+.dark .metric-tag.metric-tag--error {
+  background: rgba(220, 38, 38, 0.24);
+  color: #fecaca;
+}
+</style>

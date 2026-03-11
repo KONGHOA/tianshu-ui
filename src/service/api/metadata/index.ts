@@ -4,3 +4,6 @@ export * from './tag';
 export * from './tag-category';
 export * from './schema-change';
 export * from './profile';
+export * from './profile-execution';
+export * from './profile-query';
+export * from './profile-task';

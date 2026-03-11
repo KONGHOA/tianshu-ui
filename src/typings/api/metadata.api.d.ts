@@ -5,11 +5,13 @@ declare namespace Api {
   namespace Metadata {
     /** 数据源连接参数 */
     type ConnParam = {
-      host: string;
-      port: number;
+      connectMode?: 'default' | 'url_only';
+      jdbcUrl?: string;
+      host?: string;
+      port?: number;
       database?: string;
-      username: string;
-      password: string;
+      username?: string;
+      password?: string;
       properties?: Record<string, string>;
     };
 
@@ -128,12 +130,127 @@ declare namespace Api {
     type EntityProfile = Common.CommonRecord<{
       profileId: CommonType.IdType;
       entityUuid: string;
+      executionId?: CommonType.IdType;
+      batchNo?: string;
+      entityType?: string;
+      scopeEntityUuid?: string;
       metricName: string;
+      metricGroup?: string;
       actualValue: string;
       actualValueType: string;
       dataDate: string;
       createTime: string;
     }>;
+
+    type ProfileTask = Common.CommonRecord<{
+      taskId: CommonType.IdType;
+      taskName: string;
+      scopeType: 'database' | 'table';
+      entityUuid: string;
+      datasourceId: CommonType.IdType;
+      selectAllColumns?: number;
+      selectedColumnsJson?: string;
+      rowFilterSql?: string;
+      enabled?: number;
+      cronExpression?: string;
+      jobId?: CommonType.IdType;
+      lastExecutionId?: CommonType.IdType;
+      remark?: string;
+    }>;
+
+    type ProfileExecution = Common.CommonRecord<{
+      executionId: CommonType.IdType;
+      taskId: CommonType.IdType;
+      batchNo: string;
+      scopeType: 'database' | 'table';
+      entityUuid: string;
+      datasourceId: CommonType.IdType;
+      status: string;
+      startTime?: string;
+      endTime?: string;
+      durationMs?: number;
+      snapshotDate?: string;
+      operatorId?: CommonType.IdType;
+      profiledTableCount?: number;
+      successTableCount?: number;
+      failedTableCount?: number;
+      errorMessage?: string;
+      executionLog?: string;
+    }>;
+
+    type ProfileTrendPoint = {
+      batchNo?: string;
+      snapshotDate?: string;
+      metricName: string;
+      actualValue: string;
+    };
+
+    type ProfileAnomaly = {
+      type: 'error' | 'warning' | 'info';
+      title: string;
+      message: string;
+    };
+
+    type ColumnProfileBase = {
+      uuid: string;
+      name: string;
+      type?: string;
+      dataType?: string;
+      nullCount?: string;
+      nullPercentage?: string;
+      notNullCount?: string;
+      notNullPercentage?: string;
+      distinctCount?: string;
+      distinctPercentage?: string;
+      uniqueCount?: string;
+      uniquePercentage?: string;
+    };
+
+    type ColumnStringProfile = ColumnProfileBase & {
+      maxValue?: string;
+      minValue?: string;
+      maxLength?: string;
+      minLength?: string;
+      avgLength?: string;
+      top10Json?: string;
+    };
+
+    type ColumnNumericProfile = ColumnProfileBase & {
+      maxValue?: string;
+      minValue?: string;
+      avgValue?: string;
+      sumValue?: string;
+      top10Json?: string;
+    };
+
+    type ColumnDateTimeProfile = ColumnProfileBase & {
+      maxValue?: string;
+      minValue?: string;
+      top10Json?: string;
+    };
+
+    type TableProfileOverview = {
+      tableUuid: string;
+      tableName: string;
+      latestBatchNo?: string;
+      latestColumnBatchNo?: string;
+      latestExecuteTime?: string;
+      executionStatus?: string;
+      tableRowCount?: number;
+      columnProfiles: ColumnProfileBase[];
+    };
+
+    type DatabaseProfileOverview = {
+      databaseUuid: string;
+      databaseName: string;
+      latestBatchNo?: string;
+      latestExecuteTime?: string;
+      executionStatus?: string;
+      databaseRowCountTotal?: number;
+      profiledTableCount?: number;
+      successTableCount?: number;
+      failedTableCount?: number;
+    };
 
     /** Schema 变更记录 */
     type SchemaChange = Common.CommonRecord<{
