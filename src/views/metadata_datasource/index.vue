@@ -1,20 +1,7 @@
 <script setup lang="tsx">
 import { computed, h, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import {
-  NButton,
-  NCard,
-  NDropdown,
-  NEmpty,
-  NGrid,
-  NGridItem,
-  NIcon,
-  NInput,
-  NPagination,
-  NSpace,
-  NTag,
-  NTree
-} from 'naive-ui';
+import { NButton, NCard, NDropdown, NEmpty, NGrid, NGridItem, NIcon, NInput, NPagination, NTag, NTree } from 'naive-ui';
 import type { TreeOption } from 'naive-ui';
 import {
   fetchBatchDeleteDatasource,
@@ -152,8 +139,9 @@ const renderCategorySuffix = ({ option }: { option: TreeOption }) => {
           NButton,
           {
             text: true,
-            size: 'tiny',
-            class: 'ml-2 text-gray-400 hover:text-blue-500',
+            size: 'small',
+            class: 'ml-2 min-h-32px min-w-32px text-gray-400 hover:text-blue-500',
+            'aria-label': `分类 ${option.name} 更多操作`,
             onClick: (e: Event) => e.stopPropagation()
           },
           { default: () => h(NIcon, { size: 16 }, { default: () => h('span', { class: 'i-mdi-dots-vertical' }) }) }
@@ -286,6 +274,12 @@ const router = useRouter();
 
 function handleCardClick(datasourceId: CommonType.IdType) {
   router.push({ name: 'metadata_datasource-explorer', query: { datasourceId: String(datasourceId) } });
+}
+
+function handleCardNavigateKeydown(event: KeyboardEvent, datasourceId: CommonType.IdType) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  handleCardClick(datasourceId);
 }
 
 // 顶部数据统计
@@ -476,7 +470,8 @@ onMounted(() => {
           v-if="hasAuth('metadata:datasourceCategory:add')"
           size="small"
           text
-          class="h-18px"
+          class="min-h-32px min-w-32px"
+          aria-label="新增分类"
           @click.stop="handleCategoryAdd"
         >
           <template #icon>
@@ -547,19 +542,6 @@ onMounted(() => {
                 <template #icon><icon-mdi-plus /></template>
                 新建数据源
               </NButton>
-              <div class="h-24px w-1px bg-gray-200 dark:bg-gray-700"></div>
-              <NSpace :size="0" class="overflow-hidden border border-gray-200 rounded-md dark:border-gray-700">
-                <NButton ghost class="border-0 bg-gray-50 text-primary dark:bg-gray-800 px-10px!" :focusable="false">
-                  <icon-mdi-view-grid class="text-18px" />
-                </NButton>
-                <NButton
-                  ghost
-                  class="border-0 border-l border-gray-200 text-gray-400 dark:border-gray-700 px-10px! hover:text-primary"
-                  :focusable="false"
-                >
-                  <icon-mdi-format-list-bulleted class="text-18px" />
-                </NButton>
-              </NSpace>
             </div>
           </div>
 
@@ -575,61 +557,69 @@ onMounted(() => {
           <div class="flex-1 pr-12px">
             <NGrid v-if="data.length" :x-gap="16" :y-gap="16" :cols="12" responsive="screen" item-responsive>
               <NGridItem v-for="item in data" :key="item.datasourceId" span="12 m:6 l:4 xl:4 2xl:3">
-                <div
-                  class="group h-full flex flex-col cursor-pointer overflow-hidden border border-gray-200 rounded-12px bg-white transition-all dark:border-gray-800 hover:border-primary/50 dark:bg-[#18181c] hover:shadow-lg hover:-translate-y-1"
-                  @click="handleCardClick(item.datasourceId)"
+                <article
+                  class="group h-full flex flex-col overflow-hidden border border-gray-200 rounded-12px bg-white transition-all dark:border-gray-800 focus-within:border-primary/60 hover:border-primary/50 dark:bg-[#18181c] focus-within:shadow-lg hover:shadow-lg hover:-translate-y-1"
                 >
-                  <!-- Card Header -->
                   <div
-                    class="flex items-center justify-between border-b border-gray-100 px-14px py-12px dark:border-gray-800/60"
+                    class="min-w-0 flex flex-col flex-1 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary dark:focus-visible:ring-offset-[#18181c]"
+                    role="link"
+                    tabindex="0"
+                    :aria-label="`进入数据源 ${item.datasourceName}`"
+                    @click="handleCardClick(item.datasourceId)"
+                    @keydown="handleCardNavigateKeydown($event, item.datasourceId)"
                   >
-                    <div class="max-w-[calc(100%-70px)] flex items-center gap-10px">
-                      <div
-                        class="h-34px w-34px flex-center flex-shrink-0 rounded-8px"
-                        :class="getIconBg(item.datasourceType)"
-                      >
-                        <img
-                          :src="getDatasourceIcon(item.datasourceType)"
-                          :alt="item.datasourceType"
-                          class="h-22px w-22px object-contain"
-                        />
-                      </div>
-                      <div class="flex flex-col overflow-hidden">
-                        <span
-                          class="truncate text-14px text-gray-800 font-semibold dark:text-gray-100"
-                          :title="item.datasourceName"
-                        >
-                          {{ item.datasourceName }}
-                        </span>
-                        <span class="truncate text-11px text-gray-400">ID: {{ item.datasourceId }}</span>
-                      </div>
-                    </div>
-                    <NTag
-                      :type="getTagType(item.datasourceType)"
-                      size="small"
-                      :bordered="false"
-                      round
-                      class="text-11px font-medium"
+                    <!-- Card Header -->
+                    <div
+                      class="flex items-center justify-between border-b border-gray-100 px-14px py-12px dark:border-gray-800/60"
                     >
-                      {{ item.datasourceType?.toUpperCase() }}
-                    </NTag>
-                  </div>
-
-                  <!-- Card Body -->
-                  <div class="flex flex-col flex-1 p-12px text-12px">
-                    <div class="grid grid-cols-2 gap-x-12px">
-                      <div class="flex flex-col gap-4px">
-                        <span class="text-gray-400">连接状态</span>
-                        <span class="flex items-center gap-6px" :class="getStatusMeta(item.status).textColor">
-                          <span class="h-6px w-6px rounded-full" :class="getStatusMeta(item.status).dot"></span>
-                          {{ getStatusMeta(item.status).text }}
-                        </span>
+                      <div class="max-w-[calc(100%-70px)] flex items-center gap-10px">
+                        <div
+                          class="h-34px w-34px flex-center flex-shrink-0 rounded-8px"
+                          :class="getIconBg(item.datasourceType)"
+                        >
+                          <img
+                            :src="getDatasourceIcon(item.datasourceType)"
+                            :alt="item.datasourceType"
+                            class="h-22px w-22px object-contain"
+                          />
+                        </div>
+                        <div class="min-w-0 flex flex-col overflow-hidden">
+                          <span
+                            class="truncate text-14px text-gray-800 font-semibold dark:text-gray-100"
+                            :title="item.datasourceName"
+                          >
+                            {{ item.datasourceName }}
+                          </span>
+                          <span class="truncate text-11px text-gray-400">ID: {{ item.datasourceId }}</span>
+                        </div>
                       </div>
-                      <div class="flex flex-col gap-4px">
-                        <span class="text-gray-400">更新时间</span>
-                        <span class="text-gray-700 dark:text-gray-300">
-                          {{ item.updateTime || item.createTime || '-' }}
-                        </span>
+                      <NTag
+                        :type="getTagType(item.datasourceType)"
+                        size="small"
+                        :bordered="false"
+                        round
+                        class="text-11px font-medium"
+                      >
+                        {{ item.datasourceType?.toUpperCase() }}
+                      </NTag>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="flex flex-col flex-1 p-12px text-12px">
+                      <div class="grid grid-cols-2 gap-x-12px">
+                        <div class="min-w-0 flex flex-col gap-4px">
+                          <span class="text-gray-400">连接状态</span>
+                          <span class="flex items-center gap-6px" :class="getStatusMeta(item.status).textColor">
+                            <span class="h-6px w-6px rounded-full" :class="getStatusMeta(item.status).dot"></span>
+                            {{ getStatusMeta(item.status).text }}
+                          </span>
+                        </div>
+                        <div class="min-w-0 flex flex-col gap-4px">
+                          <span class="text-gray-400">更新时间</span>
+                          <span class="truncate text-gray-700 dark:text-gray-300">
+                            {{ item.updateTime || item.createTime || '-' }}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -681,7 +671,7 @@ onMounted(() => {
                       测试
                     </NButton>
                   </div>
-                </div>
+                </article>
               </NGridItem>
             </NGrid>
             <NEmpty v-else description="暂无数据源，请先新增或切换分类" class="h-full min-h-260px justify-center" />
@@ -767,27 +757,35 @@ onMounted(() => {
 
 /* ---- 原有样式 ---- */
 :deep(.sider-layout-card-content) {
-  overflow: hidden !important;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  overflow: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203 213 225) transparent;
 }
 
 :deep(.sider-layout-card-content::-webkit-scrollbar) {
-  width: 0;
-  height: 0;
-  display: none;
+  width: 8px;
+  height: 8px;
+}
+
+:deep(.sider-layout-card-content::-webkit-scrollbar-thumb) {
+  border-radius: 999px;
+  background: rgb(203 213 225);
 }
 
 :deep(.datasource-tree) {
   overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203 213 225) transparent;
 }
 
 :deep(.datasource-tree::-webkit-scrollbar) {
-  width: 0;
-  height: 0;
-  display: none;
+  width: 8px;
+  height: 8px;
+}
+
+:deep(.datasource-tree::-webkit-scrollbar-thumb) {
+  border-radius: 999px;
+  background: rgb(203 213 225);
 }
 
 :deep(.n-tree-node-content) {

@@ -60,12 +60,12 @@ const activeModule = computed(() => moduleMap[props.module || 'pwd-login']);
         />
       </div>
     </header>
-    <main class="flex min-h-full items-center justify-center px-24px py-24px">
+    <main class="min-h-full flex items-center justify-center px-24px py-24px">
       <Transition :name="themeStore.page.animateMode" mode="out-in" appear>
-        <div :class="['login-panel w-full max-w-450px', { 'login-panel-dark': themeStore.darkMode }]">
+        <div class="login-panel max-w-450px w-full" :class="[{ 'login-panel-dark': themeStore.darkMode }]">
           <div class="mb-28px flex items-center justify-center">
             <SystemLogo class="fill-primary text-48px" />
-            <h3 class="ml-12px text-28px font-600 text-black dark:text-white">{{ $t('system.title') }}</h3>
+            <h3 class="ml-12px text-28px text-black font-600 dark:text-white">{{ $t('system.title') }}</h3>
           </div>
           <component :is="activeModule.component" />
         </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { useWindowSize } from '@vueuse/core';
 import {
   NButton,
   NDivider,
@@ -71,8 +72,23 @@ const connModel = ref<{
   database: string;
   username: string;
   password: string;
+  kerberosPrincipal: string;
+  hiveServerPrincipal: string;
+  kerberosKeytab: string;
+  kerberosKrb5conf: string;
   properties: Record<string, string>;
-}>({ host: '', port: 3306, database: '', username: '', password: '', properties: {} });
+}>({
+  host: '',
+  port: 3306,
+  database: '',
+  username: '',
+  password: '',
+  kerberosPrincipal: '',
+  hiveServerPrincipal: '',
+  kerberosKeytab: '',
+  kerberosKrb5conf: '',
+  properties: {}
+});
 const testStatus = ref<'idle' | 'testing' | 'success' | 'fail'>('idle');
 const testLoading = ref(false);
 
@@ -206,6 +222,13 @@ const kerberosEnabled = computed({
 const selectedTypeInfo = computed(
   () => SERVICE_TYPES.find(t => t.key === model.value.datasourceType) ?? SERVICE_TYPES[0]
 );
+const { width: windowWidth } = useWindowSize();
+const isCompactDrawer = computed(() => windowWidth.value < 1024);
+const drawerWidth = computed(() => {
+  if (windowWidth.value < 640) return '100%';
+  if (windowWidth.value < 1280) return 760;
+  return 900;
+});
 
 const isEdit = computed(() => props.operateType === 'edit');
 
@@ -341,14 +364,28 @@ const connRules = computed(() => ({
   host: createRequiredRule('主机地址不能为空'),
   port: createRequiredRule('端口不能为空'),
   username: kerberosEnabled.value ? [] : createRequiredRule('用户名不能为空'),
-  password: kerberosEnabled.value ? [] : createRequiredRule('密码不能为空')
+  password: kerberosEnabled.value ? [] : createRequiredRule('密码不能为空'),
+  kerberosPrincipal: kerberosEnabled.value ? createRequiredRule('客户端 Principal 不能为空') : [],
+  hiveServerPrincipal: kerberosEnabled.value ? createRequiredRule('服务端 Principal 不能为空') : [],
+  kerberosKeytab: kerberosEnabled.value ? createRequiredRule('Keytab 文件路径不能为空') : []
 }));
 
 // ────────────── 初始化 ──────────────
 function handleUpdateModelWhenEdit() {
   model.value = createDefaultModel();
   filterModel.value = createDefaultFilterModel();
-  connModel.value = { host: '', port: 3306, database: '', username: '', password: '', properties: {} };
+  connModel.value = {
+    host: '',
+    port: 3306,
+    database: '',
+    username: '',
+    password: '',
+    kerberosPrincipal: '',
+    hiveServerPrincipal: '',
+    kerberosKeytab: '',
+    kerberosKrb5conf: '',
+    properties: {}
+  };
   testStatus.value = 'idle';
   currentStep.value = isEdit.value ? 2 : 1;
 
@@ -359,7 +396,12 @@ function handleUpdateModelWhenEdit() {
     Object.assign(model.value, jsonClone(props.rowData));
     if (model.value.connParams) {
       try {
-        Object.assign(connModel.value, JSON.parse(model.value.connParams as string));
+        const parsedConnParams = JSON.parse(model.value.connParams as string);
+        Object.assign(connModel.value, parsedConnParams);
+        connModel.value.kerberosPrincipal = parsedConnParams.properties?.['kerberos.principal'] ?? '';
+        connModel.value.hiveServerPrincipal = parsedConnParams.properties?.['hive.server.principal'] ?? '';
+        connModel.value.kerberosKeytab = parsedConnParams.properties?.['kerberos.keytab'] ?? '';
+        connModel.value.kerberosKrb5conf = parsedConnParams.properties?.['kerberos.krb5conf'] ?? '';
       } catch {
         /* ignore */
       }
@@ -429,7 +471,8 @@ async function handleTestConnection() {
   testLoading.value = true;
   testStatus.value = 'testing';
   const testModel = jsonClone(model.value);
-  testModel.connParams = JSON.stringify(connModel.value);
+  syncConnectionProperties();
+  testModel.connParams = JSON.stringify(buildConnParamsPayload());
   const { error, data } = await fetchTestConnection(testModel);
   const success = !error && data === true;
   testStatus.value = success ? 'success' : 'fail';
@@ -440,7 +483,8 @@ async function handleTestConnection() {
 
 // ────────────── 提交 ──────────────
 async function handleSubmit() {
-  model.value.connParams = JSON.stringify(connModel.value);
+  syncConnectionProperties();
+  model.value.connParams = JSON.stringify(buildConnParamsPayload());
   const normalizedFilterConfig = normalizeFilterConfig(filterModel.value);
   model.value.filterConfig = normalizedFilterConfig ? JSON.stringify(normalizedFilterConfig) : null;
 
@@ -472,6 +516,40 @@ function normalizeFilterConfig(config: FilterModel) {
   return { schemaFilterPattern, tableFilterPattern };
 }
 
+function syncConnectionProperties() {
+  if (!connModel.value.properties) connModel.value.properties = {};
+
+  if (!kerberosEnabled.value) {
+    delete connModel.value.properties['kerberos.principal'];
+    delete connModel.value.properties['hive.server.principal'];
+    delete connModel.value.properties['kerberos.keytab'];
+    delete connModel.value.properties['kerberos.krb5conf'];
+    return;
+  }
+
+  connModel.value.properties['kerberos.principal'] = connModel.value.kerberosPrincipal.trim();
+  connModel.value.properties['hive.server.principal'] = connModel.value.hiveServerPrincipal.trim();
+  connModel.value.properties['kerberos.keytab'] = connModel.value.kerberosKeytab.trim();
+
+  const krb5conf = connModel.value.kerberosKrb5conf.trim();
+  if (krb5conf) {
+    connModel.value.properties['kerberos.krb5conf'] = krb5conf;
+  } else {
+    delete connModel.value.properties['kerberos.krb5conf'];
+  }
+}
+
+function buildConnParamsPayload() {
+  const {
+    kerberosPrincipal: _kerberosPrincipal,
+    hiveServerPrincipal: _hiveServerPrincipal,
+    kerberosKeytab: _kerberosKeytab,
+    kerberosKrb5conf: _kerberosKrb5conf,
+    ...payload
+  } = jsonClone(connModel.value);
+  return payload;
+}
+
 watch(visible, v => {
   if (v) {
     handleUpdateModelWhenEdit();
@@ -492,7 +570,7 @@ watch(
 </script>
 
 <template>
-  <NDrawer v-model:show="visible" display-directive="show" :width="900" class="max-w-95%">
+  <NDrawer v-model:show="visible" display-directive="show" :width="drawerWidth" class="max-w-100vw">
     <NDrawerContent :native-scrollbar="false" class="flex flex-col">
       <!-- ═══ HEADER ═══ -->
       <template #header>
@@ -515,7 +593,11 @@ watch(
           </div>
 
           <!-- 步骤条 -->
-          <div class="mt-16px flex items-center justify-center">
+          <div
+            class="mt-16px flex items-center justify-center"
+            role="group"
+            :aria-label="`数据源配置步骤，当前第 ${currentStep} 步，共 ${STEPS.length} 步`"
+          >
             <template v-for="(step, i) in STEPS" :key="i">
               <!-- 步骤圆 -->
               <div class="flex flex-col items-center gap-6px">
@@ -562,11 +644,19 @@ watch(
             </p>
           </div>
 
-          <div class="grid grid-cols-4 mx-auto max-w-720px w-full gap-14px">
-            <div
+          <div
+            class="grid grid-cols-1 mx-auto max-w-720px w-full gap-14px sm:grid-cols-2 xl:grid-cols-4"
+            role="radiogroup"
+            aria-label="选择数据源类型"
+          >
+            <button
               v-for="type in SERVICE_TYPES"
               :key="type.key"
-              class="relative flex flex-col cursor-pointer select-none items-center border-2 rounded-12px px-12px py-20px transition-all duration-150"
+              type="button"
+              role="radio"
+              class="relative flex flex-col select-none items-center border-2 rounded-12px px-12px py-20px text-left outline-none transition-all duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary dark:focus-visible:ring-offset-[#18181c]"
+              :aria-checked="model.datasourceType === type.key"
+              :aria-label="`${type.label}，${type.desc}`"
               :class="
                 model.datasourceType === type.key
                   ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-sm'
@@ -599,7 +689,7 @@ watch(
               <span class="mt-4px text-center text-11px text-gray-400 leading-tight">
                 {{ type.desc }}
               </span>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -665,7 +755,7 @@ watch(
                 />
               </NFormItem>
 
-              <div class="grid grid-cols-2 gap-x-16px">
+              <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-2">
                 <NFormItem label="来源部门" path="sourceDept">
                   <NSelect
                     v-model:value="model.sourceDept"
@@ -688,7 +778,7 @@ watch(
                 </NFormItem>
               </div>
 
-              <div class="grid grid-cols-2 gap-x-16px">
+              <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-2">
                 <NFormItem label="来源类型（一级）" path="sourceType">
                   <DictSelect
                     v-model:value="sourceTypeL1"
@@ -710,7 +800,7 @@ watch(
                 </NFormItem>
               </div>
 
-              <div class="grid grid-cols-2 gap-x-16px">
+              <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-2">
                 <NFormItem label="数据联系人" path="contactPerson">
                   <NInput v-model:value="model.contactPerson" placeholder="联系人姓名" :maxlength="64" />
                 </NFormItem>
@@ -723,9 +813,9 @@ watch(
         </div>
 
         <!-- ── Step 3: 连接配置 ── -->
-        <div v-else-if="currentStep === 3" class="flex flex-1 gap-0 overflow-hidden">
+        <div v-else-if="currentStep === 3" class="flex flex-col flex-1 gap-0 overflow-hidden lg:flex-row">
           <!-- 左侧：表单 -->
-          <div class="flex-1 overflow-y-auto border-r border-gray-100 px-20px py-4px dark:border-gray-800">
+          <div class="flex-1 overflow-y-auto px-20px py-4px lg:border-r lg:border-gray-100 dark:lg:border-gray-800">
             <!-- 测试状态 Banner -->
             <div
               v-if="testStatus !== 'idle'"
@@ -758,7 +848,7 @@ watch(
               require-mark-placement="right-hanging"
               @update:model="testStatus = 'idle'"
             >
-              <div class="grid grid-cols-3 gap-x-16px">
+              <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-3">
                 <NFormItem class="col-span-2" label="主机地址" path="host" required>
                   <NInput
                     v-model:value="connModel.host"
@@ -789,7 +879,7 @@ watch(
                 />
               </NFormItem>
 
-              <div class="grid grid-cols-2 gap-x-16px">
+              <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-2">
                 <NFormItem label="用户名" path="username" required>
                   <NInput
                     v-model:value="connModel.username"
@@ -831,73 +921,40 @@ watch(
                 </p>
 
                 <template v-if="kerberosEnabled">
-                  <div class="grid grid-cols-2 gap-x-12px gap-y-0">
-                    <div class="flex flex-col gap-4px">
-                      <span class="text-12px text-gray-600 font-medium dark:text-gray-300">
-                        客户端 Principal
-                        <span class="text-red-500">*</span>
-                      </span>
+                  <div class="grid grid-cols-1 gap-x-12px gap-y-0 sm:grid-cols-2">
+                    <NFormItem label="客户端 Principal" path="kerberosPrincipal" required>
                       <NInput
-                        :value="connModel.properties?.['kerberos.principal'] ?? ''"
+                        v-model:value="connModel.kerberosPrincipal"
                         placeholder="hive/host@REALM"
                         size="small"
-                        @update:value="
-                          val => {
-                            connModel.properties['kerberos.principal'] = val;
-                            testStatus = 'idle';
-                          }
-                        "
+                        @update:value="testStatus = 'idle'"
                       />
-                    </div>
-                    <div class="flex flex-col gap-4px">
-                      <span class="text-12px text-gray-600 font-medium dark:text-gray-300">
-                        服务端 Principal
-                        <span class="text-red-500">*</span>
-                      </span>
+                    </NFormItem>
+                    <NFormItem label="服务端 Principal" path="hiveServerPrincipal" required>
                       <NInput
-                        :value="connModel.properties?.['hive.server.principal'] ?? ''"
+                        v-model:value="connModel.hiveServerPrincipal"
                         placeholder="hive/_HOST@REALM"
                         size="small"
-                        @update:value="
-                          val => {
-                            connModel.properties['hive.server.principal'] = val;
-                            testStatus = 'idle';
-                          }
-                        "
+                        @update:value="testStatus = 'idle'"
                       />
-                    </div>
+                    </NFormItem>
                   </div>
-                  <div class="mt-8px flex flex-col gap-4px">
-                    <span class="text-12px text-gray-600 font-medium dark:text-gray-300">
-                      Keytab 文件路径
-                      <span class="text-red-500">*</span>
-                    </span>
+                  <NFormItem class="mt-8px" label="Keytab 文件路径" path="kerberosKeytab" required>
                     <NInput
-                      :value="connModel.properties?.['kerberos.keytab'] ?? ''"
+                      v-model:value="connModel.kerberosKeytab"
                       placeholder="/etc/security/keytabs/hive.service.keytab"
                       size="small"
-                      @update:value="
-                        val => {
-                          connModel.properties['kerberos.keytab'] = val;
-                          testStatus = 'idle';
-                        }
-                      "
+                      @update:value="testStatus = 'idle'"
                     />
-                  </div>
-                  <div class="mt-8px flex flex-col gap-4px">
-                    <span class="text-12px text-gray-600 font-medium dark:text-gray-300">krb5.conf 路径（可选）</span>
+                  </NFormItem>
+                  <NFormItem class="mt-8px" label="krb5.conf 路径（可选）" path="kerberosKrb5conf">
                     <NInput
-                      :value="connModel.properties?.['kerberos.krb5conf'] ?? ''"
+                      v-model:value="connModel.kerberosKrb5conf"
                       placeholder="/etc/krb5.conf（留空使用系统默认）"
                       size="small"
-                      @update:value="
-                        val => {
-                          connModel.properties['kerberos.krb5conf'] = val;
-                          testStatus = 'idle';
-                        }
-                      "
+                      @update:value="testStatus = 'idle'"
                     />
-                  </div>
+                  </NFormItem>
                 </template>
               </div>
             </template>
@@ -922,7 +979,10 @@ watch(
           </div>
 
           <!-- 右侧：帮助面板 -->
-          <div class="w-240px flex-shrink-0 overflow-y-auto bg-gray-50/80 px-16px py-16px dark:bg-[#18181c]">
+          <div
+            class="overflow-y-auto bg-gray-50/80 px-16px py-16px lg:w-240px lg:flex-shrink-0 dark:bg-[#18181c]"
+            :class="isCompactDrawer ? 'border-t border-gray-100 dark:border-gray-800' : ''"
+          >
             <div class="mb-12px flex items-center gap-8px">
               <div class="h-24px w-24px flex-center flex-shrink-0 rounded-6px bg-gray-50 dark:bg-gray-800">
                 <img
@@ -957,8 +1017,8 @@ watch(
         </div>
 
         <!-- ── Step 4: 过滤器 ── -->
-        <div v-else-if="currentStep === 4" class="flex flex-1 gap-0 overflow-hidden">
-          <div class="flex-1 overflow-y-auto border-r border-gray-100 px-20px py-4px dark:border-gray-800">
+        <div v-else-if="currentStep === 4" class="flex flex-col flex-1 gap-0 overflow-hidden lg:flex-row">
+          <div class="flex-1 overflow-y-auto px-20px py-4px lg:border-r lg:border-gray-100 dark:lg:border-gray-800">
             <div
               class="mb-16px rounded-10px bg-amber-50 px-14px py-12px text-12px text-amber-700 leading-relaxed dark:bg-amber-900/10 dark:text-amber-300"
             >
@@ -1021,7 +1081,10 @@ watch(
             </div>
           </div>
 
-          <div class="w-240px flex-shrink-0 overflow-y-auto bg-gray-50/80 px-16px py-16px dark:bg-[#18181c]">
+          <div
+            class="overflow-y-auto bg-gray-50/80 px-16px py-16px lg:w-240px lg:flex-shrink-0 dark:bg-[#18181c]"
+            :class="isCompactDrawer ? 'border-t border-gray-100 dark:border-gray-800' : ''"
+          >
             <div class="mb-12px text-12px text-gray-700 font-semibold dark:text-gray-200">规则说明</div>
             <div class="flex flex-col gap-10px text-12px text-gray-500 leading-relaxed dark:text-gray-400">
               <div>1. 未配置过滤器时，同步该数据源下全部可见对象。</div>
