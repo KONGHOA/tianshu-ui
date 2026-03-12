@@ -9,6 +9,7 @@ import { $t } from '@/locales';
 import ButtonIcon from '@/components/custom/button-icon.vue';
 import TableHeaderOperation from '@/components/advanced/table-header-operation.vue';
 import InstanceSearch from './modules/InstanceSearch.vue';
+import InstanceDetailDrawer from './modules/InstanceDetailDrawer.vue';
 
 defineOptions({
   name: 'DataingestInstanceList'
@@ -25,6 +26,9 @@ const searchParams = ref<Api.Dataingest.IngestJobInstanceSearchParams>({
   triggerType: null,
   params: {}
 });
+
+const detailVisible = ref(false);
+const currentInstanceId = ref<CommonType.IdType | null>(null);
 
 type JobStatus = Api.Dataingest.IngestJobInstance['jobStatus'];
 
@@ -136,6 +140,19 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
             );
           };
 
+          const detailBtn = () => {
+            if (!hasAuth('dataingest:instance:list')) return null;
+            return (
+              <ButtonIcon
+                text
+                type="primary"
+                icon="material-symbols:visibility-outline-rounded"
+                tooltipContent="详情"
+                onClick={() => handleDetail(row.instanceId!)}
+              />
+            );
+          };
+
           const cancelBtn = () => {
             if (!hasAuth('dataingest:instance:cancel')) return null;
             const canCancel = row.jobStatus === 'RUNNING' || row.jobStatus === 'SUBMITTED';
@@ -154,6 +171,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
 
           return (
             <div class="flex-center gap-8px">
+              {detailBtn()}
               {syncBtn()}
               {cancelBtn()}
             </div>
@@ -177,6 +195,11 @@ async function handleCancel(instanceId: CommonType.IdType) {
     window.$message?.success('取消成功');
     getData();
   }
+}
+
+function handleDetail(instanceId: CommonType.IdType) {
+  currentInstanceId.value = instanceId;
+  detailVisible.value = true;
 }
 </script>
 
@@ -208,6 +231,7 @@ async function handleCancel(instanceId: CommonType.IdType) {
         class="sm:h-full"
       />
     </NCard>
+    <InstanceDetailDrawer v-model:visible="detailVisible" :instance-id="currentInstanceId" />
   </div>
 </template>
 

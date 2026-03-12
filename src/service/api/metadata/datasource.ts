@@ -57,3 +57,35 @@ export function fetchGetDatasourceSummary(datasourceId: CommonType.IdType) {
     method: 'get'
   });
 }
+
+/** 获取数据源 Schema 列表 */
+export function fetchGetDatasourceSchemas(datasourceId: CommonType.IdType) {
+  return request<Api.Metadata.DatasourceSchemaMeta[]>({
+    url: `/metadata/datasource/${datasourceId}/schemas`,
+    method: 'get'
+  });
+}
+
+/** 获取数据源表列表 */
+export function fetchGetDatasourceTables(datasourceId: CommonType.IdType, schemaName?: string | null) {
+  return request<Api.Metadata.DatasourceTableMeta[]>({
+    url: `/metadata/datasource/${datasourceId}/tables`,
+    method: 'get',
+    params: { schemaName: schemaName ?? undefined }
+  });
+}
+
+/** 获取数据源字段列表 */
+export function fetchGetDatasourceColumns(
+  datasourceId: CommonType.IdType,
+  params: { schemaName?: string | null; tableName: string }
+) {
+  return request<Api.Metadata.DatasourceColumnMeta[]>({
+    url: `/metadata/datasource/${datasourceId}/columns`,
+    method: 'get',
+    params: {
+      schemaName: params.schemaName ?? undefined,
+      tableName: params.tableName
+    }
+  });
+}

@@ -12,7 +12,7 @@ export function fetchCancelJobInstance(instanceId: CommonType.IdType) {
 
 /** 同步实例状态 */
 export function fetchSyncInstanceStatus(instanceId: CommonType.IdType) {
-  return request<boolean>({ url: `/dataingest/executor/syncStatus/${instanceId}`, method: 'post' });
+  return request<string>({ url: `/dataingest/executor/syncStatus/${instanceId}`, method: 'get' });
 }
 
 /** 获取执行实例分页列表 */
@@ -27,7 +27,7 @@ export function fetchGetJobInstanceList(params?: Api.Dataingest.IngestJobInstanc
 /** 获取执行实例详情 */
 export function fetchGetJobInstanceDetail(instanceId: CommonType.IdType) {
   return request<Api.Dataingest.IngestJobInstance>({
-    url: `/dataingest/executor/instance/${instanceId}`,
+    url: `/dataingest/executor/instances/${instanceId}`,
     method: 'get'
   });
 }

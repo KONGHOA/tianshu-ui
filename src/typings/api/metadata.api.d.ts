@@ -95,6 +95,26 @@ declare namespace Api {
       inactiveCount: number;
     };
 
+    type DatasourceSchemaMeta = {
+      schemaName: string;
+      schemaLabel: string;
+    };
+
+    type DatasourceTableMeta = {
+      tableName: string;
+      tableType?: string;
+      comment?: string;
+    };
+
+    type DatasourceColumnMeta = {
+      columnName: string;
+      dataType: string;
+      nullable?: boolean;
+      primaryKey?: boolean;
+      comment?: string;
+      sortNum?: number;
+    };
+
     /** 元数据实体实例 */
     type EntityInstance = Common.CommonRecord<{
       instanceId: CommonType.IdType;
