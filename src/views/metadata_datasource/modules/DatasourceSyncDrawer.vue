@@ -238,11 +238,13 @@ function getStatusTagType(status: string) {
   if (status === 'SUCCESS') return 'success';
   if (status === 'FAIL') return 'error';
   if (status === 'SKIPPED') return 'warning';
+  if (status === 'DETACHED_RUNNING') return 'warning';
   return 'info';
 }
 
 function getStatusText(status: string) {
   if (status === 'QUEUED') return '排队中';
+  if (status === 'DETACHED_RUNNING') return '后台执行中';
   if (status === 'SUCCESS') return '成功';
   if (status === 'FAIL') return '失败';
   if (status === 'SKIPPED') return '已跳过';
@@ -430,6 +432,7 @@ function handlePageSizeChange(pageSize: number) {
                   :options="[
                     { label: '全部状态', value: '' },
                     { label: '排队中', value: 'QUEUED' },
+                    { label: '后台执行中', value: 'DETACHED_RUNNING' },
                     { label: '成功', value: 'SUCCESS' },
                     { label: '失败', value: 'FAIL' },
                     { label: '运行中', value: 'RUNNING' },

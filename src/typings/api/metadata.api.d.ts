@@ -339,7 +339,7 @@ declare namespace Api {
       datasourceId: CommonType.IdType;
       startTime: string;
       endTime: string;
-      status: 'QUEUED' | 'RUNNING' | 'SUCCESS' | 'FAIL' | 'SKIPPED';
+      status: 'QUEUED' | 'RUNNING' | 'DETACHED_RUNNING' | 'SUCCESS' | 'FAIL' | 'SKIPPED';
       syncMode?: SyncMode;
       triggerSource?: 'initial' | 'manual' | 'schedule' | string;
       schemaName?: string;

@@ -85,11 +85,11 @@ const TooltipContent = defineComponent({
     );
 
     return () => (
-      <NP depth={3}>
+      <div>
         {startTip}
         {tips.map(tip => tip)}
         {endTip}
-      </NP>
+      </div>
     );
   }
 });
