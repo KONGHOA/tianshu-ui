@@ -113,7 +113,7 @@ export function useEcharts<T extends ECOption>(optionsFactory: () => T, hooks: C
 
   /** is chart rendered */
   function isRendered() {
-    return Boolean(domRef.value && chart.value);
+    return Boolean(chart.value && chart.value.getDom() === domRef.value);
   }
 
   /**
@@ -130,9 +130,7 @@ export function useEcharts<T extends ECOption>(optionsFactory: () => T, hooks: C
 
     if (!isRendered()) return;
 
-    if (isRendered()) {
-      chart.value?.clear();
-    }
+    chart.value?.clear();
 
     chart.value?.setOption({ ...updatedOpts, backgroundColor: 'transparent' });
 
@@ -147,7 +145,14 @@ export function useEcharts<T extends ECOption>(optionsFactory: () => T, hooks: C
   async function render() {
     if (isRendered()) return;
 
+    if (!domRef.value) return;
+
     const chartTheme = darkMode.value ? 'dark' : 'light';
+
+    // Dispose the old chart if it's attached to an old DOM element
+    if (chart.value && chart.value.getDom() !== domRef.value) {
+      chart.value.dispose();
+    }
 
     chart.value = echarts.init(domRef.value, chartTheme);
 

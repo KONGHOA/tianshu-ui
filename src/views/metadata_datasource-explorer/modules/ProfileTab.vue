@@ -181,12 +181,6 @@ function formatCount(value: number | string | null | undefined): string {
   return num.toLocaleString('zh-CN');
 }
 
-function getStatusToneClass(statusType: string): string {
-  if (statusType === 'error') return 'text-rose-700 dark:text-rose-300';
-  if (statusType === 'warning') return 'text-amber-700 dark:text-amber-300';
-  return 'text-stone-900 dark:text-stone-100';
-}
-
 async function loadProfiles() {
   if (!props.tableUuid) return;
   startProfile();
@@ -295,33 +289,6 @@ const columnRows = computed<ColRow[]>(() => {
     };
   });
 });
-
-const summaryCards = computed(() => [
-  {
-    label: '表总行数',
-    value: formatCount(overview.value?.tableRowCount),
-    hint: '最近成功快照',
-    tone: 'primary'
-  },
-  {
-    label: '画像字段',
-    value: formatCount(columnRows.value.length),
-    hint: '已纳入字段画像',
-    tone: 'success'
-  },
-  {
-    label: '空值风险字段',
-    value: formatCount(columnRows.value.filter(row => row.nullCount > 0).length),
-    hint: '存在空值记录',
-    tone: 'danger'
-  },
-  {
-    label: '唯一值字段',
-    value: formatCount(columnRows.value.filter(row => row.uniqueCount > 0).length),
-    hint: '适合候选键分析',
-    tone: 'neutral'
-  }
-]);
 
 interface Top10Item {
   name: string;
@@ -552,92 +519,139 @@ const profileCols: DataTableColumns<ColRow> = [
           <span v-if="overview?.executionStatus">当前状态 {{ overview.executionStatus }}</span>
         </div>
       </div>
-      <div class="profile-toolbar__actions">
+      <div class="profile-toolbar__actions flex items-center gap-12px">
         <NButton size="small" type="primary" :loading="triggerLoading" @click="handleTrigger">
           <template #icon>
-            <NIcon><div class="i-mdi-play-circle-outline" /></NIcon>
+            <NIcon><icon-mdi-play-circle-outline /></NIcon>
           </template>
           立即执行
         </NButton>
-        <NButton size="small" quaternary :loading="profileLoading" @click="loadProfiles">刷新</NButton>
-        <NButton size="small" quaternary @click="historyVisible = true">历史</NButton>
-        <NButton size="small" quaternary @click="scheduleVisible = true">调度</NButton>
+
+        <div
+          class="flex items-center gap-4px rounded-6px bg-gray-50 p-2px ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700"
+        >
+          <NTooltip placement="bottom">
+            <template #trigger>
+              <NButton size="small" quaternary class="!px-8px" :loading="profileLoading" @click="loadProfiles">
+                <template #icon>
+                  <NIcon><icon-mdi-refresh /></NIcon>
+                </template>
+              </NButton>
+            </template>
+            刷新数据
+          </NTooltip>
+
+          <NTooltip placement="bottom">
+            <template #trigger>
+              <NButton size="small" quaternary class="!px-8px" @click="historyVisible = true">
+                <template #icon>
+                  <NIcon><icon-mdi-history /></NIcon>
+                </template>
+              </NButton>
+            </template>
+            历史记录
+          </NTooltip>
+
+          <NTooltip placement="bottom">
+            <template #trigger>
+              <NButton size="small" quaternary class="!px-8px" @click="scheduleVisible = true">
+                <template #icon>
+                  <NIcon><icon-mdi-calendar-clock-outline /></NIcon>
+                </template>
+              </NButton>
+            </template>
+            调度配置
+          </NTooltip>
+        </div>
       </div>
     </section>
 
     <NSpin :show="profileLoading" class="min-h-120px">
       <div v-if="loaded && overview" class="profile-stack">
-        <section class="profile-hero profile-hero--table">
-          <div class="profile-hero__grid">
-            <div class="profile-hero__main">
-              <div class="profile-hero__eyebrow">
-                <span class="inline-block h-8px w-8px rounded-full bg-sky-500" />
-                表级快照
-              </div>
-              <div class="profile-hero__kicker">最新总行数</div>
-              <div class="profile-hero__figure-row">
-                <div class="profile-hero__figure">{{ formatCount(overview.tableRowCount) }}</div>
-                <div class="profile-hero__unit">行</div>
-              </div>
-              <div class="profile-hero__meta-row">
-                <span class="profile-badge profile-badge--strong">
-                  {{ overview.latestBatchNo || '未生成批次' }}
-                </span>
-                <span class="profile-hero__meta-text">最近执行 {{ latestExecuteLabel }}</span>
-                <NTag size="small" :bordered="false" :type="latestStatusType">
+        <section
+          class="profile-hero flex flex-col gap-12px rounded-16px bg-white p-20px shadow-sm ring-1 ring-gray-100 dark:bg-[#18181c] dark:ring-gray-800"
+        >
+          <div class="flex flex-col gap-4px md:flex-row md:items-start md:justify-between">
+            <div class="flex flex-col gap-6px">
+              <div class="flex items-center gap-8px text-16px text-gray-800 font-bold dark:text-gray-100">
+                <span class="inline-block h-8px w-8px rounded-full bg-blue-500" />
+                表级数据探索报告
+                <NTag size="small" :bordered="false" :type="latestStatusType" round>
                   {{ overview.executionStatus || '暂无状态' }}
                 </NTag>
               </div>
-              <p class="profile-hero__summary">{{ profileSummary }}</p>
+              <p class="max-w-600px text-13px text-gray-500 leading-relaxed dark:text-gray-400">
+                {{ profileSummary }}
+              </p>
             </div>
-            <div class="profile-hero__aside">
-              <div class="grid gap-16px">
-                <div>
-                  <div class="profile-side__label">日增量</div>
-                  <div class="profile-side__value-row">
-                    <div class="profile-side__value" :class="deltaToneClass">
-                      {{
-                        !latestDelta ? '-' : `${latestDelta.delta >= 0 ? '+' : ''}${latestDelta.delta.toLocaleString()}`
-                      }}
-                    </div>
-                    <div class="profile-side__assist">{{ latestDelta?.ratio || '至少需要两个日样本' }}</div>
-                  </div>
-                </div>
-                <div class="profile-side__metrics">
-                  <div class="flex items-center justify-between gap-10px">
-                    <span class="profile-side__metric-label">执行状态</span>
-                    <span class="font-medium uppercase" :class="getStatusToneClass(latestStatusType)">
-                      {{ overview.executionStatus || '-' }}
-                    </span>
-                  </div>
-                  <div class="flex items-center justify-between gap-10px">
-                    <span class="profile-side__metric-label">画像字段数</span>
-                    <span class="profile-side__metric-value">{{ formatCount(columnRows.length) }}</span>
-                  </div>
-                  <div class="flex items-center justify-between gap-10px">
-                    <span class="profile-side__metric-label">空值风险字段</span>
-                    <span class="profile-side__metric-value">
-                      {{ formatCount(columnRows.filter(row => row.nullCount > 0).length) }}
-                    </span>
-                  </div>
-                  <div class="flex items-center justify-between gap-10px">
-                    <span class="profile-side__metric-label">唯一值字段</span>
-                    <span class="profile-side__metric-value">
-                      {{ formatCount(columnRows.filter(row => row.uniqueCount > 0).length) }}
-                    </span>
-                  </div>
-                </div>
+
+            <div class="mt-12px flex items-center gap-16px text-13px text-gray-600 md:mt-0 dark:text-gray-300">
+              <div class="flex flex-col gap-2px md:items-end">
+                <span class="text-11px text-gray-400 tracking-wider uppercase">画像批次</span>
+                <span class="text-13px font-medium font-mono">{{ overview.latestBatchNo || '未生成' }}</span>
+              </div>
+              <div class="h-24px w-1px bg-gray-200 dark:bg-gray-800" />
+              <div class="flex flex-col gap-2px md:items-end">
+                <span class="text-11px text-gray-400 tracking-wider uppercase">最近执行时刻</span>
+                <span class="text-13px font-medium font-mono">{{ latestExecuteLabel }}</span>
               </div>
             </div>
           </div>
-        </section>
 
-        <section class="profile-summary-grid">
-          <article v-for="card in summaryCards" :key="card.label" class="profile-summary-card">
-            <span class="profile-summary-card__label">{{ card.label }}</span>
-            <strong class="profile-summary-card__value">{{ card.value }}</strong>
-            <span :class="`profile-pill profile-pill--${card.tone}`">{{ card.hint }}</span>
-          </article>
+          <div
+            class="grid grid-cols-2 mt-8px gap-16px border-t border-gray-100 pt-16px md:grid-cols-4 md:gap-24px dark:border-gray-800"
+          >
+            <div
+              class="flex flex-col gap-4px rounded-8px bg-gray-50/50 p-12px transition-colors dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-900/50"
+            >
+              <div class="flex items-center gap-6px text-12px text-gray-400 font-medium">
+                <NIcon><icon-mdi-table-large /></NIcon>
+                当前表总行数
+              </div>
+              <span class="text-24px text-gray-800 font-bold tracking-tight tabular-nums dark:text-gray-100">
+                {{ formatCount(overview.tableRowCount) }}
+              </span>
+            </div>
+
+            <div
+              class="flex flex-col gap-4px rounded-8px bg-gray-50/50 p-12px transition-colors dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-900/50"
+            >
+              <div class="flex items-center gap-6px text-12px text-gray-400 font-medium">
+                <NIcon><icon-mdi-format-columns /></NIcon>
+                画像覆盖字段
+              </div>
+              <span class="text-24px text-gray-800 font-bold tracking-tight tabular-nums dark:text-gray-100">
+                {{ formatCount(columnRows.length) }}
+              </span>
+            </div>
+
+            <div
+              class="flex flex-col gap-4px rounded-8px bg-rose-50/30 p-12px transition-colors dark:bg-rose-950/10 hover:bg-rose-50/50 dark:hover:bg-rose-950/20"
+            >
+              <div class="flex items-center gap-6px text-12px text-rose-400 font-medium dark:text-rose-500">
+                <NIcon><icon-mdi-alert-circle-outline /></NIcon>
+                空值风险字段
+              </div>
+              <span class="text-24px text-rose-700 font-bold tracking-tight tabular-nums dark:text-rose-400">
+                {{ formatCount(columnRows.filter(row => row.nullCount > 0).length) }}
+              </span>
+            </div>
+
+            <div
+              class="flex flex-col gap-4px rounded-8px bg-gray-50/50 p-12px transition-colors dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-900/50"
+            >
+              <div class="flex items-center gap-6px text-12px text-gray-400 font-medium">
+                <NIcon><icon-mdi-swap-vertical /></NIcon>
+                行数日增减
+              </div>
+              <div class="flex items-baseline gap-6px">
+                <span class="text-24px font-bold tracking-tight tabular-nums" :class="deltaToneClass">
+                  {{ !latestDelta ? '-' : `${latestDelta.delta >= 0 ? '+' : ''}${latestDelta.delta.toLocaleString()}` }}
+                </span>
+                <span class="text-12px text-gray-400 font-medium">{{ latestDelta?.ratio || '-' }}</span>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section v-if="anomalyItems.length" class="profile-signal">
@@ -776,31 +790,6 @@ const profileCols: DataTableColumns<ColRow> = [
   box-shadow: 0 20px 40px rgba(28, 25, 23, 0.05);
 }
 
-.profile-hero--table {
-  background: linear-gradient(
-    135deg,
-    rgba(244, 247, 252, 0.96),
-    rgba(255, 250, 244, 0.96) 58%,
-    rgba(242, 248, 245, 0.94)
-  );
-}
-
-.profile-hero__grid {
-  display: grid;
-  gap: 0;
-  grid-template-columns: minmax(0, 1.35fr) 360px;
-}
-
-.profile-hero__main,
-.profile-hero__aside {
-  padding: 20px;
-}
-
-.profile-hero__main {
-  border-right: 1px solid rgba(214, 211, 209, 0.7);
-}
-
-.profile-hero__eyebrow,
 .profile-panel__eyebrow {
   display: flex;
   align-items: center;
@@ -811,121 +800,8 @@ const profileCols: DataTableColumns<ColRow> = [
   letter-spacing: 0.22em;
 }
 
-.profile-hero__kicker,
-.profile-panel__desc,
-.profile-hero__meta-text,
-.profile-side__assist,
-.profile-side__metric-label {
+.profile-panel__desc {
   color: rgb(120, 113, 108);
-}
-
-.profile-hero__figure-row,
-.profile-side__value-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 10px 14px;
-  margin-top: 6px;
-}
-
-.profile-hero__figure {
-  color: rgb(28, 25, 23);
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.05em;
-}
-
-.profile-hero__unit,
-.profile-side__assist {
-  padding-bottom: 8px;
-  font-size: 13px;
-}
-
-.profile-hero__meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-  font-size: 12px;
-}
-
-.profile-badge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.profile-badge--strong {
-  background: rgb(28, 25, 23);
-  color: rgb(250, 250, 249);
-}
-
-.profile-hero__summary {
-  max-width: 64ch;
-  margin: 14px 0 0;
-  color: rgb(87, 83, 78);
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-.profile-side__label {
-  color: rgb(120, 113, 108);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-}
-
-.profile-side__value {
-  font-size: 30px;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-}
-
-.profile-side__metrics {
-  display: grid;
-  gap: 10px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(214, 211, 209, 0.7);
-  font-size: 13px;
-}
-
-.profile-side__metric-value {
-  color: rgb(28, 25, 23);
-  font-weight: 600;
-}
-
-.profile-summary-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.profile-summary-card {
-  display: grid;
-  gap: 10px;
-  padding: 16px 18px;
-  border: 1px solid rgba(214, 211, 209, 0.72);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.84);
-}
-
-.profile-summary-card__label {
-  color: rgb(120, 113, 108);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.profile-summary-card__value {
-  color: rgb(28, 25, 23);
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.1;
 }
 
 .profile-pill,
@@ -1014,70 +890,32 @@ const profileCols: DataTableColumns<ColRow> = [
 }
 
 .dark .profile-toolbar__title,
-.dark .profile-summary-card__value,
-.dark .profile-side__metric-value,
-.dark .profile-panel__title,
-.dark .profile-hero__figure {
+.dark .profile-panel__title {
   color: rgb(250, 250, 249);
 }
 
 .dark .profile-toolbar__meta,
-.dark .profile-hero__kicker,
 .dark .profile-panel__desc,
-.dark .profile-hero__meta-text,
-.dark .profile-side__assist,
-.dark .profile-side__metric-label,
-.dark .profile-summary-card__label,
-.dark .profile-hero__eyebrow,
 .dark .profile-panel__eyebrow,
-.dark .profile-side__label,
 .dark .profile-signal__title {
   color: rgb(168, 162, 158);
 }
 
 .dark .profile-hero,
 .dark .profile-panel,
-.dark .profile-signal,
-.dark .profile-summary-card {
+.dark .profile-signal {
   border-color: rgba(87, 83, 78, 0.72);
   background: rgba(28, 25, 23, 0.78);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18);
 }
 
-.dark .profile-hero--table {
-  background: linear-gradient(135deg, rgba(24, 27, 35, 0.96), rgba(35, 27, 24, 0.96) 58%, rgba(20, 32, 28, 0.96));
-}
-
-.dark .profile-hero__main,
-.dark .profile-side__metrics,
 .dark .profile-panel__header {
   border-color: rgba(87, 83, 78, 0.7);
 }
 
-.dark .profile-badge--strong {
-  background: rgb(245, 245, 244);
-  color: rgb(28, 25, 23);
-}
-
-.dark .profile-pill--primary,
 .dark .profile-legend--primary {
   background: rgba(49, 46, 129, 0.38);
   color: rgb(199, 210, 254);
-}
-
-.dark .profile-pill--success {
-  background: rgba(20, 83, 45, 0.34);
-  color: rgb(187, 247, 208);
-}
-
-.dark .profile-pill--neutral {
-  background: rgba(41, 37, 36, 0.92);
-  color: rgb(168, 162, 158);
-}
-
-.dark .profile-pill--danger {
-  background: rgba(127, 29, 29, 0.34);
-  color: rgb(254, 202, 202);
 }
 
 .dark .profile-legend--warning {
@@ -1090,32 +928,9 @@ const profileCols: DataTableColumns<ColRow> = [
   color: rgb(168, 162, 158);
 }
 
-@media (max-width: 1023px) {
-  .profile-hero__grid {
-    grid-template-columns: 1fr;
-  }
-
-  .profile-hero__main {
-    border-right: 0;
-    border-bottom: 1px solid rgba(214, 211, 209, 0.7);
-  }
-
-  .dark .profile-hero__main {
-    border-color: rgba(87, 83, 78, 0.7);
-  }
-
-  .profile-summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 767px) {
   .profile-page {
     padding: 14px 12px 16px;
-  }
-
-  .profile-summary-grid {
-    grid-template-columns: 1fr;
   }
 }
 </style>
