@@ -6,10 +6,12 @@ declare namespace Api {
     /** 数据源连接参数 */
     type ConnParam = {
       connectMode?: 'default' | 'url_only';
+      connectType?: 'sid' | 'service_name';
       jdbcUrl?: string;
       host?: string;
       port?: number;
       database?: string;
+      schema?: string;
       username?: string;
       password?: string;
       properties?: Record<string, string>;

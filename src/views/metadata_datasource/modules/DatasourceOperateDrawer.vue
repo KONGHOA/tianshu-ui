@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useWindowSize } from '@vueuse/core';
 import {
   NButton,
@@ -10,6 +10,8 @@ import {
   NIcon,
   NInput,
   NInputNumber,
+  NRadioButton,
+  NRadioGroup,
   NSelect,
   NSpace,
   NSwitch,
@@ -17,7 +19,12 @@ import {
   NTreeSelect
 } from 'naive-ui';
 import { jsonClone } from '@sa/utils';
-import { fetchCreateDatasource, fetchTestConnection, fetchUpdateDatasource } from '@/service/api/metadata/datasource';
+import {
+  fetchCheckDatasourceNameUnique,
+  fetchCreateDatasource,
+  fetchTestConnection,
+  fetchUpdateDatasource
+} from '@/service/api/metadata/datasource';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { useDict } from '@/hooks/business/dict';
 import { getDatasourceIcon } from '@/utils/datasourceIcon';
@@ -67,9 +74,11 @@ type Model = Api.Metadata.DatasourceOperateParams;
 const model = ref<Model>(createDefaultModel());
 const filterModel = ref<FilterModel>(createDefaultFilterModel());
 const connModel = ref<{
+  connectType: 'sid' | 'service_name';
   host: string;
   port: number;
   database: string;
+  schema: string;
   username: string;
   password: string;
   kerberosPrincipal: string;
@@ -78,9 +87,11 @@ const connModel = ref<{
   kerberosKrb5conf: string;
   properties: Record<string, string>;
 }>({
-  host: '',
+  connectType: 'service_name',
+  host: 'localhost',
   port: 3306,
   database: '',
+  schema: '',
   username: '',
   password: '',
   kerberosPrincipal: '',
@@ -252,6 +263,11 @@ const connectionHelp: Record<ServiceKey, { title: string; items: { icon: string;
       { icon: 'i-mdi-server-network', label: '主机地址', text: 'PostgreSQL 服务器的 IP 地址或域名' },
       { icon: 'i-mdi-numeric', label: '端口', text: '默认 5432' },
       { icon: 'i-mdi-database', label: '数据库', text: '需要指定具体的 database 名称，如 postgres' },
+      {
+        icon: 'i-mdi-layers-outline',
+        label: 'Schema',
+        text: '可选，指定后仅同步该 Schema，如 public；不填则同步所有可见 Schema'
+      },
       { icon: 'i-mdi-account-key', label: '用户名', text: '需要 CONNECT 权限和对应 schema 的 USAGE 权限' },
       { icon: 'i-mdi-lock-outline', label: '密码', text: '密码将加密存储' }
     ]
@@ -261,7 +277,17 @@ const connectionHelp: Record<ServiceKey, { title: string; items: { icon: string;
     items: [
       { icon: 'i-mdi-server-network', label: '主机地址', text: 'Oracle 数据库服务器地址' },
       { icon: 'i-mdi-numeric', label: '端口', text: '默认 1521，对应 Oracle Listener 端口' },
-      { icon: 'i-mdi-database', label: '服务名/SID', text: '填写 Oracle 的 Service Name 或 SID，如 ORCL' },
+      {
+        icon: 'i-mdi-swap-horizontal',
+        label: '连接类型',
+        text: 'Service Name（推荐）适用于 RAC 集群和高可用；SID 为传统单实例连接，Oracle 10g 后已废弃'
+      },
+      { icon: 'i-mdi-database', label: '服务名/SID', text: '根据连接类型填写对应的 Service Name 或 SID，如 ORCL' },
+      {
+        icon: 'i-mdi-layers-outline',
+        label: 'Schema',
+        text: '可选，指定 Oracle 用户名（Schema），不填则同步所有可见 Schema'
+      },
       { icon: 'i-mdi-account-key', label: '用户名', text: '需要 SELECT ANY DICTIONARY 或相应权限' },
       { icon: 'i-mdi-lock-outline', label: '密码', text: '密码将加密存储' }
     ]
@@ -282,6 +308,7 @@ const connectionHelp: Record<ServiceKey, { title: string; items: { icon: string;
       { icon: 'i-mdi-server-network', label: '主机地址', text: 'HiveServer2 所在节点的 IP 或域名' },
       { icon: 'i-mdi-numeric', label: '端口', text: 'HiveServer2 默认 Thrift 端口为 10000' },
       { icon: 'i-mdi-database', label: '数据库', text: '可选，不填默认连接 default 库' },
+      { icon: 'i-mdi-layers-outline', label: 'Schema', text: '可选，指定后仅同步该 Schema；不填则同步所有可见 Schema' },
       { icon: 'i-mdi-account-key', label: '用户名/密码', text: '非 Kerberos 模式下填写；Kerberos 模式可留空' },
       {
         icon: 'i-mdi-shield-key-outline',
@@ -351,18 +378,159 @@ const connectionHelp: Record<ServiceKey, { title: string; items: { icon: string;
 
 const currentHelp = computed(() => connectionHelp[model.value.datasourceType as ServiceKey] ?? connectionHelp.mysql);
 
+// ────────────── JDBC URL 双向同步 ──────────────
+const jdbcUrlValue = ref('');
+let urlSyncLock = false;
+
+const JDBC_URL_SCHEMES: Record<string, string> = {
+  mysql: 'jdbc:mysql',
+  mariadb: 'jdbc:mysql',
+  postgresql: 'jdbc:postgresql',
+  greenplum: 'jdbc:postgresql',
+  clickhouse: 'jdbc:clickhouse',
+  doris: 'jdbc:mysql',
+  starrocks: 'jdbc:mysql',
+  vertica: 'jdbc:vertica'
+};
+
+function buildJdbcUrlFromFields(): string {
+  const { host, port, database } = connModel.value;
+  const h = host || 'localhost';
+  const p = port || selectedTypeInfo.value.port;
+  const db = database || '';
+  const dsType = model.value.datasourceType as string;
+
+  if (dsType === 'oracle') {
+    const d = db || 'ORCL';
+    if (connModel.value.connectType === 'sid') {
+      return `jdbc:oracle:thin:@${h}:${p}:${d}`;
+    }
+    return `jdbc:oracle:thin:@//${h}:${p}/${d}`;
+  }
+  if (dsType === 'hive') {
+    return `jdbc:hive2://${h}:${p}/${db || 'default'}`;
+  }
+  if (dsType === 'sqlite') {
+    return `jdbc:sqlite:${db || ':memory:'}`;
+  }
+  const scheme = JDBC_URL_SCHEMES[dsType] || `jdbc:${dsType}`;
+  return `${scheme}://${h}:${p}${db ? `/${db}` : ''}`;
+}
+
+// 表单字段 → URL（sync flush 保证与 handleJdbcUrlInput 同一微任务内执行，锁才有效）
+watch(
+  () =>
+    [
+      connModel.value.host,
+      connModel.value.port,
+      connModel.value.database,
+      connModel.value.connectType,
+      model.value.datasourceType
+    ] as const,
+  () => {
+    if (urlSyncLock) return;
+    jdbcUrlValue.value = buildJdbcUrlFromFields();
+  },
+  { immediate: true, flush: 'sync' }
+);
+
+// URL → 表单字段
+function handleJdbcUrlInput(url: string) {
+  urlSyncLock = true;
+  jdbcUrlValue.value = url;
+  const parsed = parseJdbcUrl(url, model.value.datasourceType as string);
+  if (parsed) {
+    if (parsed.host !== undefined) connModel.value.host = parsed.host;
+    if (parsed.port !== undefined) connModel.value.port = parsed.port;
+    if (parsed.database !== undefined) connModel.value.database = parsed.database;
+    if (parsed.connectType !== undefined) connModel.value.connectType = parsed.connectType;
+  }
+  testStatus.value = 'idle';
+  nextTick(() => {
+    urlSyncLock = false;
+  });
+}
+
+type ParsedUrl = { host?: string; port?: number; database?: string; connectType?: 'sid' | 'service_name' };
+
+function parseJdbcUrl(url: string, dsType: string): ParsedUrl | null {
+  try {
+    if (dsType === 'oracle') {
+      const after = url.replace(/^jdbc:oracle:thin:@/, '');
+      if (after.startsWith('//')) {
+        const u = new URL(`http:${after}`);
+        return {
+          host: u.hostname,
+          port: Number(u.port) || 1521,
+          database: u.pathname.slice(1) || '',
+          connectType: 'service_name'
+        };
+      }
+      const parts = after.split(':');
+      if (parts.length >= 3) {
+        return {
+          host: parts[0],
+          port: Number(parts[1]) || 1521,
+          database: parts.slice(2).join(':'),
+          connectType: 'sid'
+        };
+      }
+      if (parts.length === 2) {
+        return { host: parts[0], port: Number(parts[1]) || 1521, database: '', connectType: 'sid' };
+      }
+      return null;
+    }
+    if (dsType === 'hive') {
+      const body = url.replace(/^jdbc:hive2:\/\//, '');
+      const semiIdx = body.indexOf(';');
+      const hostPortDb = semiIdx >= 0 ? body.substring(0, semiIdx) : body;
+      const u = new URL(`http://${hostPortDb}`);
+      return { host: u.hostname, port: Number(u.port) || 10000, database: u.pathname.slice(1) || '' };
+    }
+    if (dsType === 'sqlite') {
+      return { database: url.replace(/^jdbc:sqlite:/, '') };
+    }
+    const match = url.match(/^jdbc:\w+:\/\/(.+)$/);
+    if (!match) return null;
+    const u = new URL(`http://${match[1]}`);
+    return {
+      host: u.hostname,
+      port: Number(u.port) || selectedTypeInfo.value.port,
+      database: u.pathname.slice(1) || ''
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ────────────── 表单 ──────────────
 const { formRef: step2FormRef, validate: validateStep2, restoreValidation: restoreStep2 } = useNaiveForm();
 const { formRef: step3FormRef, validate: validateStep3, restoreValidation: restoreStep3 } = useNaiveForm();
 const { createRequiredRule } = useFormRules();
 
 const basicRules = {
-  datasourceName: createRequiredRule('数据源名称不能为空')
+  datasourceName: [
+    createRequiredRule('数据源名称不能为空'),
+    {
+      trigger: 'blur',
+      validator: (_rule: unknown, value: string) => {
+        if (!value?.trim()) return undefined;
+        const id = model.value.datasourceId ?? undefined;
+        return fetchCheckDatasourceNameUnique(value.trim(), id).then(({ data, error }) => {
+          if (error || data !== true) {
+            return Promise.reject(new Error('数据源名称已存在'));
+          }
+          return undefined;
+        });
+      }
+    }
+  ]
 };
 
 const connRules = computed(() => ({
   host: createRequiredRule('主机地址不能为空'),
   port: createRequiredRule('端口不能为空'),
+  database: createRequiredRule('数据库名称不能为空'),
   username: kerberosEnabled.value ? [] : createRequiredRule('用户名不能为空'),
   password: kerberosEnabled.value ? [] : createRequiredRule('密码不能为空'),
   kerberosPrincipal: kerberosEnabled.value ? createRequiredRule('客户端 Principal 不能为空') : [],
@@ -375,9 +543,11 @@ function handleUpdateModelWhenEdit() {
   model.value = createDefaultModel();
   filterModel.value = createDefaultFilterModel();
   connModel.value = {
-    host: '',
+    connectType: 'service_name',
+    host: 'localhost',
     port: 3306,
     database: '',
+    schema: '',
     username: '',
     password: '',
     kerberosPrincipal: '',
@@ -549,14 +719,6 @@ function buildConnParamsPayload() {
   } = jsonClone(connModel.value);
   return payload;
 }
-
-watch(visible, v => {
-  if (v) {
-    handleUpdateModelWhenEdit();
-    restoreStep2();
-    restoreStep3();
-  }
-});
 
 watch(
   () => [visible.value, props.operateType, props.rowData] as const,
@@ -867,14 +1029,46 @@ watch(
                 </NFormItem>
               </div>
 
-              <NFormItem label="数据库名称" path="database">
+              <!-- Oracle 连接类型选择 -->
+              <NFormItem v-if="model.datasourceType === 'oracle'" label="连接类型" path="connectType">
+                <NRadioGroup v-model:value="connModel.connectType" size="small" @update:value="testStatus = 'idle'">
+                  <NRadioButton value="service_name">Service Name</NRadioButton>
+                  <NRadioButton value="sid">SID</NRadioButton>
+                </NRadioGroup>
+              </NFormItem>
+
+              <NFormItem
+                :label="
+                  model.datasourceType === 'oracle'
+                    ? connModel.connectType === 'sid'
+                      ? 'SID'
+                      : '服务名 (Service Name)'
+                    : '数据库名称'
+                "
+                path="database"
+                required
+              >
                 <NInput
                   v-model:value="connModel.database"
                   :placeholder="
                     model.datasourceType === 'oracle'
-                      ? '填写 Service Name 或 SID，如 ORCL'
-                      : '可选，不填则同步全部数据库'
+                      ? connModel.connectType === 'sid'
+                        ? 'Oracle 实例 SID，如 ORCL'
+                        : 'Oracle 服务名，如 ORCL'
+                      : '请填写数据库名称'
                   "
+                  @update:value="testStatus = 'idle'"
+                />
+              </NFormItem>
+
+              <NFormItem
+                v-if="['oracle', 'postgresql', 'hive'].includes(model.datasourceType as string)"
+                label="Schema"
+                path="schema"
+              >
+                <NInput
+                  v-model:value="connModel.schema"
+                  placeholder="可选，指定后仅同步该 Schema 的元数据"
                   @update:value="testStatus = 'idle'"
                 />
               </NFormItem>
@@ -958,6 +1152,25 @@ watch(
                 </template>
               </div>
             </template>
+
+            <!-- JDBC URL（双向同步） -->
+            <div class="mt-4px">
+              <div class="mb-4px flex items-center gap-6px">
+                <NIcon :size="13" class="text-gray-400">
+                  <div class="i-mdi-link-variant" />
+                </NIcon>
+                <span class="text-12px text-gray-500 dark:text-gray-400">URL</span>
+              </div>
+              <NInput
+                :value="jdbcUrlValue"
+                type="textarea"
+                :autosize="{ minRows: 1, maxRows: 3 }"
+                size="small"
+                placeholder="JDBC URL"
+                class="font-mono!"
+                @update:value="handleJdbcUrlInput"
+              />
+            </div>
 
             <!-- 测试连接按钮 -->
             <div class="mt-4px">

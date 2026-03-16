@@ -10,6 +10,15 @@ export function fetchGetDatasource(datasourceId: CommonType.IdType) {
   return request<Api.Metadata.Datasource>({ url: `/metadata/datasource/${datasourceId}`, method: 'get' });
 }
 
+/** 校验数据源名称是否唯一 */
+export function fetchCheckDatasourceNameUnique(datasourceName: string, datasourceId?: CommonType.IdType) {
+  return request<boolean>({
+    url: '/metadata/datasource/checkNameUnique',
+    method: 'get',
+    params: { datasourceName, datasourceId: datasourceId ?? undefined }
+  });
+}
+
 /** 新增数据源 */
 export function fetchCreateDatasource(data: Api.Metadata.DatasourceOperateParams) {
   return request<boolean>({ url: '/metadata/datasource', method: 'post', data });
