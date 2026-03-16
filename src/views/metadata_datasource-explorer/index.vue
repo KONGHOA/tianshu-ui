@@ -1035,18 +1035,18 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
             <NTabs
               v-model:value="datasourceActiveTab"
               type="line"
-              size="large"
               animated
-              class="px-20px"
+              class="explorer-custom-tabs"
               pane-style="padding: 0"
               pane-wrapper-class="mt-16px"
             >
               <NTabPane name="databases">
                 <template #tab>
-                  <div class="flex items-center gap-6px">
-                    <NIcon :size="15"><div class="i-mdi-database" /></NIcon>
-                    数据库
-                    <span class="ml-2px text-11px text-gray-400">({{ filteredDatabases.length }})</span>
+                  <div class="flex items-center gap-6px px-4px py-2px">
+                    <span class="text-14px font-medium">数据库</span>
+                    <span class="explorer-count-pill" :class="{ 'is-active': datasourceActiveTab === 'databases' }">
+                      {{ filteredDatabases.length }}
+                    </span>
                   </div>
                 </template>
 
@@ -1136,9 +1136,8 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 
               <NTabPane name="overview">
                 <template #tab>
-                  <div class="flex items-center gap-6px">
-                    <NIcon :size="15"><div class="i-mdi-information-outline" /></NIcon>
-                    概览
+                  <div class="flex items-center gap-6px px-4px py-2px">
+                    <span class="text-14px font-medium">概览</span>
                   </div>
                 </template>
 
@@ -1303,18 +1302,18 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
             <NTabs
               v-model:value="dbActiveTab"
               type="line"
-              size="large"
               animated
-              class="px-20px"
+              class="explorer-custom-tabs"
               pane-style="padding: 0"
               pane-wrapper-class="mt-16px"
             >
               <NTabPane name="schemas">
                 <template #tab>
-                  <div class="flex items-center gap-6px">
-                    <NIcon :size="15"><div class="i-mdi-layers-outline" /></NIcon>
-                    数据库结构
-                    <span class="ml-2px text-11px text-gray-400">({{ filteredSchemas.length }})</span>
+                  <div class="flex items-center gap-6px px-4px py-2px">
+                    <span class="text-14px font-medium">数据库结构</span>
+                    <span class="explorer-count-pill" :class="{ 'is-active': dbActiveTab === 'schemas' }">
+                      {{ filteredSchemas.length }}
+                    </span>
                   </div>
                 </template>
                 <div class="explorer-search-row border-b border-gray-100/80 px-20px py-10px dark:border-gray-800">
@@ -1351,9 +1350,9 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 
               <NTabPane name="profile">
                 <template #tab>
-                  <div class="flex items-center gap-6px">
-                    <NIcon :size="15"><div class="i-mdi-chart-box-outline" /></NIcon>
-                    概览
+                  <div class="flex items-center gap-6px px-4px py-2px">
+                    <NIcon :size="16"><div class="i-mdi-chart-box-outline" /></NIcon>
+                    <span class="font-medium">概览</span>
                   </div>
                 </template>
                 <DatabaseProfileTab :database-uuid="dbUuid ?? ''" :database-name="dbName ?? ''" />
@@ -1361,10 +1360,11 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 
               <NTabPane name="changes">
                 <template #tab>
-                  <div class="flex items-center gap-6px">
-                    <NIcon :size="15"><div class="i-mdi-swap-horizontal" /></NIcon>
-                    变更记录
-                    <span class="explorer-count-pill">{{ schemaLevelChanges.length }}</span>
+                  <div class="flex items-center gap-6px px-4px py-2px">
+                    <span class="text-14px font-medium">变更记录</span>
+                    <span class="explorer-count-pill" :class="{ 'is-active': dbActiveTab === 'changes' }">
+                      {{ schemaLevelChanges.length }}
+                    </span>
                   </div>
                 </template>
                 <div class="explorer-record-panel">
@@ -1387,18 +1387,18 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
             <NTabs
               v-model:value="schemaActiveTab"
               type="line"
-              size="large"
               animated
-              class="px-20px"
+              class="explorer-custom-tabs"
               pane-style="padding: 0"
               pane-wrapper-class="mt-16px"
             >
               <NTabPane name="tables">
                 <template #tab>
-                  <div class="flex items-center gap-6px">
-                    <NIcon :size="15"><div class="i-mdi-table-large" /></NIcon>
-                    数据表
-                    <span class="ml-2px text-11px text-gray-400">({{ filteredTables.length }})</span>
+                  <div class="flex items-center gap-6px px-4px py-2px">
+                    <span class="text-14px font-medium">数据表</span>
+                    <span class="explorer-count-pill" :class="{ 'is-active': schemaActiveTab === 'tables' }">
+                      {{ filteredTables.length }}
+                    </span>
                   </div>
                 </template>
                 <div class="explorer-search-row border-b border-gray-100/80 px-20px py-10px dark:border-gray-800">
@@ -1431,10 +1431,11 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 
               <NTabPane name="changes">
                 <template #tab>
-                  <div class="flex items-center gap-6px">
-                    <NIcon :size="15"><div class="i-mdi-swap-horizontal" /></NIcon>
-                    变更记录
-                    <span class="explorer-count-pill">{{ dbChanges.length }}</span>
+                  <div class="flex items-center gap-6px px-4px py-2px">
+                    <span class="text-14px font-medium">变更记录</span>
+                    <span class="explorer-count-pill" :class="{ 'is-active': schemaActiveTab === 'changes' }">
+                      {{ dbChanges.length }}
+                    </span>
                   </div>
                 </template>
                 <div class="explorer-record-panel">
@@ -1453,18 +1454,18 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
             <NTabs
               v-model:value="activeTab"
               type="line"
-              size="large"
               animated
-              class="px-20px"
+              class="explorer-custom-tabs"
               pane-style="padding: 0"
               pane-wrapper-class="mt-16px"
             >
               <NTabPane name="columns">
                 <template #tab>
-                  <div class="flex items-center gap-6px">
-                    <NIcon :size="15"><div class="i-mdi-format-columns" /></NIcon>
-                    字段列表
-                    <span class="ml-2px text-11px text-gray-400">({{ columns.length }})</span>
+                  <div class="flex items-center gap-6px px-4px py-2px">
+                    <span class="text-14px font-medium">字段列表</span>
+                    <span class="explorer-count-pill" :class="{ 'is-active': activeTab === 'columns' }">
+                      {{ columns.length }}
+                    </span>
                   </div>
                 </template>
                 <NSpin :show="listLoading">
@@ -1483,10 +1484,11 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 
               <NTabPane name="changes">
                 <template #tab>
-                  <div class="flex items-center gap-6px">
-                    <NIcon :size="15"><div class="i-mdi-swap-horizontal" /></NIcon>
-                    变更记录
-                    <span class="explorer-count-pill">{{ schemaChanges.length }}</span>
+                  <div class="flex items-center gap-6px px-4px py-2px">
+                    <span class="text-14px font-medium">变更记录</span>
+                    <span class="explorer-count-pill" :class="{ 'is-active': activeTab === 'changes' }">
+                      {{ schemaChanges.length }}
+                    </span>
                   </div>
                 </template>
                 <div class="explorer-record-panel">
@@ -1496,9 +1498,9 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 
               <NTabPane name="profile">
                 <template #tab>
-                  <div class="flex items-center gap-6px">
-                    <NIcon :size="15"><div class="i-mdi-chart-box-outline" /></NIcon>
-                    概览
+                  <div class="flex items-center gap-6px px-4px py-2px">
+                    <NIcon :size="16"><div class="i-mdi-chart-box-outline" /></NIcon>
+                    <span class="font-medium">概览</span>
                   </div>
                 </template>
                 <ProfileTab :table-uuid="tableUuid ?? ''" :columns="columns" />
@@ -1846,11 +1848,40 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   margin-left: 4px;
   padding: 0 7px;
   border-radius: 999px;
-  background: rgb(var(--primary-200-color) / 0.14);
-  color: var(--explorer-text-secondary);
+  background: var(--explorer-pill-bg, rgb(var(--primary-200-color) / 0.18));
+  color: var(--explorer-pill-text, var(--explorer-text-secondary));
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.explorer-count-pill.is-active {
+  --explorer-pill-bg: rgb(var(--primary-color));
+  --explorer-pill-text: #ffffff;
+}
+
+.explorer-custom-tabs :deep(.n-tabs-nav) {
+  padding: 10px 20px 0;
+}
+
+.explorer-custom-tabs :deep(.n-tabs-nav-scroll-content) {
+  border-bottom: 1px solid rgb(var(--primary-100-color) / 0.5);
+}
+
+.explorer-custom-tabs :deep(.n-tabs-tab) {
+  padding: 8px 16px 12px;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.2s ease;
+}
+
+.explorer-custom-tabs :deep(.n-tabs-tab:hover) {
+  background: var(--explorer-tab-hover);
+}
+
+.explorer-custom-tabs :deep(.n-tabs-bar) {
+  height: 3px;
+  border-radius: 3px 3px 0 0;
 }
 
 .explorer-record-panel {
@@ -2168,9 +2199,17 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   color: var(--explorer-text-tertiary);
 }
 
+.dark .explorer-custom-tabs :deep(.n-tabs-nav-scroll-content) {
+  border-bottom: 1px solid rgb(var(--primary-700-color) / 0.3);
+}
+
 .dark .explorer-count-pill {
-  background: rgb(var(--primary-700-color) / 0.28);
-  color: var(--explorer-text-main);
+  --explorer-pill-bg: rgb(var(--primary-700-color) / 0.28);
+  --explorer-pill-text: var(--explorer-text-main);
+}
+
+.dark .explorer-count-pill.is-active {
+  --explorer-pill-text: #ffffff;
 }
 
 .dark .explorer-record-panel {
