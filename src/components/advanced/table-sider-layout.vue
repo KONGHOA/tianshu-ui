@@ -61,7 +61,7 @@ const isCollapse = breakpoints.smaller('lg');
     v-else
     has-sider
     :theme-overrides="{ color: 'transparent', colorEmbedded: 'transparent' }"
-    style="background-color: transparent"
+    class="bg-transparent"
   >
     <NLayoutSider
       collapse-mode="transform"
@@ -69,7 +69,7 @@ const isCollapse = breakpoints.smaller('lg');
       :width="320"
       :show-trigger="showTrigger ? 'bar' : false"
       :theme-overrides="{ siderColor: 'transparent' }"
-      style="background-color: transparent"
+      class="bg-transparent"
     >
       <NCard
         :bordered="false"
@@ -88,10 +88,7 @@ const isCollapse = breakpoints.smaller('lg');
         </template>
       </NCard>
     </NLayoutSider>
-    <NLayoutContent
-      :theme-overrides="{ color: 'transparent', colorEmbedded: 'transparent' }"
-      style="background-color: transparent"
-    >
+    <NLayoutContent :theme-overrides="{ color: 'transparent', colorEmbedded: 'transparent' }" class="bg-transparent">
       <slot />
     </NLayoutContent>
   </NLayout>

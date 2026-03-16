@@ -25,9 +25,9 @@ const props = defineProps<Props>();
 
 interface Emits {
   (e: 'preview'): void;
-  (e: 'add-row'): void;
-  (e: 'remove-row', index: number): void;
-  (e: 'row-change', row: Api.Dataingest.IngestFieldMappingOperate): void;
+  (e: 'addRow'): void;
+  (e: 'removeRow', index: number): void;
+  (e: 'rowChange', row: Api.Dataingest.IngestFieldMappingOperate): void;
 }
 
 const emit = defineEmits<Emits>();
@@ -61,7 +61,7 @@ const columns = computed<DataTableColumns<Api.Dataingest.IngestFieldMappingOpera
         options: props.mappingTypeOptions,
         onUpdateValue: value => {
           row.mappingType = value as Api.Dataingest.IngestFieldMappingOperate['mappingType'];
-          emit('row-change', row);
+          emit('rowChange', row);
         }
       })
   },
@@ -78,7 +78,7 @@ const columns = computed<DataTableColumns<Api.Dataingest.IngestFieldMappingOpera
         disabled: row.mappingType === 'CONSTANT',
         onUpdateValue: value => {
           row.sourceField = (value ?? undefined) as string | undefined;
-          emit('row-change', row);
+          emit('rowChange', row);
         }
       })
   },
@@ -94,7 +94,7 @@ const columns = computed<DataTableColumns<Api.Dataingest.IngestFieldMappingOpera
         clearable: true,
         onUpdateValue: value => {
           row.targetField = (value ?? '') as string;
-          emit('row-change', row);
+          emit('rowChange', row);
         }
       })
   },
@@ -165,7 +165,7 @@ const columns = computed<DataTableColumns<Api.Dataingest.IngestFieldMappingOpera
         {
           text: true,
           type: 'error',
-          onClick: () => emit('remove-row', index)
+          onClick: () => emit('removeRow', index)
         },
         { default: () => '删除' }
       )
@@ -178,7 +178,7 @@ const columns = computed<DataTableColumns<Api.Dataingest.IngestFieldMappingOpera
     <NSpace justify="space-between" align="center" class="flex-wrap gap-y-8px">
       <NSpace>
         <NButton type="primary" :loading="previewLoading" @click="$emit('preview')">自动预览映射</NButton>
-        <NButton @click="$emit('add-row')">新增映射</NButton>
+        <NButton @click="$emit('addRow')">新增映射</NButton>
       </NSpace>
       <NTag type="info">{{ summaryText }}</NTag>
     </NSpace>

@@ -36,14 +36,14 @@ interface Props {
 defineProps<Props>();
 
 interface Emits {
-  (e: 'source-datasource-change', value: CommonType.IdType | null): void;
-  (e: 'source-database-change', value: string | null): void;
-  (e: 'source-schema-change', value: string | null): void;
-  (e: 'source-table-change', value: string | null): void;
-  (e: 'sink-datasource-change', value: CommonType.IdType | null): void;
-  (e: 'sink-database-change', value: string | null): void;
-  (e: 'sink-schema-change', value: string | null): void;
-  (e: 'sink-table-change', value: string | null): void;
+  (e: 'sourceDatasourceChange', value: CommonType.IdType | null): void;
+  (e: 'sourceDatabaseChange', value: string | null): void;
+  (e: 'sourceSchemaChange', value: string | null): void;
+  (e: 'sourceTableChange', value: string | null): void;
+  (e: 'sinkDatasourceChange', value: CommonType.IdType | null): void;
+  (e: 'sinkDatabaseChange', value: string | null): void;
+  (e: 'sinkSchemaChange', value: string | null): void;
+  (e: 'sinkTableChange', value: string | null): void;
 }
 
 defineEmits<Emits>();
@@ -62,7 +62,7 @@ defineEmits<Emits>();
               filterable
               clearable
               :loading="datasourceLoading"
-              @update:value="$emit('source-datasource-change', $event)"
+              @update:value="$emit('sourceDatasourceChange', $event)"
             />
           </NFormItem>
           <NFormItem label="数据库">
@@ -73,7 +73,7 @@ defineEmits<Emits>();
               filterable
               :loading="sourceDatabaseLoading"
               :disabled="!sourceModel.datasourceId || datasourceLoading"
-              @update:value="$emit('source-database-change', $event)"
+              @update:value="$emit('sourceDatabaseChange', $event)"
             />
           </NFormItem>
           <NFormItem label="Schema">
@@ -83,7 +83,7 @@ defineEmits<Emits>();
               clearable
               :loading="sourceSchemaLoading"
               :disabled="!sourceModel.databaseName || sourceDatabaseLoading || sourceSchemaOptions.length === 0"
-              @update:value="$emit('source-schema-change', $event)"
+              @update:value="$emit('sourceSchemaChange', $event)"
             />
           </NFormItem>
           <NFormItem label="表名">
@@ -94,7 +94,7 @@ defineEmits<Emits>();
               clearable
               :loading="sourceTableLoading"
               :disabled="!sourceModel.databaseName || sourceTableLoading || sourceSchemaLoading"
-              @update:value="$emit('source-table-change', $event)"
+              @update:value="$emit('sourceTableChange', $event)"
             />
           </NFormItem>
           <NFormItem label="读取方式">
@@ -137,7 +137,7 @@ defineEmits<Emits>();
               filterable
               clearable
               :loading="datasourceLoading"
-              @update:value="$emit('sink-datasource-change', $event)"
+              @update:value="$emit('sinkDatasourceChange', $event)"
             />
           </NFormItem>
           <NFormItem label="数据库">
@@ -148,7 +148,7 @@ defineEmits<Emits>();
               filterable
               :loading="sinkDatabaseLoading"
               :disabled="!sinkModel.datasourceId || datasourceLoading"
-              @update:value="$emit('sink-database-change', $event)"
+              @update:value="$emit('sinkDatabaseChange', $event)"
             />
           </NFormItem>
           <NFormItem label="Schema">
@@ -158,7 +158,7 @@ defineEmits<Emits>();
               clearable
               :loading="sinkSchemaLoading"
               :disabled="!sinkModel.databaseName || sinkDatabaseLoading || sinkSchemaOptions.length === 0"
-              @update:value="$emit('sink-schema-change', $event)"
+              @update:value="$emit('sinkSchemaChange', $event)"
             />
           </NFormItem>
           <NFormItem label="表名">
@@ -169,7 +169,7 @@ defineEmits<Emits>();
               clearable
               :loading="sinkTableLoading"
               :disabled="!sinkModel.databaseName || sinkTableLoading || sinkSchemaLoading"
-              @update:value="$emit('sink-table-change', $event)"
+              @update:value="$emit('sinkTableChange', $event)"
             />
           </NFormItem>
           <NFormItem label="写入模式">
