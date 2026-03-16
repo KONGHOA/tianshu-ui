@@ -10,6 +10,9 @@ import iconSQLite from '@/assets/imgs/datasource/service-icon-sqlite.png';
 import iconStarRocks from '@/assets/imgs/datasource/service-icon-starrocks.png';
 import iconVertica from '@/assets/imgs/datasource/service-icon-vertica.png';
 import iconGeneric from '@/assets/imgs/datasource/service-icon-generic.png';
+import iconElasticsearch from '@/assets/imgs/datasource/elasticsearch.svg';
+import iconKafka from '@/assets/imgs/datasource/kafka.png';
+import iconMinio from '@/assets/imgs/datasource/minio.svg';
 
 const iconMap: Record<string, string> = {
   mysql: iconMySQL,
@@ -22,7 +25,10 @@ const iconMap: Record<string, string> = {
   mariadb: iconMariaDB,
   sqlite: iconSQLite,
   starrocks: iconStarRocks,
-  vertica: iconVertica
+  vertica: iconVertica,
+  elasticsearch: iconElasticsearch,
+  kafka: iconKafka,
+  minio: iconMinio
 };
 
 /**

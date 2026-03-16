@@ -47,22 +47,36 @@ const visible = defineModel<boolean>('visible', { default: false });
 const STEPS = ['选择类型', '基本信息', '连接配置', '过滤器'];
 const currentStep = ref(1);
 
-// ────────────── 数据源类型定义 ──────────────
-const SERVICE_TYPES = [
-  { key: 'mysql', label: 'MySQL', port: 3306, desc: '开源关系型数据库' },
-  { key: 'postgresql', label: 'PostgreSQL', port: 5432, desc: '对象关系型数据库' },
-  { key: 'oracle', label: 'Oracle', port: 1521, desc: '企业级关系型数据库' },
-  { key: 'clickhouse', label: 'ClickHouse', port: 8123, desc: '列式 OLAP 分析数据库' },
-  { key: 'hive', label: 'Hive', port: 10000, desc: 'Apache Hive 大数据仓库' },
-  { key: 'doris', label: 'Doris', port: 9030, desc: '实时分析型 MPP 数据库' },
-  { key: 'greenplum', label: 'Greenplum', port: 5432, desc: '大规模并行处理数据库' },
-  { key: 'mariadb', label: 'MariaDB', port: 3306, desc: 'MySQL 分支关系型数据库' },
-  { key: 'sqlite', label: 'SQLite', port: 0, desc: '轻量级嵌入式数据库' },
-  { key: 'starrocks', label: 'StarRocks', port: 9030, desc: '高性能实时分析数据库' },
-  { key: 'vertica', label: 'Vertica', port: 5433, desc: '列式分析型数据库' }
+const CATEGORIES = [
+  { key: 'database', label: '数据库', icon: 'i-mdi-database' },
+  { key: 'search', label: '搜索引擎', icon: 'i-mdi-magnify' },
+  { key: 'messaging', label: '消息队列', icon: 'i-mdi-message-processing-outline' },
+  { key: 'storage', label: '对象存储', icon: 'i-mdi-cloud-outline' }
 ] as const;
 
-type ServiceKey = (typeof SERVICE_TYPES)[number]['key'];
+type CategoryKey = (typeof CATEGORIES)[number]['key'];
+const currentCategory = ref<CategoryKey>('database');
+
+const SERVICE_TYPES: Record<CategoryKey, { key: string; label: string; port: number; desc: string }[]> = {
+  database: [
+    { key: 'mysql', label: 'MySQL', port: 3306, desc: '开源关系型数据库' },
+    { key: 'postgresql', label: 'PostgreSQL', port: 5432, desc: '对象关系型数据库' },
+    { key: 'oracle', label: 'Oracle', port: 1521, desc: '企业级关系型数据库' },
+    { key: 'clickhouse', label: 'ClickHouse', port: 8123, desc: '列式 OLAP 分析数据库' },
+    { key: 'hive', label: 'Hive', port: 10000, desc: 'Apache Hive 大数据仓库' },
+    { key: 'doris', label: 'Doris', port: 9030, desc: '实时分析型 MPP 数据库' },
+    { key: 'greenplum', label: 'Greenplum', port: 5432, desc: '大规模并行处理数据库' },
+    { key: 'mariadb', label: 'MariaDB', port: 3306, desc: 'MySQL 分支关系型数据库' },
+    { key: 'sqlite', label: 'SQLite', port: 0, desc: '轻量级嵌入式数据库' },
+    { key: 'starrocks', label: 'StarRocks', port: 9030, desc: '高性能实时分析数据库' },
+    { key: 'vertica', label: 'Vertica', port: 5433, desc: '列式分析型数据库' }
+  ],
+  search: [{ key: 'elasticsearch', label: 'ElasticSearch', port: 9200, desc: '分布式搜索和分析引擎' }],
+  messaging: [{ key: 'kafka', label: 'Kafka', port: 9092, desc: '分布式事件流平台' }],
+  storage: [{ key: 'minio', label: 'MinIO', port: 9000, desc: '高性能对象存储服务' }]
+};
+
+type ServiceKey = string;
 type FilterModel = {
   schemaFilterPattern: Api.Metadata.FilterPattern;
   tableFilterPattern: Api.Metadata.FilterPattern;
@@ -231,7 +245,9 @@ const kerberosEnabled = computed({
 
 // ────────────── 计算属性 ──────────────
 const selectedTypeInfo = computed(
-  () => SERVICE_TYPES.find(t => t.key === model.value.datasourceType) ?? SERVICE_TYPES[0]
+  () =>
+    SERVICE_TYPES[currentCategory.value].find(t => t.key === model.value.datasourceType) ??
+    SERVICE_TYPES[currentCategory.value][0]
 );
 const { width: windowWidth } = useWindowSize();
 const isCompactDrawer = computed(() => windowWidth.value < 1024);
@@ -372,6 +388,30 @@ const connectionHelp: Record<ServiceKey, { title: string; items: { icon: string;
       { icon: 'i-mdi-database', label: '数据库', text: '需指定具体数据库名称' },
       { icon: 'i-mdi-account-key', label: '用户名', text: '需要对应 schema 的查询权限' },
       { icon: 'i-mdi-lock-outline', label: '密码', text: '密码将加密存储' }
+    ]
+  },
+  elasticsearch: {
+    title: 'ElasticSearch 连接说明',
+    items: [
+      { icon: 'i-mdi-server-network', label: '主机地址', text: 'ElasticSearch 服务器地址' },
+      { icon: 'i-mdi-numeric', label: '端口', text: '默认 HTTP 端口 9200' },
+      { icon: 'i-mdi-account-key', label: '用户名', text: '开启认证时填写' },
+      { icon: 'i-mdi-lock-outline', label: '密码', text: '密码将加密存储' }
+    ]
+  },
+  kafka: {
+    title: 'Kafka 连接说明',
+    items: [
+      { icon: 'i-mdi-server-network', label: 'Bootstrap Servers', text: 'Kafka 集群的地址列表，逗号分隔' },
+      { icon: 'i-mdi-shield-key-outline', label: '认证方式', text: '可选的 SASL 认证等机制' }
+    ]
+  },
+  minio: {
+    title: 'MinIO 连接说明',
+    items: [
+      { icon: 'i-mdi-server-network', label: 'Endpoint URL', text: 'MinIO 服务的访问地址，如 http://127.0.0.1:9000' },
+      { icon: 'i-mdi-account-key', label: 'Access Key', text: 'MinIO 的访问密钥' },
+      { icon: 'i-mdi-lock-outline', label: 'Secret Key', text: 'MinIO 的私有密钥，将加密存储' }
     ]
   }
 };
@@ -593,9 +633,14 @@ function handleUpdateModelWhenEdit() {
 
 function selectType(key: string) {
   model.value.datasourceType = key;
-  const found = SERVICE_TYPES.find(t => t.key === key);
+  const found = SERVICE_TYPES[currentCategory.value].find(t => t.key === key);
   if (found) connModel.value.port = found.port;
   testStatus.value = 'idle';
+}
+
+function handleCategoryChange(cat: CategoryKey) {
+  currentCategory.value = cat;
+  selectType(SERVICE_TYPES[cat][0].key);
 }
 
 // ────────────── 步骤导航 ──────────────
@@ -732,619 +777,673 @@ watch(
 </script>
 
 <template>
-  <NDrawer v-model:show="visible" display-directive="show" :width="drawerWidth" class="max-w-100vw">
-    <NDrawerContent :native-scrollbar="false" class="flex flex-col">
-      <!-- ═══ HEADER ═══ -->
-      <template #header>
-        <div class="w-full flex flex-col">
-          <!-- 标题行 -->
-          <div class="flex items-center gap-10px">
-            <div class="h-30px w-30px flex-center flex-shrink-0 rounded-8px bg-gray-50 dark:bg-gray-800">
-              <img
-                :src="getDatasourceIcon(model.datasourceType)"
-                :alt="selectedTypeInfo.label"
-                class="h-20px w-20px object-contain"
-              />
-            </div>
-            <span class="text-15px text-gray-900 font-semibold dark:text-gray-100">
-              {{ drawerTitle }}
-            </span>
-            <NTag size="small" :bordered="false" class="ml-4px">
-              {{ selectedTypeInfo.label }}
-            </NTag>
+  <NModal
+    v-model:show="visible"
+    display-directive="show"
+    preset="card"
+    :style="{ width: typeof drawerWidth === 'number' ? `${drawerWidth}px` : drawerWidth }"
+    class="max-w-100vw"
+    :segmented="{ content: true, footer: true }"
+  >
+    <!-- ═══ HEADER ═══ -->
+    <template #header>
+      <div class="w-full flex flex-col">
+        <!-- 标题行 -->
+        <div class="flex items-center gap-10px">
+          <div class="h-30px w-30px flex-center flex-shrink-0 rounded-8px bg-gray-50 dark:bg-gray-800">
+            <img
+              :src="getDatasourceIcon(model.datasourceType)"
+              :alt="selectedTypeInfo.label"
+              class="h-20px w-20px object-contain"
+            />
           </div>
-
-          <!-- 步骤条 -->
-          <div
-            class="mt-16px flex items-center justify-center"
-            role="group"
-            :aria-label="`数据源配置步骤，当前第 ${currentStep} 步，共 ${STEPS.length} 步`"
-          >
-            <template v-for="(step, i) in STEPS" :key="i">
-              <!-- 步骤圆 -->
-              <div class="flex flex-col items-center gap-6px">
-                <div
-                  class="h-28px w-28px flex-center rounded-full text-12px font-bold transition-all duration-200"
-                  :class="{
-                    'bg-primary text-white shadow-sm shadow-primary/40': i + 1 === currentStep,
-                    'bg-primary/10 text-primary': i + 1 < currentStep,
-                    'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500': i + 1 > currentStep
-                  }"
-                >
-                  <span v-if="i + 1 < currentStep" class="i-mdi-check text-14px" />
-                  <span v-else>{{ i + 1 }}</span>
-                </div>
-                <span
-                  class="text-11px transition-colors"
-                  :class="{
-                    'text-primary font-semibold': i + 1 === currentStep,
-                    'text-gray-500 dark:text-gray-400': i + 1 !== currentStep
-                  }"
-                >
-                  {{ step }}
-                </span>
-              </div>
-
-              <!-- 连接线 -->
-              <div
-                v-if="i < STEPS.length - 1"
-                class="mb-18px h-0.5 w-80px flex-shrink-0 transition-colors duration-300"
-                :class="i + 1 < currentStep ? 'bg-primary/40' : 'bg-gray-200 dark:bg-gray-700'"
-              />
-            </template>
-          </div>
+          <span class="text-15px text-gray-900 font-semibold dark:text-gray-100">
+            {{ drawerTitle }}
+          </span>
+          <NTag size="small" :bordered="false" class="ml-4px">
+            {{ selectedTypeInfo.label }}
+          </NTag>
         </div>
-      </template>
 
-      <!-- ═══ BODY ═══ -->
-      <div class="h-full flex flex-col overflow-hidden">
-        <!-- ── Step 1: 选择类型 ── -->
-        <div v-if="currentStep === 1" class="flex flex-col flex-1 overflow-y-auto px-8px py-4px">
-          <div class="mb-20px text-center">
-            <p class="text-13px text-gray-500 dark:text-gray-400">
-              选择您要接入的数据库类型，我们将自动配置对应的连接参数
-            </p>
-          </div>
-
-          <div
-            class="grid grid-cols-1 mx-auto max-w-720px w-full gap-14px sm:grid-cols-2 xl:grid-cols-4"
-            role="radiogroup"
-            aria-label="选择数据源类型"
-          >
-            <button
-              v-for="type in SERVICE_TYPES"
-              :key="type.key"
-              type="button"
-              role="radio"
-              class="relative flex flex-col select-none items-center border-2 rounded-12px px-12px py-20px text-left outline-none transition-all duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary dark:focus-visible:ring-offset-[#18181c]"
-              :aria-checked="model.datasourceType === type.key"
-              :aria-label="`${type.label}，${type.desc}`"
-              :class="
-                model.datasourceType === type.key
-                  ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-sm'
-                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#18181c] hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5'
-              "
-              @click="selectType(type.key)"
-            >
-              <!-- 选中徽章 -->
+        <!-- 步骤条 -->
+        <div
+          class="mt-16px flex items-center justify-center"
+          role="group"
+          :aria-label="`数据源配置步骤，当前第 ${currentStep} 步，共 ${STEPS.length} 步`"
+        >
+          <template v-for="(step, i) in STEPS" :key="i">
+            <!-- 步骤圆 -->
+            <div class="flex flex-col items-center gap-6px">
               <div
-                v-if="model.datasourceType === type.key"
-                class="absolute right-8px top-8px h-18px w-18px flex-center rounded-full bg-primary"
+                class="h-28px w-28px flex-center rounded-full text-12px font-bold transition-all duration-200"
+                :class="{
+                  'bg-primary text-white shadow-sm shadow-primary/40': i + 1 === currentStep,
+                  'bg-primary/10 text-primary': i + 1 < currentStep,
+                  'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500': i + 1 > currentStep
+                }"
               >
-                <span class="i-mdi-check text-10px text-white" />
+                <span v-if="i + 1 < currentStep" class="i-mdi-check text-14px" />
+                <span v-else>{{ i + 1 }}</span>
               </div>
-
-              <!-- 图标 -->
-              <div class="mb-12px h-52px w-52px flex-center rounded-12px bg-gray-50 dark:bg-gray-800">
-                <img :src="getDatasourceIcon(type.key)" :alt="type.label" class="h-36px w-36px object-contain" />
-              </div>
-
-              <!-- 名称 -->
               <span
-                class="text-13px font-semibold"
-                :class="model.datasourceType === type.key ? 'text-primary' : 'text-gray-700 dark:text-gray-300'"
+                class="text-11px transition-colors"
+                :class="{
+                  'text-primary font-semibold': i + 1 === currentStep,
+                  'text-gray-500 dark:text-gray-400': i + 1 !== currentStep
+                }"
               >
-                {{ type.label }}
+                {{ step }}
               </span>
+            </div>
 
-              <!-- 描述 -->
-              <span class="mt-4px text-center text-11px text-gray-400 leading-tight">
-                {{ type.desc }}
-              </span>
-            </button>
-          </div>
+            <!-- 连接线 -->
+            <div
+              v-if="i < STEPS.length - 1"
+              class="mb-18px h-0.5 w-80px flex-shrink-0 transition-colors duration-300"
+              :class="i + 1 < currentStep ? 'bg-primary/40' : 'bg-gray-200 dark:bg-gray-700'"
+            />
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- ═══ BODY ═══ -->
+    <div class="h-[65vh] flex flex-col overflow-hidden">
+      <!-- ── Step 1: 选择类型 ── -->
+      <div v-if="currentStep === 1" class="flex flex-col flex-1 overflow-y-auto px-8px py-4px">
+        <div class="mb-20px text-center">
+          <p class="text-13px text-gray-500 dark:text-gray-400">
+            选择您要接入的数据源类型，我们将自动配置对应的连接参数
+          </p>
         </div>
 
-        <!-- ── Step 2: 基本信息 ── -->
-        <div v-else-if="currentStep === 2" class="flex-1 overflow-y-auto px-8px py-4px">
-          <div class="mx-auto max-w-480px">
-            <p class="mb-20px text-13px text-gray-500 dark:text-gray-400">
-              配置数据源的基本信息，名称用于在平台中标识该数据源
-            </p>
+        <!-- Category Selection -->
+        <div class="mb-24px flex justify-center">
+          <NRadioGroup
+            :value="currentCategory"
+            size="medium"
+            name="category-radio-group"
+            @update:value="handleCategoryChange"
+          >
+            <NRadioButton v-for="cat in CATEGORIES" :key="cat.key" :value="cat.key" class="min-w-100px text-center">
+              <div class="flex items-center justify-center gap-6px">
+                <NIcon :size="16"><div :class="cat.icon" /></NIcon>
+                {{ cat.label }}
+              </div>
+            </NRadioButton>
+          </NRadioGroup>
+        </div>
 
-            <NForm
-              ref="step2FormRef"
-              :model="model"
-              :rules="basicRules"
-              label-placement="top"
-              require-mark-placement="right-hanging"
+        <div
+          class="grid grid-cols-1 mx-auto max-w-720px w-full gap-14px sm:grid-cols-2 xl:grid-cols-4"
+          role="radiogroup"
+          aria-label="选择数据源类型"
+        >
+          <button
+            v-for="type in SERVICE_TYPES[currentCategory]"
+            :key="type.key"
+            type="button"
+            role="radio"
+            class="relative flex flex-col select-none items-center border-2 rounded-12px px-12px py-20px text-left outline-none transition-all duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary dark:focus-visible:ring-offset-[#18181c]"
+            :aria-checked="model.datasourceType === type.key"
+            :aria-label="`${type.label}，${type.desc}`"
+            :class="
+              model.datasourceType === type.key
+                ? 'border-primary bg-primary/5 dark:bg-primary/10 shadow-sm'
+                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-[#18181c] hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5'
+            "
+            @click="selectType(type.key)"
+          >
+            <!-- 选中徽章 -->
+            <div
+              v-if="model.datasourceType === type.key"
+              class="absolute right-8px top-8px h-18px w-18px flex-center rounded-full bg-primary"
             >
-              <NFormItem label="数据源名称" path="datasourceName" required>
-                <NInput
-                  v-model:value="model.datasourceName"
-                  placeholder="例如：生产-MySQL-用户库"
-                  :maxlength="128"
-                  show-count
-                />
-              </NFormItem>
+              <span class="i-mdi-check text-10px text-white" />
+            </div>
 
-              <NFormItem label="所属分类" path="categoryId">
-                <NTreeSelect
-                  v-model:value="model.categoryId"
-                  :options="categoryTree"
-                  key-field="id"
-                  label-field="name"
-                  children-field="children"
-                  placeholder="选择数据源分类（可选）"
-                  clearable
-                />
-              </NFormItem>
+            <!-- 图标 -->
+            <div class="mb-12px h-52px w-52px flex-center rounded-12px bg-gray-50 dark:bg-gray-800">
+              <img :src="getDatasourceIcon(type.key)" :alt="type.label" class="h-36px w-36px object-contain" />
+            </div>
 
-              <NFormItem label="备注" path="remark">
-                <NInput
-                  v-model:value="model.remark"
-                  :rows="3"
-                  type="textarea"
-                  placeholder="描述该数据源的用途或其他说明（可选）"
-                  :maxlength="500"
-                  show-count
-                />
-              </NFormItem>
+            <!-- 名称 -->
+            <span
+              class="text-13px font-semibold"
+              :class="model.datasourceType === type.key ? 'text-primary' : 'text-gray-700 dark:text-gray-300'"
+            >
+              {{ type.label }}
+            </span>
 
-              <!-- 数据来源信息 -->
-              <NDivider class="my-16px!">
-                <span class="text-12px text-gray-400">数据来源信息</span>
-              </NDivider>
+            <!-- 描述 -->
+            <span class="mt-4px text-center text-11px text-gray-400 leading-tight">
+              {{ type.desc }}
+            </span>
+          </button>
+        </div>
+      </div>
 
-              <NFormItem label="来源单位" path="sourceOrgCode">
-                <DictSelect
-                  v-model:value="model.sourceOrgCode"
-                  dict-code="meta_source_org"
-                  placeholder="选择来源单位（可选）"
+      <!-- ── Step 2: 基本信息 ── -->
+      <div v-else-if="currentStep === 2" class="flex-1 overflow-y-auto px-8px py-4px">
+        <div class="mx-auto max-w-480px">
+          <p class="mb-20px text-13px text-gray-500 dark:text-gray-400">
+            配置数据源的基本信息，名称用于在平台中标识该数据源
+          </p>
+
+          <NForm
+            ref="step2FormRef"
+            :model="model"
+            :rules="basicRules"
+            label-placement="top"
+            require-mark-placement="right-hanging"
+          >
+            <NFormItem label="数据源名称" path="datasourceName" required>
+              <NInput
+                v-model:value="model.datasourceName"
+                placeholder="例如：生产-MySQL-用户库"
+                :maxlength="128"
+                show-count
+              />
+            </NFormItem>
+
+            <NFormItem label="所属分类" path="categoryId">
+              <NTreeSelect
+                v-model:value="model.categoryId"
+                :options="categoryTree"
+                key-field="id"
+                label-field="name"
+                children-field="children"
+                placeholder="选择数据源分类（可选）"
+                clearable
+              />
+            </NFormItem>
+
+            <NFormItem label="备注" path="remark">
+              <NInput
+                v-model:value="model.remark"
+                :rows="3"
+                type="textarea"
+                placeholder="描述该数据源的用途或其他说明（可选）"
+                :maxlength="500"
+                show-count
+              />
+            </NFormItem>
+
+            <!-- 数据来源信息 -->
+            <NDivider class="my-16px!">
+              <span class="text-12px text-gray-400">数据来源信息</span>
+            </NDivider>
+
+            <NFormItem label="来源单位" path="sourceOrgCode">
+              <DictSelect
+                v-model:value="model.sourceOrgCode"
+                dict-code="meta_source_org"
+                placeholder="选择来源单位（可选）"
+                clearable
+                filterable
+                immediate
+              />
+            </NFormItem>
+
+            <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-2">
+              <NFormItem label="来源部门" path="sourceDept">
+                <NSelect
+                  v-model:value="model.sourceDept"
+                  :options="filteredDeptOptions"
+                  :disabled="!model.sourceOrgCode"
+                  placeholder="请先选择来源单位"
                   clearable
                   filterable
+                />
+              </NFormItem>
+              <NFormItem label="来源应用系统" path="sourceSystem">
+                <NSelect
+                  v-model:value="model.sourceSystem"
+                  :options="filteredSystemOptions"
+                  :disabled="!model.sourceOrgCode"
+                  placeholder="请先选择来源单位"
+                  clearable
+                  filterable
+                />
+              </NFormItem>
+            </div>
+
+            <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-2">
+              <NFormItem label="来源类型（一级）" path="sourceType">
+                <DictSelect
+                  v-model:value="sourceTypeL1"
+                  dict-code="meta_source_type_l1"
+                  placeholder="选择一级分类"
+                  clearable
                   immediate
                 />
               </NFormItem>
-
-              <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-2">
-                <NFormItem label="来源部门" path="sourceDept">
-                  <NSelect
-                    v-model:value="model.sourceDept"
-                    :options="filteredDeptOptions"
-                    :disabled="!model.sourceOrgCode"
-                    placeholder="请先选择来源单位"
-                    clearable
-                    filterable
-                  />
-                </NFormItem>
-                <NFormItem label="来源应用系统" path="sourceSystem">
-                  <NSelect
-                    v-model:value="model.sourceSystem"
-                    :options="filteredSystemOptions"
-                    :disabled="!model.sourceOrgCode"
-                    placeholder="请先选择来源单位"
-                    clearable
-                    filterable
-                  />
-                </NFormItem>
-              </div>
-
-              <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-2">
-                <NFormItem label="来源类型（一级）" path="sourceType">
-                  <DictSelect
-                    v-model:value="sourceTypeL1"
-                    dict-code="meta_source_type_l1"
-                    placeholder="选择一级分类"
-                    clearable
-                    immediate
-                  />
-                </NFormItem>
-                <NFormItem label="来源类型（二级）">
-                  <NSelect
-                    v-model:value="sourceTypeL2"
-                    :options="sourceTypeL2Options"
-                    :disabled="!sourceTypeL1"
-                    placeholder="选择二级分类"
-                    clearable
-                    filterable
-                  />
-                </NFormItem>
-              </div>
-
-              <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-2">
-                <NFormItem label="数据联系人" path="contactPerson">
-                  <NInput v-model:value="model.contactPerson" placeholder="联系人姓名" :maxlength="64" />
-                </NFormItem>
-                <NFormItem label="联系电话" path="contactPhone">
-                  <NInput v-model:value="model.contactPhone" placeholder="手机号码" :maxlength="20" />
-                </NFormItem>
-              </div>
-            </NForm>
-          </div>
-        </div>
-
-        <!-- ── Step 3: 连接配置 ── -->
-        <div v-else-if="currentStep === 3" class="flex flex-col flex-1 gap-0 overflow-hidden lg:flex-row">
-          <!-- 左侧：表单 -->
-          <div class="flex-1 overflow-y-auto px-20px py-4px lg:border-r lg:border-gray-100 dark:lg:border-gray-800">
-            <!-- 测试状态 Banner -->
-            <div
-              v-if="testStatus !== 'idle'"
-              class="mb-16px flex items-center gap-10px rounded-8px px-14px py-10px text-13px font-medium transition-all"
-              :class="{
-                'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400': testStatus === 'success',
-                'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400': testStatus === 'fail',
-                'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400': testStatus === 'testing'
-              }"
-            >
-              <NIcon :size="16">
-                <div
-                  :class="{
-                    'i-mdi-check-circle-outline': testStatus === 'success',
-                    'i-mdi-alert-circle-outline': testStatus === 'fail',
-                    'i-mdi-loading animate-spin': testStatus === 'testing'
-                  }"
+              <NFormItem label="来源类型（二级）">
+                <NSelect
+                  v-model:value="sourceTypeL2"
+                  :options="sourceTypeL2Options"
+                  :disabled="!sourceTypeL1"
+                  placeholder="选择二级分类"
+                  clearable
+                  filterable
                 />
-              </NIcon>
-              <span v-if="testStatus === 'success'">连接测试通过，数据源可用</span>
-              <span v-else-if="testStatus === 'fail'">连接失败，请检查配置后重试</span>
-              <span v-else>正在测试连接...</span>
+              </NFormItem>
             </div>
 
-            <NForm
-              ref="step3FormRef"
-              :model="connModel"
-              :rules="connRules"
-              label-placement="top"
-              require-mark-placement="right-hanging"
-              @update:model="testStatus = 'idle'"
-            >
-              <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-3">
-                <NFormItem class="col-span-2" label="主机地址" path="host" required>
-                  <NInput
-                    v-model:value="connModel.host"
-                    placeholder="例如：192.168.1.100"
-                    @update:value="testStatus = 'idle'"
-                  />
-                </NFormItem>
-                <NFormItem label="端口" path="port" required>
-                  <NInputNumber
-                    v-model:value="connModel.port"
-                    class="w-full"
-                    :min="1"
-                    :max="65535"
-                    @update:value="testStatus = 'idle'"
-                  />
-                </NFormItem>
-              </div>
-
-              <!-- Oracle 连接类型选择 -->
-              <NFormItem v-if="model.datasourceType === 'oracle'" label="连接类型" path="connectType">
-                <NRadioGroup v-model:value="connModel.connectType" size="small" @update:value="testStatus = 'idle'">
-                  <NRadioButton value="service_name">Service Name</NRadioButton>
-                  <NRadioButton value="sid">SID</NRadioButton>
-                </NRadioGroup>
+            <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-2">
+              <NFormItem label="数据联系人" path="contactPerson">
+                <NInput v-model:value="model.contactPerson" placeholder="联系人姓名" :maxlength="64" />
               </NFormItem>
+              <NFormItem label="联系电话" path="contactPhone">
+                <NInput v-model:value="model.contactPhone" placeholder="手机号码" :maxlength="20" />
+              </NFormItem>
+            </div>
+          </NForm>
+        </div>
+      </div>
 
-              <NFormItem
-                :label="
+      <!-- ── Step 3: 连接配置 ── -->
+      <div v-else-if="currentStep === 3" class="flex flex-col flex-1 gap-0 overflow-hidden lg:flex-row">
+        <!-- 左侧：表单 -->
+        <div class="flex-1 overflow-y-auto px-20px py-4px lg:border-r lg:border-gray-100 dark:lg:border-gray-800">
+          <!-- 测试状态 Banner -->
+          <div
+            v-if="testStatus !== 'idle'"
+            class="mb-16px flex items-center gap-10px rounded-8px px-14px py-10px text-13px font-medium transition-all"
+            :class="{
+              'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400': testStatus === 'success',
+              'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400': testStatus === 'fail',
+              'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400': testStatus === 'testing'
+            }"
+          >
+            <NIcon :size="16">
+              <div
+                :class="{
+                  'i-mdi-check-circle-outline': testStatus === 'success',
+                  'i-mdi-alert-circle-outline': testStatus === 'fail',
+                  'i-mdi-loading animate-spin': testStatus === 'testing'
+                }"
+              />
+            </NIcon>
+            <span v-if="testStatus === 'success'">连接测试通过，数据源可用</span>
+            <span v-else-if="testStatus === 'fail'">连接失败，请检查配置后重试</span>
+            <span v-else>正在测试连接...</span>
+          </div>
+
+          <NForm
+            ref="step3FormRef"
+            :model="connModel"
+            :rules="connRules"
+            label-placement="top"
+            require-mark-placement="right-hanging"
+            @update:model="testStatus = 'idle'"
+          >
+            <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-3">
+              <NFormItem class="col-span-2" label="主机地址(Host/Endpoint)" path="host" required>
+                <NInput
+                  v-model:value="connModel.host"
+                  placeholder="例如：192.168.1.100 或 http://minio:9000"
+                  @update:value="testStatus = 'idle'"
+                />
+              </NFormItem>
+              <NFormItem label="端口" path="port" required>
+                <NInputNumber
+                  v-model:value="connModel.port"
+                  class="w-full"
+                  :min="1"
+                  :max="65535"
+                  @update:value="testStatus = 'idle'"
+                />
+              </NFormItem>
+            </div>
+
+            <!-- Oracle 连接类型选择 -->
+            <NFormItem v-if="model.datasourceType === 'oracle'" label="连接类型" path="connectType">
+              <NRadioGroup v-model:value="connModel.connectType" size="small" @update:value="testStatus = 'idle'">
+                <NRadioButton value="service_name">Service Name</NRadioButton>
+                <NRadioButton value="sid">SID</NRadioButton>
+              </NRadioGroup>
+            </NFormItem>
+
+            <NFormItem
+              v-if="
+                [
+                  'mysql',
+                  'postgresql',
+                  'oracle',
+                  'clickhouse',
+                  'hive',
+                  'doris',
+                  'greenplum',
+                  'mariadb',
+                  'sqlite',
+                  'starrocks',
+                  'vertica'
+                ].includes(model.datasourceType as string)
+              "
+              :label="
+                model.datasourceType === 'oracle'
+                  ? connModel.connectType === 'sid'
+                    ? 'SID'
+                    : '服务名 (Service Name)'
+                  : '数据库名称'
+              "
+              path="database"
+              required
+            >
+              <NInput
+                v-model:value="connModel.database"
+                :placeholder="
                   model.datasourceType === 'oracle'
                     ? connModel.connectType === 'sid'
-                      ? 'SID'
-                      : '服务名 (Service Name)'
-                    : '数据库名称'
+                      ? 'Oracle 实例 SID，如 ORCL'
+                      : 'Oracle 服务名，如 ORCL'
+                    : '请填写数据库名称'
                 "
-                path="database"
-                required
-              >
-                <NInput
-                  v-model:value="connModel.database"
-                  :placeholder="
-                    model.datasourceType === 'oracle'
-                      ? connModel.connectType === 'sid'
-                        ? 'Oracle 实例 SID，如 ORCL'
-                        : 'Oracle 服务名，如 ORCL'
-                      : '请填写数据库名称'
-                  "
-                  @update:value="testStatus = 'idle'"
-                />
-              </NFormItem>
-
-              <NFormItem
-                v-if="['oracle', 'postgresql', 'hive'].includes(model.datasourceType as string)"
-                label="Schema"
-                path="schema"
-              >
-                <NInput
-                  v-model:value="connModel.schema"
-                  placeholder="可选，指定后仅同步该 Schema 的元数据"
-                  @update:value="testStatus = 'idle'"
-                />
-              </NFormItem>
-
-              <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-2">
-                <NFormItem label="用户名" path="username" required>
-                  <NInput
-                    v-model:value="connModel.username"
-                    placeholder="数据库用户名"
-                    autocomplete="new-username"
-                    @update:value="testStatus = 'idle'"
-                  />
-                </NFormItem>
-                <NFormItem label="密码" path="password" required>
-                  <NInput
-                    v-model:value="connModel.password"
-                    type="password"
-                    show-password-on="click"
-                    placeholder="数据库密码"
-                    autocomplete="new-password"
-                    @update:value="testStatus = 'idle'"
-                  />
-                </NFormItem>
-              </div>
-            </NForm>
-
-            <!-- Kerberos 认证配置（仅 Hive） -->
-            <template v-if="model.datasourceType === 'hive'">
-              <div
-                class="mb-16px mt-4px border border-amber-200 rounded-10px bg-amber-50/60 px-16px py-12px dark:border-amber-800/40 dark:bg-amber-900/10"
-              >
-                <!-- 开关标题行 -->
-                <div class="mb-2px flex items-center justify-between">
-                  <div class="flex items-center gap-8px">
-                    <NIcon :size="15" class="text-amber-600 dark:text-amber-400">
-                      <div class="i-mdi-shield-key-outline" />
-                    </NIcon>
-                    <span class="text-13px text-amber-800 font-semibold dark:text-amber-300">Kerberos 认证</span>
-                  </div>
-                  <NSwitch v-model:value="kerberosEnabled" size="small" />
-                </div>
-                <p class="mb-12px text-11px text-amber-600/80 leading-relaxed dark:text-amber-400/70">
-                  启用后将通过 keytab 文件获取 TGT，连接 Kerberos 保护的 HiveServer2
-                </p>
-
-                <template v-if="kerberosEnabled">
-                  <div class="grid grid-cols-1 gap-x-12px gap-y-0 sm:grid-cols-2">
-                    <NFormItem label="客户端 Principal" path="kerberosPrincipal" required>
-                      <NInput
-                        v-model:value="connModel.kerberosPrincipal"
-                        placeholder="hive/host@REALM"
-                        size="small"
-                        @update:value="testStatus = 'idle'"
-                      />
-                    </NFormItem>
-                    <NFormItem label="服务端 Principal" path="hiveServerPrincipal" required>
-                      <NInput
-                        v-model:value="connModel.hiveServerPrincipal"
-                        placeholder="hive/_HOST@REALM"
-                        size="small"
-                        @update:value="testStatus = 'idle'"
-                      />
-                    </NFormItem>
-                  </div>
-                  <NFormItem class="mt-8px" label="Keytab 文件路径" path="kerberosKeytab" required>
-                    <NInput
-                      v-model:value="connModel.kerberosKeytab"
-                      placeholder="/etc/security/keytabs/hive.service.keytab"
-                      size="small"
-                      @update:value="testStatus = 'idle'"
-                    />
-                  </NFormItem>
-                  <NFormItem class="mt-8px" label="krb5.conf 路径（可选）" path="kerberosKrb5conf">
-                    <NInput
-                      v-model:value="connModel.kerberosKrb5conf"
-                      placeholder="/etc/krb5.conf（留空使用系统默认）"
-                      size="small"
-                      @update:value="testStatus = 'idle'"
-                    />
-                  </NFormItem>
-                </template>
-              </div>
-            </template>
-
-            <!-- JDBC URL（双向同步） -->
-            <div class="mt-4px">
-              <div class="mb-4px flex items-center gap-6px">
-                <NIcon :size="13" class="text-gray-400">
-                  <div class="i-mdi-link-variant" />
-                </NIcon>
-                <span class="text-12px text-gray-500 dark:text-gray-400">URL</span>
-              </div>
-              <NInput
-                :value="jdbcUrlValue"
-                type="textarea"
-                :autosize="{ minRows: 1, maxRows: 3 }"
-                size="small"
-                placeholder="JDBC URL"
-                class="font-mono!"
-                @update:value="handleJdbcUrlInput"
+                @update:value="testStatus = 'idle'"
               />
-            </div>
+            </NFormItem>
 
-            <!-- 测试连接按钮 -->
-            <div class="mt-4px">
-              <NButton
-                :loading="testLoading"
-                :type="testStatus === 'success' ? 'success' : 'default'"
-                dashed
-                class="w-full"
-                @click="handleTestConnection"
-              >
-                <template #icon>
-                  <NIcon>
-                    <div :class="testStatus === 'success' ? 'i-mdi-check-circle' : 'i-mdi-connection'" />
-                  </NIcon>
-                </template>
-                {{ testStatus === 'success' ? '连接正常（点击重新测试）' : '测试连接' }}
-              </NButton>
+            <NFormItem
+              v-if="['oracle', 'postgresql', 'hive'].includes(model.datasourceType as string)"
+              label="Schema"
+              path="schema"
+            >
+              <NInput
+                v-model:value="connModel.schema"
+                placeholder="可选，指定后仅同步该 Schema 的元数据"
+                @update:value="testStatus = 'idle'"
+              />
+            </NFormItem>
+
+            <div class="grid grid-cols-1 gap-x-16px sm:grid-cols-2">
+              <NFormItem :label="model.datasourceType === 'minio' ? 'Access Key' : '用户名'" path="username" required>
+                <NInput
+                  v-model:value="connModel.username"
+                  :placeholder="model.datasourceType === 'minio' ? 'MinIO Access Key' : '数据库用户名'"
+                  autocomplete="new-username"
+                  @update:value="testStatus = 'idle'"
+                />
+              </NFormItem>
+              <NFormItem :label="model.datasourceType === 'minio' ? 'Secret Key' : '密码'" path="password" required>
+                <NInput
+                  v-model:value="connModel.password"
+                  type="password"
+                  show-password-on="click"
+                  :placeholder="model.datasourceType === 'minio' ? 'MinIO Secret Key' : '数据库密码'"
+                  autocomplete="new-password"
+                  @update:value="testStatus = 'idle'"
+                />
+              </NFormItem>
             </div>
+          </NForm>
+
+          <!-- Kerberos 认证配置（仅 Hive） -->
+          <template v-if="model.datasourceType === 'hive'">
+            <div
+              class="mb-16px mt-4px border border-amber-200 rounded-10px bg-amber-50/60 px-16px py-12px dark:border-amber-800/40 dark:bg-amber-900/10"
+            >
+              <!-- 开关标题行 -->
+              <div class="mb-2px flex items-center justify-between">
+                <div class="flex items-center gap-8px">
+                  <NIcon :size="15" class="text-amber-600 dark:text-amber-400">
+                    <div class="i-mdi-shield-key-outline" />
+                  </NIcon>
+                  <span class="text-13px text-amber-800 font-semibold dark:text-amber-300">Kerberos 认证</span>
+                </div>
+                <NSwitch v-model:value="kerberosEnabled" size="small" />
+              </div>
+              <p class="mb-12px text-11px text-amber-600/80 leading-relaxed dark:text-amber-400/70">
+                启用后将通过 keytab 文件获取 TGT，连接 Kerberos 保护的 HiveServer2
+              </p>
+
+              <template v-if="kerberosEnabled">
+                <div class="grid grid-cols-1 gap-x-12px gap-y-0 sm:grid-cols-2">
+                  <NFormItem label="客户端 Principal" path="kerberosPrincipal" required>
+                    <NInput
+                      v-model:value="connModel.kerberosPrincipal"
+                      placeholder="hive/host@REALM"
+                      size="small"
+                      @update:value="testStatus = 'idle'"
+                    />
+                  </NFormItem>
+                  <NFormItem label="服务端 Principal" path="hiveServerPrincipal" required>
+                    <NInput
+                      v-model:value="connModel.hiveServerPrincipal"
+                      placeholder="hive/_HOST@REALM"
+                      size="small"
+                      @update:value="testStatus = 'idle'"
+                    />
+                  </NFormItem>
+                </div>
+                <NFormItem class="mt-8px" label="Keytab 文件路径" path="kerberosKeytab" required>
+                  <NInput
+                    v-model:value="connModel.kerberosKeytab"
+                    placeholder="/etc/security/keytabs/hive.service.keytab"
+                    size="small"
+                    @update:value="testStatus = 'idle'"
+                  />
+                </NFormItem>
+                <NFormItem class="mt-8px" label="krb5.conf 路径（可选）" path="kerberosKrb5conf">
+                  <NInput
+                    v-model:value="connModel.kerberosKrb5conf"
+                    placeholder="/etc/krb5.conf（留空使用系统默认）"
+                    size="small"
+                    @update:value="testStatus = 'idle'"
+                  />
+                </NFormItem>
+              </template>
+            </div>
+          </template>
+
+          <!-- JDBC URL（双向同步） -->
+          <div
+            v-if="
+              [
+                'mysql',
+                'postgresql',
+                'oracle',
+                'clickhouse',
+                'hive',
+                'doris',
+                'greenplum',
+                'mariadb',
+                'sqlite',
+                'starrocks',
+                'vertica'
+              ].includes(model.datasourceType as string)
+            "
+            class="mt-4px"
+          >
+            <div class="mb-4px flex items-center gap-6px">
+              <NIcon :size="13" class="text-gray-400">
+                <div class="i-mdi-link-variant" />
+              </NIcon>
+              <span class="text-12px text-gray-500 dark:text-gray-400">URL</span>
+            </div>
+            <NInput
+              :value="jdbcUrlValue"
+              type="textarea"
+              :autosize="{ minRows: 1, maxRows: 3 }"
+              size="small"
+              placeholder="JDBC URL"
+              class="font-mono!"
+              @update:value="handleJdbcUrlInput"
+            />
           </div>
 
-          <!-- 右侧：帮助面板 -->
-          <div
-            class="overflow-y-auto bg-gray-50/80 px-16px py-16px lg:w-240px lg:flex-shrink-0 dark:bg-[#18181c]"
-            :class="isCompactDrawer ? 'border-t border-gray-100 dark:border-gray-800' : ''"
-          >
-            <div class="mb-12px flex items-center gap-8px">
-              <div class="h-24px w-24px flex-center flex-shrink-0 rounded-6px bg-gray-50 dark:bg-gray-800">
-                <img
-                  :src="getDatasourceIcon(model.datasourceType)"
-                  :alt="selectedTypeInfo.label"
-                  class="h-16px w-16px object-contain"
-                />
-              </div>
-              <span class="text-12px text-gray-700 font-semibold dark:text-gray-200">
-                {{ currentHelp.title }}
-              </span>
-            </div>
-
-            <NDivider class="my-10px!" />
-
-            <div class="flex flex-col gap-12px">
-              <div v-for="item in currentHelp.items" :key="item.label" class="flex flex-col gap-3px">
-                <div class="flex items-center gap-6px">
-                  <NIcon :size="13" class="flex-shrink-0 text-gray-400">
-                    <div :class="item.icon" />
-                  </NIcon>
-                  <span class="text-11px text-gray-600 font-semibold dark:text-gray-300">
-                    {{ item.label }}
-                  </span>
-                </div>
-                <p class="pl-19px text-11px text-gray-400 leading-relaxed dark:text-gray-500">
-                  {{ item.text }}
-                </p>
-              </div>
-            </div>
+          <!-- 测试连接按钮 -->
+          <div class="mt-4px">
+            <NButton
+              :loading="testLoading"
+              :type="testStatus === 'success' ? 'success' : 'default'"
+              dashed
+              class="w-full"
+              @click="handleTestConnection"
+            >
+              <template #icon>
+                <NIcon>
+                  <div :class="testStatus === 'success' ? 'i-mdi-check-circle' : 'i-mdi-connection'" />
+                </NIcon>
+              </template>
+              {{ testStatus === 'success' ? '连接正常（点击重新测试）' : '测试连接' }}
+            </NButton>
           </div>
         </div>
 
-        <!-- ── Step 4: 过滤器 ── -->
-        <div v-else-if="currentStep === 4" class="flex flex-col flex-1 gap-0 overflow-hidden lg:flex-row">
-          <div class="flex-1 overflow-y-auto px-20px py-4px lg:border-r lg:border-gray-100 dark:lg:border-gray-800">
-            <div
-              class="mb-16px rounded-10px bg-amber-50 px-14px py-12px text-12px text-amber-700 leading-relaxed dark:bg-amber-900/10 dark:text-amber-300"
-            >
-              过滤器只影响后续元数据同步范围，不改变连接测试。支持填写正则表达式；未命中 includes 的对象不会同步，命中
-              excludes 的对象会被排除。
+        <!-- 右侧：帮助面板 -->
+        <div
+          class="overflow-y-auto bg-gray-50/80 px-16px py-16px lg:w-240px lg:flex-shrink-0 dark:bg-[#18181c]"
+          :class="isCompactDrawer ? 'border-t border-gray-100 dark:border-gray-800' : ''"
+        >
+          <div class="mb-12px flex items-center gap-8px">
+            <div class="h-24px w-24px flex-center flex-shrink-0 rounded-6px bg-gray-50 dark:bg-gray-800">
+              <img
+                :src="getDatasourceIcon(model.datasourceType)"
+                :alt="selectedTypeInfo.label"
+                class="h-16px w-16px object-contain"
+              />
             </div>
-
-            <div class="flex flex-col gap-16px">
-              <div class="border border-gray-200 rounded-12px px-16px py-14px dark:border-gray-700">
-                <div class="mb-12px flex items-center justify-between">
-                  <div>
-                    <div class="text-14px text-gray-900 font-semibold dark:text-gray-100">Schema 过滤</div>
-                    <div class="mt-4px text-12px text-gray-500 dark:text-gray-400">
-                      MySQL 类数据源这里实际对应库名；PostgreSQL 对应 schema 名称。
-                    </div>
-                  </div>
-                </div>
-
-                <div class="mb-12px">
-                  <div class="mb-6px text-12px text-gray-600 font-medium dark:text-gray-300">includes</div>
-                  <NDynamicTags v-model:value="filterModel.schemaFilterPattern.includes" />
-                  <div class="mt-6px text-12px text-gray-400 dark:text-gray-500">
-                    仅同步命中的库/Schema，如 `^ods_.*$`
-                  </div>
-                </div>
-
-                <div>
-                  <div class="mb-6px text-12px text-gray-600 font-medium dark:text-gray-300">excludes</div>
-                  <NDynamicTags v-model:value="filterModel.schemaFilterPattern.excludes" />
-                  <div class="mt-6px text-12px text-gray-400 dark:text-gray-500">
-                    从同步结果中排除命中的库/Schema，如 `^tmp_.*$`
-                  </div>
-                </div>
-              </div>
-
-              <div class="border border-gray-200 rounded-12px px-16px py-14px dark:border-gray-700">
-                <div class="mb-12px">
-                  <div class="text-14px text-gray-900 font-semibold dark:text-gray-100">Table 过滤</div>
-                  <div class="mt-4px text-12px text-gray-500 dark:text-gray-400">
-                    用于限制需要同步的表范围。建议先用 includes 缩小范围，再用 excludes 补充剔除特殊表。
-                  </div>
-                </div>
-
-                <div class="mb-12px">
-                  <div class="mb-6px text-12px text-gray-600 font-medium dark:text-gray-300">includes</div>
-                  <NDynamicTags v-model:value="filterModel.tableFilterPattern.includes" />
-                  <div class="mt-6px text-12px text-gray-400 dark:text-gray-500">
-                    仅同步命中的表，如 `^(user|order)_.*$`
-                  </div>
-                </div>
-
-                <div>
-                  <div class="mb-6px text-12px text-gray-600 font-medium dark:text-gray-300">excludes</div>
-                  <NDynamicTags v-model:value="filterModel.tableFilterPattern.excludes" />
-                  <div class="mt-6px text-12px text-gray-400 dark:text-gray-500">
-                    排除命中的表，如 `^bak_.*$`、`^tmp_.*$`
-                  </div>
-                </div>
-              </div>
-            </div>
+            <span class="text-12px text-gray-700 font-semibold dark:text-gray-200">
+              {{ currentHelp.title }}
+            </span>
           </div>
 
-          <div
-            class="overflow-y-auto bg-gray-50/80 px-16px py-16px lg:w-240px lg:flex-shrink-0 dark:bg-[#18181c]"
-            :class="isCompactDrawer ? 'border-t border-gray-100 dark:border-gray-800' : ''"
-          >
-            <div class="mb-12px text-12px text-gray-700 font-semibold dark:text-gray-200">规则说明</div>
-            <div class="flex flex-col gap-10px text-12px text-gray-500 leading-relaxed dark:text-gray-400">
-              <div>1. 未配置过滤器时，同步该数据源下全部可见对象。</div>
-              <div>2. 配置 includes 后，仅保留匹配 includes 的对象。</div>
-              <div>3. 配置 excludes 后，命中 excludes 的对象会被排除。</div>
-              <div>4. 正则区分写法，不需要写分隔符，直接输入表达式即可。</div>
-              <div>5. 过滤器只影响后续同步，不影响已存在连接配置。</div>
+          <NDivider class="my-10px!" />
+
+          <div class="flex flex-col gap-12px">
+            <div v-for="item in currentHelp.items" :key="item.label" class="flex flex-col gap-3px">
+              <div class="flex items-center gap-6px">
+                <NIcon :size="13" class="flex-shrink-0 text-gray-400">
+                  <div :class="item.icon" />
+                </NIcon>
+                <span class="text-11px text-gray-600 font-semibold dark:text-gray-300">
+                  {{ item.label }}
+                </span>
+              </div>
+              <p class="pl-19px text-11px text-gray-400 leading-relaxed dark:text-gray-500">
+                {{ item.text }}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ═══ FOOTER ═══ -->
-      <template #footer>
-        <div class="w-full flex items-center justify-between">
-          <!-- 左侧取消 -->
-          <NButton quaternary @click="closeDrawer">
-            {{ $t('common.cancel') }}
+      <!-- ── Step 4: 过滤器 ── -->
+      <div v-else-if="currentStep === 4" class="flex flex-col flex-1 gap-0 overflow-hidden lg:flex-row">
+        <div class="flex-1 overflow-y-auto px-20px py-4px lg:border-r lg:border-gray-100 dark:lg:border-gray-800">
+          <div
+            class="mb-16px rounded-10px bg-amber-50 px-14px py-12px text-12px text-amber-700 leading-relaxed dark:bg-amber-900/10 dark:text-amber-300"
+          >
+            过滤器只影响后续元数据同步范围，不改变连接测试。支持填写正则表达式；未命中 includes 的对象不会同步，命中
+            excludes 的对象会被排除。
+          </div>
+
+          <div class="flex flex-col gap-16px">
+            <div class="border border-gray-200 rounded-12px px-16px py-14px dark:border-gray-700">
+              <div class="mb-12px flex items-center justify-between">
+                <div>
+                  <div class="text-14px text-gray-900 font-semibold dark:text-gray-100">Schema 过滤</div>
+                  <div class="mt-4px text-12px text-gray-500 dark:text-gray-400">
+                    MySQL 类数据源这里实际对应库名；PostgreSQL 对应 schema 名称。
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-12px">
+                <div class="mb-6px text-12px text-gray-600 font-medium dark:text-gray-300">includes</div>
+                <NDynamicTags v-model:value="filterModel.schemaFilterPattern.includes" />
+                <div class="mt-6px text-12px text-gray-400 dark:text-gray-500">
+                  仅同步命中的库/Schema，如 `^ods_.*$`
+                </div>
+              </div>
+
+              <div>
+                <div class="mb-6px text-12px text-gray-600 font-medium dark:text-gray-300">excludes</div>
+                <NDynamicTags v-model:value="filterModel.schemaFilterPattern.excludes" />
+                <div class="mt-6px text-12px text-gray-400 dark:text-gray-500">
+                  从同步结果中排除命中的库/Schema，如 `^tmp_.*$`
+                </div>
+              </div>
+            </div>
+
+            <div class="border border-gray-200 rounded-12px px-16px py-14px dark:border-gray-700">
+              <div class="mb-12px">
+                <div class="text-14px text-gray-900 font-semibold dark:text-gray-100">Table 过滤</div>
+                <div class="mt-4px text-12px text-gray-500 dark:text-gray-400">
+                  用于限制需要同步的表范围。建议先用 includes 缩小范围，再用 excludes 补充剔除特殊表。
+                </div>
+              </div>
+
+              <div class="mb-12px">
+                <div class="mb-6px text-12px text-gray-600 font-medium dark:text-gray-300">includes</div>
+                <NDynamicTags v-model:value="filterModel.tableFilterPattern.includes" />
+                <div class="mt-6px text-12px text-gray-400 dark:text-gray-500">
+                  仅同步命中的表，如 `^(user|order)_.*$`
+                </div>
+              </div>
+
+              <div>
+                <div class="mb-6px text-12px text-gray-600 font-medium dark:text-gray-300">excludes</div>
+                <NDynamicTags v-model:value="filterModel.tableFilterPattern.excludes" />
+                <div class="mt-6px text-12px text-gray-400 dark:text-gray-500">
+                  排除命中的表，如 `^bak_.*$`、`^tmp_.*$`
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="overflow-y-auto bg-gray-50/80 px-16px py-16px lg:w-240px lg:flex-shrink-0 dark:bg-[#18181c]"
+          :class="isCompactDrawer ? 'border-t border-gray-100 dark:border-gray-800' : ''"
+        >
+          <div class="mb-12px text-12px text-gray-700 font-semibold dark:text-gray-200">规则说明</div>
+          <div class="flex flex-col gap-10px text-12px text-gray-500 leading-relaxed dark:text-gray-400">
+            <div>1. 未配置过滤器时，同步该数据源下全部可见对象。</div>
+            <div>2. 配置 includes 后，仅保留匹配 includes 的对象。</div>
+            <div>3. 配置 excludes 后，命中 excludes 的对象会被排除。</div>
+            <div>4. 正则区分写法，不需要写分隔符，直接输入表达式即可。</div>
+            <div>5. 过滤器只影响后续同步，不影响已存在连接配置。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ FOOTER ═══ -->
+    <template #footer>
+      <div class="w-full flex items-center justify-between">
+        <!-- 左侧取消 -->
+        <NButton quaternary @click="closeDrawer">
+          {{ $t('common.cancel') }}
+        </NButton>
+
+        <!-- 右侧导航 -->
+        <NSpace :size="12">
+          <NButton v-if="currentStep > (isEdit ? 2 : 1)" @click="goBack">
+            <template #icon>
+              <NIcon><div class="i-mdi-arrow-left" /></NIcon>
+            </template>
+            上一步
           </NButton>
 
-          <!-- 右侧导航 -->
-          <NSpace :size="12">
-            <NButton v-if="currentStep > (isEdit ? 2 : 1)" @click="goBack">
-              <template #icon>
-                <NIcon><div class="i-mdi-arrow-left" /></NIcon>
-              </template>
-              上一步
-            </NButton>
+          <!-- Step 1 / 2: 下一步 -->
+          <NButton v-if="currentStep < 4" type="primary" @click="goNext">
+            下一步
+            <template #icon>
+              <NIcon><div class="i-mdi-arrow-right" /></NIcon>
+            </template>
+          </NButton>
 
-            <!-- Step 1 / 2: 下一步 -->
-            <NButton v-if="currentStep < 4" type="primary" @click="goNext">
-              下一步
-              <template #icon>
-                <NIcon><div class="i-mdi-arrow-right" /></NIcon>
-              </template>
-            </NButton>
-
-            <!-- Step 4: 保存 -->
-            <NButton v-else type="primary" @click="handleSubmit">
-              <template #icon>
-                <NIcon><div class="i-mdi-check" /></NIcon>
-              </template>
-              {{ isEdit ? '保存修改' : '完成创建' }}
-            </NButton>
-          </NSpace>
-        </div>
-      </template>
-    </NDrawerContent>
-  </NDrawer>
+          <!-- Step 4: 保存 -->
+          <NButton v-else type="primary" @click="handleSubmit">
+            <template #icon>
+              <NIcon><div class="i-mdi-check" /></NIcon>
+            </template>
+            {{ isEdit ? '保存修改' : '完成创建' }}
+          </NButton>
+        </NSpace>
+      </div>
+    </template>
+  </NModal>
 </template>
