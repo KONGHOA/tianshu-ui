@@ -57,19 +57,13 @@ const isCollapse = breakpoints.smaller('lg');
       <slot />
     </NGridItem>
   </NGrid>
-  <NLayout
-    v-else
-    has-sider
-    :theme-overrides="{ color: 'transparent', colorEmbedded: 'transparent' }"
-    class="bg-transparent"
-  >
+  <NLayout v-else has-sider :theme-overrides="{ color: 'transparent', colorEmbedded: 'transparent' }">
     <NLayoutSider
       collapse-mode="transform"
       :collapsed-width="0"
       :width="320"
       :show-trigger="showTrigger ? 'bar' : false"
       :theme-overrides="{ siderColor: 'transparent' }"
-      class="bg-transparent"
     >
       <NCard
         :bordered="false"
@@ -88,7 +82,7 @@ const isCollapse = breakpoints.smaller('lg');
         </template>
       </NCard>
     </NLayoutSider>
-    <NLayoutContent :theme-overrides="{ color: 'transparent', colorEmbedded: 'transparent' }" class="bg-transparent">
+    <NLayoutContent :theme-overrides="{ color: 'transparent', colorEmbedded: 'transparent' }">
       <slot />
     </NLayoutContent>
   </NLayout>
@@ -113,11 +107,6 @@ const isCollapse = breakpoints.smaller('lg');
 }
 
 :deep(.n-layout-content) {
-  background-color: transparent;
   padding-left: 25px;
-}
-
-:deep(.n-layout-sider) {
-  background-color: transparent;
 }
 </style>
