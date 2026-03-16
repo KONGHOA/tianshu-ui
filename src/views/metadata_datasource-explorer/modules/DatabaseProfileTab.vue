@@ -83,33 +83,6 @@ function getExecutionTone(status?: string): 'default' | 'success' | 'warning' | 
   return 'default';
 }
 
-const summaryCards = computed(() => [
-  {
-    label: '最新总量',
-    value: formatCount(overview.value?.databaseRowCountTotal),
-    hint: '整库最新快照',
-    tone: 'primary'
-  },
-  {
-    label: '覆盖表数',
-    value: formatCount(overview.value?.profiledTableCount),
-    hint: '已纳入画像的表',
-    tone: 'success'
-  },
-  {
-    label: '成功率',
-    value: successRatio.value,
-    hint: '按成功表计算',
-    tone: 'neutral'
-  },
-  {
-    label: '失败表数',
-    value: formatCount(overview.value?.failedTableCount),
-    hint: '需要检查日志',
-    tone: Number(overview.value?.failedTableCount || 0) > 0 ? 'danger' : 'neutral'
-  }
-]);
-
 const chartOptions: ECOption = {
   grid: { top: 20, right: 20, bottom: 28, left: 48, containLabel: false },
   tooltip: {
@@ -368,14 +341,6 @@ watch(
           </div>
         </section>
 
-        <section class="profile-summary-grid">
-          <article v-for="card in summaryCards" :key="card.label" class="profile-summary-card">
-            <span class="profile-summary-card__label">{{ card.label }}</span>
-            <strong class="profile-summary-card__value">{{ card.value }}</strong>
-            <span :class="`profile-pill profile-pill--${card.tone}`">{{ card.hint }}</span>
-          </article>
-        </section>
-
         <section v-if="anomalyItems.length" class="profile-signal">
           <div class="profile-signal__title">
             <NIcon class="mr-4px align-middle text-amber-600 dark:text-amber-300">
@@ -607,34 +572,6 @@ watch(
 .profile-side__metric-value {
   color: rgb(28, 25, 23);
   font-weight: 600;
-}
-
-.profile-summary-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.profile-summary-card {
-  display: grid;
-  gap: 10px;
-  padding: 16px 18px;
-  border: 1px solid rgba(214, 211, 209, 0.72);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.84);
-}
-
-.profile-summary-card__label {
-  color: rgb(120, 113, 108);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.profile-summary-card__value {
-  color: rgb(28, 25, 23);
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.1;
 }
 
 .profile-pill,

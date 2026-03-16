@@ -6,6 +6,8 @@ import {
   NBreadcrumbItem,
   NButton,
   NDataTable,
+  NDescriptions,
+  NDescriptionsItem,
   NEmpty,
   NIcon,
   NInput,
@@ -324,6 +326,7 @@ const heroStats = computed(() => {
         hint: '库内结构层级',
         tone: 'primary' as const
       },
+      { label: '表规模', value: formatCount(summary.value?.tableCount), hint: '数据源汇总', tone: 'success' as const },
       {
         label: '变更记录',
         value: formatCount(schemaLevelChanges.value.length),
@@ -335,8 +338,7 @@ const heroStats = computed(() => {
         value: formatDateTime(summary.value?.lastSyncTime),
         hint: '数据源级同步时间',
         tone: 'neutral' as const
-      },
-      { label: '表规模', value: formatCount(summary.value?.tableCount), hint: '数据源汇总', tone: 'success' as const }
+      }
     ];
   }
   return [
@@ -361,10 +363,6 @@ const heroStats = computed(() => {
     }
   ];
 });
-
-const heroStatsGridStyle = computed(() => ({
-  '--explorer-hero-stat-columns': Math.max(heroStats.value.length, 1)
-}));
 
 watch(dbSearch, () => {
   databasePage.value = 1;
@@ -591,7 +589,7 @@ const paginationProps = {
 // ─── 数据库列定义 ────────────────────────────────────────────────
 const databaseColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   {
-    title: '#',
+    title: '序号',
     key: 'index',
     width: 48,
     render: (_row, index) => <span class="text-12px text-gray-400 tabular-nums">{index + 1}</span>
@@ -603,30 +601,19 @@ const databaseColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
     render: row => (
       <button
         type="button"
-        class="explorer-link-button flex items-center gap-8px text-left"
+        class="m-0 w-full flex cursor-pointer appearance-none items-center gap-8px border-none bg-transparent p-0 text-left outline-none"
         onClick={() => openDatabase(row)}
         aria-label={`进入数据库 ${row.displayName}`}
       >
-        <div class="explorer-entity-icon">
-          <NIcon size={14} class="explorer-entity-icon__glyph">
-            <div class="i-mdi-database" />
-          </NIcon>
-        </div>
-        <span class="min-w-0 flex-1 truncate text-13px text-gray-800 font-semibold dark:text-gray-100 hover:text-primary">
+        <icon-mdi-database class="text-16px text-blue-500" />
+        <span class="min-w-0 flex-1 truncate text-13px text-gray-800 font-semibold transition-colors dark:text-gray-100 hover:text-primary">
           {row.displayName}
         </span>
       </button>
     )
   },
   {
-    title: '说明',
-    key: 'description',
-    minWidth: 180,
-    ellipsis: { tooltip: true },
-    render: row => row.description || <span class="text-gray-300">-</span>
-  },
-  {
-    title: '更新于',
+    title: '更新时间',
     key: 'updateTime',
     width: 144,
     render: row => {
@@ -643,7 +630,7 @@ const databaseColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 // ─── 数据库结构列定义 ──────────────────────────────────────────
 const schemaColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   {
-    title: '#',
+    title: '序号',
     key: 'index',
     width: 48,
     render: (_row, index) => <span class="text-12px text-gray-400 tabular-nums">{index + 1}</span>
@@ -655,30 +642,19 @@ const schemaColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
     render: row => (
       <button
         type="button"
-        class="explorer-link-button flex items-center gap-8px text-left"
+        class="m-0 w-full flex cursor-pointer appearance-none items-center gap-8px border-none bg-transparent p-0 text-left outline-none"
         onClick={() => openSchema(row)}
         aria-label={`进入结构 ${row.displayName}`}
       >
-        <div class="h-28px w-28px flex-center flex-shrink-0 rounded-6px from-purple-50 to-purple-100/60 bg-gradient-to-br dark:from-purple-900/20 dark:to-purple-800/10">
-          <NIcon size={14} class="text-purple-500">
-            <div class="i-mdi-layers-outline" />
-          </NIcon>
-        </div>
-        <span class="text-13px text-gray-800 font-semibold dark:text-gray-100 hover:text-primary">
+        <icon-mdi-layers-outline class="text-16px text-purple-500" />
+        <span class="text-13px text-gray-800 font-semibold transition-colors dark:text-gray-100 hover:text-primary">
           {row.displayName}
         </span>
       </button>
     )
   },
   {
-    title: '说明',
-    key: 'description',
-    minWidth: 180,
-    ellipsis: { tooltip: true },
-    render: row => row.description || <span class="text-gray-300">-</span>
-  },
-  {
-    title: '更新于',
+    title: '更新时间',
     key: 'updateTime',
     width: 144,
     render: row => {
@@ -695,7 +671,7 @@ const schemaColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 // ─── 表格列定义 ───────────────────────────────────────────────
 const tableColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   {
-    title: '#',
+    title: '序号',
     key: 'index',
     width: 48,
     render: (_row, index) => <span class="text-12px text-gray-400 tabular-nums">{index + 1}</span>
@@ -709,22 +685,16 @@ const tableColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
       return (
         <button
           type="button"
-          class="explorer-link-button flex items-center gap-8px text-left"
+          class="m-0 w-full flex cursor-pointer appearance-none items-center gap-8px border-none bg-transparent p-0 text-left outline-none"
           onClick={() => openTable(row)}
           aria-label={`进入表 ${row.displayName}`}
         >
-          <div
-            class={`h-28px w-28px flex-center flex-shrink-0 rounded-6px ${
-              isView
-                ? 'bg-gradient-to-br from-amber-50 to-amber-100/60 dark:from-amber-900/20 dark:to-amber-800/10'
-                : 'bg-gradient-to-br from-blue-50 to-blue-100/60 dark:from-blue-900/20 dark:to-blue-800/10'
-            }`}
-          >
-            <NIcon size={14} class={isView ? 'text-amber-500' : 'text-blue-500'}>
-              <div class={isView ? 'i-mdi-eye-outline' : 'i-mdi-table'} />
-            </NIcon>
-          </div>
-          <span class="text-13px text-gray-800 font-semibold dark:text-gray-100 hover:text-primary">
+          {isView ? (
+            <icon-mdi-eye-outline class="text-16px text-amber-500" />
+          ) : (
+            <icon-mdi-table class="text-16px text-teal-500" />
+          )}
+          <span class="text-13px text-gray-800 font-semibold transition-colors dark:text-gray-100 hover:text-primary">
             {row.displayName}
           </span>
           {isView && (
@@ -787,7 +757,7 @@ const tableColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 
 const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   {
-    title: '#',
+    title: '序号',
     key: 'index',
     width: 48,
     render: (_row, index) => <span class="text-12px text-gray-400 tabular-nums">{index + 1}</span>
@@ -796,7 +766,12 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
     title: '字段',
     key: 'displayName',
     minWidth: 160,
-    render: row => <span class="text-gray-800 font-semibold dark:text-gray-100">{row.displayName}</span>
+    render: row => (
+      <div class="flex items-center gap-8px">
+        <icon-mdi-table-column class="text-16px text-cyan-500" />
+        <span class="text-gray-800 font-semibold dark:text-gray-100">{row.displayName}</span>
+      </div>
+    )
   },
   {
     title: '类型',
@@ -869,84 +844,101 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 </script>
 
 <template>
-  <div class="explorer-page min-h-full grow-0">
-    <div class="explorer-shell px-16px py-14px lg:p-20px">
-      <section class="explorer-hero overflow-hidden rounded-12px">
-        <div class="explorer-hero__corner">
-          <div v-if="level === 'datasource'" class="explorer-hero__corner-stack">
-            <div class="explorer-hero__sync-meta">
-              <span class="explorer-hero__sync-label">最近同步</span>
-              <span class="explorer-hero__sync-value">{{ formatDateTime(summary?.lastSyncTime) }}</span>
-            </div>
-            <NButton
-              v-if="hasAuth('metadata:datasource:edit')"
-              type="primary"
-              :loading="refreshing"
-              @click="handleRefresh"
-            >
-              <template #icon>
-                <NIcon><div class="i-mdi-refresh" /></NIcon>
-              </template>
-              全量同步元数据
-            </NButton>
-          </div>
-        </div>
+  <div class="explorer-page h-full flex-col-stretch gap-16px bg-[#f2f3f5] p-20px dark:bg-transparent">
+    <div class="h-full flex-col-stretch gap-16px overflow-y-auto">
+      <section
+        class="relative shrink-0 overflow-hidden border border-gray-200 rounded-12px bg-white shadow-sm dark:border-gray-800 dark:bg-[#18181c]"
+      >
         <NSpin :show="datasourceLoading" :size="16">
-          <div class="explorer-hero__content">
-            <div class="explorer-hero__headline">
-              <NBreadcrumb class="explorer-breadcrumb">
-                <NBreadcrumbItem @click="navTo('list')">
-                  <button type="button" class="explorer-crumb-button" aria-label="返回数据源列表">数据源列表</button>
-                </NBreadcrumbItem>
-                <NBreadcrumbItem v-if="datasourceId">
-                  <button
-                    type="button"
-                    class="explorer-crumb-button"
-                    :class="level === 'datasource' ? 'is-current' : ''"
-                    :disabled="level === 'datasource'"
-                    :aria-current="level === 'datasource' ? 'page' : undefined"
-                    :aria-label="`进入数据源 ${datasource?.datasourceName ?? datasourceId}`"
-                    @click="level !== 'datasource' && navTo('datasource')"
-                  >
-                    <NSkeleton v-if="datasourceLoading" text class="inline-block w-80px" />
-                    <span v-else>{{ datasource?.datasourceName ?? datasourceId }}</span>
-                  </button>
-                </NBreadcrumbItem>
-                <NBreadcrumbItem v-if="dbUuid">
-                  <button
-                    type="button"
-                    class="explorer-crumb-button"
-                    :class="level === 'database' ? 'is-current' : ''"
-                    :disabled="level === 'database'"
-                    :aria-current="level === 'database' ? 'page' : undefined"
-                    :aria-label="`进入数据库 ${dbName}`"
-                    @click="level !== 'database' && navTo('database')"
-                  >
-                    {{ dbName }}
-                  </button>
-                </NBreadcrumbItem>
-                <NBreadcrumbItem v-if="schemaUuid">
-                  <button
-                    type="button"
-                    class="explorer-crumb-button"
-                    :class="level === 'schema' ? 'is-current' : ''"
-                    :disabled="level === 'schema'"
-                    :aria-current="level === 'schema' ? 'page' : undefined"
-                    :aria-label="`进入结构 ${schemaName}`"
-                    @click="level !== 'schema' && navTo('schema')"
-                  >
-                    {{ schemaName }}
-                  </button>
-                </NBreadcrumbItem>
-                <NBreadcrumbItem v-if="tableUuid">
-                  <span class="text-gray-700 font-semibold dark:text-gray-200" aria-current="page">
-                    {{ tableName }}
-                  </span>
-                </NBreadcrumbItem>
-              </NBreadcrumb>
+          <div class="relative z-1 grid gap-14px p-16px md:p-20px">
+            <div class="grid gap-16px">
+              <div class="flex flex-wrap items-center justify-between gap-16px">
+                <NBreadcrumb class="explorer-breadcrumb">
+                  <NBreadcrumbItem @click="navTo('list')">
+                    <button type="button" class="explorer-crumb-button" aria-label="返回数据源列表">数据源列表</button>
+                  </NBreadcrumbItem>
+                  <NBreadcrumbItem v-if="datasourceId">
+                    <button
+                      type="button"
+                      class="explorer-crumb-button flex items-center gap-4px"
+                      :class="level === 'datasource' ? 'is-current' : ''"
+                      :disabled="level === 'datasource'"
+                      :aria-current="level === 'datasource' ? 'page' : undefined"
+                      :aria-label="`进入数据源 ${datasource?.datasourceName ?? datasourceId}`"
+                      @click="level !== 'datasource' && navTo('datasource')"
+                    >
+                      <icon-mdi-server-network class="text-14px text-orange-500" />
+                      <NSkeleton v-if="datasourceLoading" text class="inline-block w-80px" />
+                      <span v-else>{{ datasource?.datasourceName ?? datasourceId }}</span>
+                    </button>
+                  </NBreadcrumbItem>
+                  <NBreadcrumbItem v-if="dbUuid">
+                    <button
+                      type="button"
+                      class="explorer-crumb-button flex items-center gap-4px"
+                      :class="level === 'database' ? 'is-current' : ''"
+                      :disabled="level === 'database'"
+                      :aria-current="level === 'database' ? 'page' : undefined"
+                      :aria-label="`进入数据库 ${dbName}`"
+                      @click="level !== 'database' && navTo('database')"
+                    >
+                      <icon-mdi-database class="text-14px text-blue-500" />
+                      {{ dbName }}
+                    </button>
+                  </NBreadcrumbItem>
+                  <NBreadcrumbItem v-if="schemaUuid">
+                    <button
+                      type="button"
+                      class="explorer-crumb-button flex items-center gap-4px"
+                      :class="level === 'schema' ? 'is-current' : ''"
+                      :disabled="level === 'schema'"
+                      :aria-current="level === 'schema' ? 'page' : undefined"
+                      :aria-label="`进入结构 ${schemaName}`"
+                      @click="level !== 'schema' && navTo('schema')"
+                    >
+                      <icon-mdi-layers-outline class="text-14px text-purple-500" />
+                      {{ schemaName }}
+                    </button>
+                  </NBreadcrumbItem>
+                  <NBreadcrumbItem v-if="tableUuid">
+                    <span
+                      class="flex items-center gap-4px text-gray-700 font-semibold dark:text-gray-200"
+                      aria-current="page"
+                    >
+                      <icon-mdi-table class="text-14px text-teal-500" />
+                      {{ tableName }}
+                    </span>
+                  </NBreadcrumbItem>
+                </NBreadcrumb>
 
-              <div class="explorer-hero__heading-row">
-                <div class="explorer-hero__icon-wrap">
+                <div v-if="level === 'datasource'" class="flex flex-shrink-0 items-center gap-16px">
+                  <div class="flex items-center gap-6px text-13px">
+                    <NIcon size="16" class="text-gray-400"><div class="i-mdi-history" /></NIcon>
+                    <span class="text-gray-500">最近同步：</span>
+                    <span class="text-gray-800 font-medium dark:text-gray-200">
+                      {{ formatDateTime(summary?.lastSyncTime) }}
+                    </span>
+                  </div>
+                  <NButton
+                    v-if="hasAuth('metadata:datasource:edit')"
+                    type="primary"
+                    secondary
+                    size="small"
+                    :loading="refreshing"
+                    @click="handleRefresh"
+                  >
+                    <template #icon>
+                      <NIcon><div class="i-mdi-refresh" /></NIcon>
+                    </template>
+                    全量同步元数据
+                  </NButton>
+                </div>
+              </div>
+
+              <div class="flex items-start gap-14px">
+                <div
+                  class="h-64px w-64px flex flex-shrink-0 items-center justify-center rounded-12px from-gray-50 to-gray-100 bg-gradient-to-br shadow-sm ring-1 ring-gray-100 ring-inset dark:from-gray-800 dark:to-gray-900 dark:ring-gray-800"
+                >
                   <img
                     :src="getDatasourceIcon(datasource?.datasourceType)"
                     :alt="datasource?.datasourceType"
@@ -955,10 +947,10 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex flex-wrap items-center gap-8px">
-                    <h1 class="explorer-title">
+                    <h1 class="m-0 text-24px text-gray-800 font-bold leading-tight tracking-tight dark:text-gray-100">
                       {{ currentEntityTitle }}
                     </h1>
-                    <NTag size="small" :bordered="false" round class="explorer-kind-tag">
+                    <NTag size="small" :bordered="false" round class="bg-primary/10 text-primary font-bold">
                       {{ currentEntityLabel }}
                     </NTag>
                     <NTag
@@ -977,14 +969,14 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                       {{ getDatasourceStatusMeta(datasource.status).text }}
                     </NTag>
                   </div>
-                  <p class="explorer-subtitle">
+                  <p class="mt-8px max-w-[64ch] text-14px text-gray-500 leading-relaxed dark:text-gray-400">
                     {{ currentEntitySummary }}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div class="explorer-hero__actions">
+            <div class="flex flex-wrap gap-8px">
               <NButton
                 v-if="level === 'table' && hasAuth('metadata:datasource:edit')"
                 type="warning"
@@ -999,16 +991,39 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
               </NButton>
             </div>
           </div>
+        </NSpin>
+      </section>
 
-          <div class="explorer-hero__stats" :style="heroStatsGridStyle">
-            <div v-for="stat in heroStats" :key="stat.label" class="explorer-stat-card">
-              <span class="explorer-stat-card__label">{{ stat.label }}</span>
-              <strong class="explorer-stat-card__value">{{ stat.value }}</strong>
+      <NGrid :x-gap="16" :y-gap="16" :cols="4" responsive="screen">
+        <NGridItem v-for="stat in heroStats" :key="stat.label">
+          <div
+            class="group relative flex flex-col gap-6px overflow-hidden border border-t-2 border-gray-200 rounded-12px bg-white px-18px py-16px shadow-sm transition-all dark:border-gray-800 hover:border-primary/50 dark:bg-[#18181c] hover:shadow-md hover:-translate-y-1"
+            :class="
+              stat.tone === 'primary'
+                ? 'border-t-blue-500'
+                : stat.tone === 'success'
+                  ? 'border-t-green-500'
+                  : stat.tone === 'warning'
+                    ? 'border-t-orange-500'
+                    : stat.tone === 'danger'
+                      ? 'border-t-red-500'
+                      : 'border-t-gray-400'
+            "
+          >
+            <span class="text-12px text-gray-400 font-medium leading-tight dark:text-gray-500">{{ stat.label }}</span>
+            <div class="mt-2px flex items-baseline gap-4px">
+              <strong
+                class="text-24px text-gray-800 font-bold leading-none tracking-tight tabular-nums dark:text-gray-100"
+              >
+                {{ stat.value }}
+              </strong>
+            </div>
+            <div class="mt-2px">
               <span :class="getToneClass(stat.tone)">{{ stat.hint }}</span>
             </div>
           </div>
-        </NSpin>
-      </section>
+        </NGridItem>
+      </NGrid>
 
       <div class="explorer-body">
         <!-- ── Level 1: 数据源 → Tabs (数据库 / 概览) ── -->
@@ -1019,8 +1034,11 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
             <NTabs
               v-model:value="datasourceActiveTab"
               type="line"
-              :tab-style="{ padding: '14px 20px' }"
+              size="large"
+              animated
+              class="px-20px"
               pane-style="padding: 0"
+              pane-wrapper-class="mt-16px"
             >
               <NTabPane name="databases">
                 <template #tab>
@@ -1051,65 +1069,67 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                     </NInput>
                   </div>
                 </div>
-                <div class="px-8px py-8px">
-                  <NSpin :show="listLoading">
+                <div class="min-h-[300px] flex flex-col flex-1 justify-between gap-16px px-16px pt-16px">
+                  <NSpin :show="listLoading" class="flex-1">
                     <template v-if="filteredDatabases.length || listLoading">
-                      <NDataTable
-                        :columns="databaseColumns"
-                        :data="pagedFilteredDatabases"
-                        :single-line="false"
-                        :pagination="false"
-                        size="small"
-                        striped
-                        class="explorer-table explorer-database-table"
-                      />
-                      <div class="explorer-database-mobile-list">
-                        <button
-                          v-for="db in pagedFilteredDatabases"
-                          :key="db.uuid"
-                          type="button"
-                          class="explorer-database-card"
-                          :aria-label="`进入数据库 ${db.displayName}`"
-                          @click="openDatabase(db)"
-                        >
-                          <div class="explorer-database-card__header">
-                            <div class="explorer-database-card__title-wrap">
-                              <div class="explorer-database-card__icon">
-                                <NIcon :size="16" class="explorer-entity-icon__glyph">
-                                  <div class="i-mdi-database" />
-                                </NIcon>
-                              </div>
-                              <div class="min-w-0 flex-1">
-                                <div class="explorer-database-card__title">{{ db.displayName }}</div>
-                                <div class="explorer-database-card__meta">
-                                  更新时间 {{ formatDateTime(db.updateTime ?? db.createTime) }}
+                      <div class="flex flex-col gap-16px">
+                        <NDataTable
+                          :columns="databaseColumns"
+                          :data="pagedFilteredDatabases"
+                          :single-line="false"
+                          :pagination="false"
+                          size="small"
+                          striped
+                          class="explorer-table explorer-database-table"
+                        />
+                        <div class="explorer-database-mobile-list hidden">
+                          <button
+                            v-for="db in pagedFilteredDatabases"
+                            :key="db.uuid"
+                            type="button"
+                            class="explorer-database-card"
+                            :aria-label="`进入数据库 ${db.displayName}`"
+                            @click="openDatabase(db)"
+                          >
+                            <div class="explorer-database-card__header">
+                              <div class="explorer-database-card__title-wrap">
+                                <icon-mdi-database class="text-16px text-blue-500" />
+                                <div class="min-w-0 flex-1">
+                                  <div class="explorer-database-card__title">{{ db.displayName }}</div>
+                                  <div class="explorer-database-card__meta">
+                                    更新时间 {{ formatDateTime(db.updateTime ?? db.createTime) }}
+                                  </div>
                                 </div>
                               </div>
+                              <NIcon class="explorer-database-card__arrow" :size="16">
+                                <div class="i-mdi-chevron-right" />
+                              </NIcon>
                             </div>
-                            <NIcon class="explorer-database-card__arrow" :size="16">
-                              <div class="i-mdi-chevron-right" />
-                            </NIcon>
-                          </div>
-                          <p class="explorer-database-card__description">
-                            {{ db.description || '暂无说明' }}
-                          </p>
-                        </button>
-                      </div>
-                      <div class="explorer-database-pagination">
-                        <NPagination
-                          v-model:page="databasePage"
-                          v-model:page-size="databasePageSize"
-                          :item-count="filteredDatabases.length"
-                          show-size-picker
-                          :page-sizes="[10, 20, 50, 100]"
-                          show-quick-jumper
-                        />
+                            <p class="explorer-database-card__description">
+                              {{ db.description || '暂无说明' }}
+                            </p>
+                          </button>
+                        </div>
                       </div>
                     </template>
                     <NEmpty v-else-if="!listLoading" description="暂无数据库，请先执行全量同步元数据" class="py-80px">
                       <template #icon><icon-mdi-database-search-outline class="text-42px text-gray-300" /></template>
                     </NEmpty>
                   </NSpin>
+
+                  <div
+                    v-if="filteredDatabases.length || listLoading"
+                    class="sticky bottom-0 z-10 mt-auto w-full flex shrink-0 justify-end border-t border-gray-100 rounded-b-12px bg-white pb-16px pt-12px dark:border-gray-800 dark:bg-[#1e1e24]"
+                  >
+                    <NPagination
+                      v-model:page="databasePage"
+                      v-model:page-size="databasePageSize"
+                      :item-count="filteredDatabases.length"
+                      show-size-picker
+                      :page-sizes="[10, 20, 50, 100]"
+                      show-quick-jumper
+                    />
+                  </div>
                 </div>
               </NTabPane>
 
@@ -1130,53 +1150,27 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 
                 <div class="grid gap-18px p-20px xl:grid-cols-3">
                   <div
-                    class="overview-detail-card rounded-16px bg-white p-18px shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
+                    class="border border-gray-100 rounded-10px bg-white p-16px shadow-sm dark:border-gray-800 dark:bg-[#1e1e24]"
                   >
                     <div
-                      class="mb-14px flex items-center gap-6px text-13px text-gray-700 font-semibold dark:text-gray-200"
+                      class="mb-12px flex items-center gap-8px text-13px text-gray-700 font-semibold dark:text-gray-200"
                     >
-                      <NIcon :size="16" class="text-gray-400"><div class="i-mdi-connection" /></NIcon>
+                      <NIcon size="15" class="text-gray-400"><div class="i-mdi-connection" /></NIcon>
                       连接信息
                     </div>
-                    <div class="grid gap-x-18px gap-y-12px text-13px md:grid-cols-2">
-                      <div
-                        class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
-                      >
-                        <span class="text-gray-400">主机地址</span>
-                        <span class="text-right text-gray-800 font-medium dark:text-gray-200">
-                          {{ connParamsObj.host || '-' }}
-                        </span>
-                      </div>
-                      <div
-                        class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
-                      >
-                        <span class="text-gray-400">端口</span>
-                        <span class="text-right text-gray-800 font-medium dark:text-gray-200">
-                          {{ connParamsObj.port || '-' }}
-                        </span>
-                      </div>
-                      <div
-                        class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
-                      >
-                        <span class="text-gray-400">连接库</span>
-                        <span class="text-right text-gray-800 font-medium dark:text-gray-200">
-                          {{ connParamsObj.database || '-' }}
-                        </span>
-                      </div>
-                      <div
-                        class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
-                      >
-                        <span class="text-gray-400">用户名</span>
-                        <span class="text-right text-gray-800 font-medium dark:text-gray-200">
-                          {{ connParamsObj.username || '-' }}
-                        </span>
-                      </div>
-                      <div class="flex items-start justify-between gap-12px md:col-span-2">
-                        <span class="text-gray-400">密码</span>
+                    <NDescriptions
+                      :column="1"
+                      label-placement="left"
+                      :label-style="{ width: '80px', color: '#9ca3af' }"
+                      class="text-13px"
+                    >
+                      <NDescriptionsItem label="主机地址">{{ connParamsObj.host || '-' }}</NDescriptionsItem>
+                      <NDescriptionsItem label="端口">{{ connParamsObj.port || '-' }}</NDescriptionsItem>
+                      <NDescriptionsItem label="连接库">{{ connParamsObj.database || '-' }}</NDescriptionsItem>
+                      <NDescriptionsItem label="用户名">{{ connParamsObj.username || '-' }}</NDescriptionsItem>
+                      <NDescriptionsItem label="密码">
                         <div class="flex items-center gap-8px">
-                          <span class="text-right text-gray-800 font-medium font-mono dark:text-gray-200">
-                            {{ displayedPassword }}
-                          </span>
+                          <span class="text-gray-800 font-mono dark:text-gray-200">{{ displayedPassword }}</span>
                           <NButton
                             quaternary
                             circle
@@ -1191,103 +1185,61 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                             </template>
                           </NButton>
                         </div>
-                      </div>
-                    </div>
+                      </NDescriptionsItem>
+                    </NDescriptions>
                   </div>
 
                   <div
-                    class="overview-detail-card rounded-16px bg-white p-18px shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
+                    class="border border-gray-100 rounded-10px bg-white p-16px shadow-sm dark:border-gray-800 dark:bg-[#1e1e24]"
                   >
                     <div
-                      class="mb-14px flex items-center gap-6px text-13px text-gray-700 font-semibold dark:text-gray-200"
+                      class="mb-12px flex items-center gap-8px text-13px text-gray-700 font-semibold dark:text-gray-200"
                     >
-                      <NIcon :size="16" class="text-gray-400"><div class="i-mdi-domain" /></NIcon>
+                      <NIcon size="15" class="text-gray-400"><div class="i-mdi-domain" /></NIcon>
                       来源信息
                     </div>
-                    <div class="grid gap-x-18px gap-y-12px text-13px md:grid-cols-2">
-                      <div
-                        class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
-                      >
-                        <span class="text-gray-400">来源机构编码</span>
-                        <span class="text-right text-gray-800 dark:text-gray-200">
-                          {{ datasource?.sourceOrgCode || '-' }}
-                        </span>
-                      </div>
-                      <div
-                        class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
-                      >
-                        <span class="text-gray-400">来源机构名称</span>
-                        <span class="text-right text-gray-800 dark:text-gray-200">
-                          {{ datasource?.sourceOrgName || '-' }}
-                        </span>
-                      </div>
-                      <div
-                        class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
-                      >
-                        <span class="text-gray-400">来源部门</span>
-                        <span class="text-right text-gray-800 dark:text-gray-200">
-                          {{ datasource?.sourceDept || '-' }}
-                        </span>
-                      </div>
-                      <div
-                        class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
-                      >
-                        <span class="text-gray-400">来源类型</span>
-                        <span class="text-right text-gray-800 dark:text-gray-200">
-                          {{ datasource?.sourceType || '-' }}
-                        </span>
-                      </div>
-                      <div class="flex items-start justify-between gap-12px md:col-span-2">
-                        <span class="text-gray-400">来源系统</span>
-                        <span class="text-right text-gray-800 dark:text-gray-200">
-                          {{ datasource?.sourceSystem || '-' }}
-                        </span>
-                      </div>
-                    </div>
+                    <NDescriptions
+                      :column="1"
+                      label-placement="left"
+                      :label-style="{ width: '90px', color: '#9ca3af' }"
+                      class="text-13px"
+                    >
+                      <NDescriptionsItem label="机构编码">{{ datasource?.sourceOrgCode || '-' }}</NDescriptionsItem>
+                      <NDescriptionsItem label="机构名称">{{ datasource?.sourceOrgName || '-' }}</NDescriptionsItem>
+                      <NDescriptionsItem label="来源部门">{{ datasource?.sourceDept || '-' }}</NDescriptionsItem>
+                      <NDescriptionsItem label="来源类型">{{ datasource?.sourceType || '-' }}</NDescriptionsItem>
+                      <NDescriptionsItem label="来源系统">{{ datasource?.sourceSystem || '-' }}</NDescriptionsItem>
+                    </NDescriptions>
                   </div>
 
                   <div
-                    class="overview-detail-card rounded-16px bg-white p-18px shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
+                    class="border border-gray-100 rounded-10px bg-white p-16px shadow-sm dark:border-gray-800 dark:bg-[#1e1e24]"
                   >
                     <div
-                      class="mb-14px flex items-center gap-6px text-13px text-gray-700 font-semibold dark:text-gray-200"
+                      class="mb-12px flex items-center gap-8px text-13px text-gray-700 font-semibold dark:text-gray-200"
                     >
-                      <NIcon :size="16" class="text-gray-400"><div class="i-mdi-account-circle-outline" /></NIcon>
+                      <NIcon size="15" class="text-gray-400"><div class="i-mdi-account-circle-outline" /></NIcon>
                       管理信息
                     </div>
-                    <div class="grid gap-x-18px gap-y-12px text-13px md:grid-cols-2">
-                      <div
-                        class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
-                      >
-                        <span class="text-gray-400">联系人</span>
-                        <span class="text-right text-gray-800 dark:text-gray-200">
-                          {{ datasource?.contactPerson || '-' }}
-                        </span>
-                      </div>
-                      <div
-                        class="flex items-start justify-between gap-12px border-b border-gray-100/80 pb-10px dark:border-gray-800"
-                      >
-                        <span class="text-gray-400">联系电话</span>
-                        <span class="text-right text-gray-800 dark:text-gray-200">
-                          {{ datasource?.contactPhone || '-' }}
-                        </span>
-                      </div>
-                      <div class="flex items-start justify-between gap-12px md:col-span-2">
-                        <span class="text-gray-400">备注</span>
-                        <span class="explorer-detail-value text-right text-gray-800 leading-6 dark:text-gray-200">
-                          {{ datasource?.remark || '-' }}
-                        </span>
-                      </div>
-                    </div>
+                    <NDescriptions
+                      :column="1"
+                      label-placement="left"
+                      :label-style="{ width: '80px', color: '#9ca3af' }"
+                      class="text-13px"
+                    >
+                      <NDescriptionsItem label="联系人">{{ datasource?.contactPerson || '-' }}</NDescriptionsItem>
+                      <NDescriptionsItem label="联系电话">{{ datasource?.contactPhone || '-' }}</NDescriptionsItem>
+                      <NDescriptionsItem label="备注">{{ datasource?.remark || '-' }}</NDescriptionsItem>
+                    </NDescriptions>
                   </div>
 
                   <div
-                    class="overview-detail-card rounded-16px bg-white p-18px shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
+                    class="border border-gray-100 rounded-10px bg-white p-16px shadow-sm xl:col-span-3 dark:border-gray-800 dark:bg-[#1e1e24]"
                   >
                     <div
-                      class="mb-14px flex items-center gap-6px text-13px text-gray-700 font-semibold dark:text-gray-200"
+                      class="mb-12px flex items-center gap-8px text-13px text-gray-700 font-semibold dark:text-gray-200"
                     >
-                      <NIcon :size="16" class="text-amber-500"><div class="i-mdi-filter-variant" /></NIcon>
+                      <NIcon size="15" class="text-amber-500"><div class="i-mdi-filter-variant" /></NIcon>
                       同步过滤规则
                     </div>
 
@@ -1298,7 +1250,7 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                       当前未配置过滤规则。全量同步时将纳入该数据源下全部可见对象。
                     </div>
 
-                    <div v-else class="grid gap-12px text-13px">
+                    <div v-else class="grid gap-12px text-13px md:grid-cols-2">
                       <div class="rounded-12px bg-amber-50/70 px-14px py-12px dark:bg-amber-900/10">
                         <div class="mb-6px text-12px text-amber-700 font-semibold dark:text-amber-300">Schema 过滤</div>
                         <div class="flex flex-col gap-8px">
@@ -1350,8 +1302,11 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
             <NTabs
               v-model:value="dbActiveTab"
               type="line"
-              :tab-style="{ padding: '14px 20px' }"
+              size="large"
+              animated
+              class="px-20px"
               pane-style="padding: 0"
+              pane-wrapper-class="mt-16px"
             >
               <NTabPane name="schemas">
                 <template #tab>
@@ -1393,6 +1348,16 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                 </NSpin>
               </NTabPane>
 
+              <NTabPane name="profile">
+                <template #tab>
+                  <div class="flex items-center gap-6px">
+                    <NIcon :size="15"><div class="i-mdi-chart-box-outline" /></NIcon>
+                    概览
+                  </div>
+                </template>
+                <DatabaseProfileTab :database-uuid="dbUuid ?? ''" :database-name="dbName ?? ''" />
+              </NTabPane>
+
               <NTabPane name="changes">
                 <template #tab>
                   <div class="flex items-center gap-6px">
@@ -1409,15 +1374,6 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                   />
                 </div>
               </NTabPane>
-              <NTabPane name="profile">
-                <template #tab>
-                  <div class="flex items-center gap-6px">
-                    <NIcon :size="15"><div class="i-mdi-chart-box-outline" /></NIcon>
-                    数据概览
-                  </div>
-                </template>
-                <DatabaseProfileTab :database-uuid="dbUuid ?? ''" :database-name="dbName ?? ''" />
-              </NTabPane>
             </NTabs>
           </div>
         </template>
@@ -1430,8 +1386,11 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
             <NTabs
               v-model:value="schemaActiveTab"
               type="line"
-              :tab-style="{ padding: '14px 20px' }"
+              size="large"
+              animated
+              class="px-20px"
               pane-style="padding: 0"
+              pane-wrapper-class="mt-16px"
             >
               <NTabPane name="tables">
                 <template #tab>
@@ -1490,7 +1449,15 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
           <div
             class="explorer-surface explorer-tabs overflow-hidden rounded-12px bg-white shadow-sm ring-1 ring-gray-100/80 dark:bg-[#1e1e24] dark:ring-gray-800"
           >
-            <NTabs v-model:value="activeTab" type="line" :tab-style="{ padding: '14px 20px' }" pane-style="padding: 0">
+            <NTabs
+              v-model:value="activeTab"
+              type="line"
+              size="large"
+              animated
+              class="px-20px"
+              pane-style="padding: 0"
+              pane-wrapper-class="mt-16px"
+            >
               <NTabPane name="columns">
                 <template #tab>
                   <div class="flex items-center gap-6px">
@@ -1530,7 +1497,7 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                 <template #tab>
                   <div class="flex items-center gap-6px">
                     <NIcon :size="15"><div class="i-mdi-chart-box-outline" /></NIcon>
-                    数据概览
+                    概览
                   </div>
                 </template>
                 <ProfileTab :table-uuid="tableUuid ?? ''" :columns="columns" />
@@ -1586,18 +1553,10 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   --explorer-tab-hover: rgb(var(--primary-color) / 0.05);
   --explorer-tab-active: rgb(var(--primary-color) / 0.08);
   --explorer-table-hover: rgb(var(--primary-color) / 0.03);
-  background: var(--explorer-page-bg);
-}
-
-.explorer-shell {
-  display: grid;
-  gap: 16px;
 }
 
 .explorer-hero {
   position: relative;
-  border: 1px solid var(--explorer-panel-border-strong);
-  background: var(--explorer-hero-bg);
   box-shadow: var(--explorer-panel-shadow);
 }
 
@@ -2114,47 +2073,6 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   overflow: hidden;
 }
 
-.explorer-tabs :deep(.n-tabs-nav) {
-  background: linear-gradient(180deg, rgb(var(--primary-50-color) / 0.9), rgb(var(--container-bg-color) / 0.55));
-  border-bottom: 1px solid rgb(var(--primary-100-color) / 0.66);
-}
-
-.explorer-tabs :deep(.n-tabs-tab) {
-  margin: 0 4px 0 10px;
-  border-radius: 10px;
-  color: var(--explorer-text-secondary);
-  transition:
-    background-color 140ms ease,
-    color 140ms ease,
-    box-shadow 140ms ease;
-}
-
-.explorer-tabs :deep(.n-tabs-tab:hover) {
-  background: var(--explorer-tab-hover);
-  color: var(--explorer-text-main);
-}
-
-.explorer-tabs :deep(.n-tabs-tab.n-tabs-tab--active) {
-  background: var(--explorer-tab-active);
-  color: var(--explorer-text-main);
-  box-shadow: inset 0 -2px 0 rgb(var(--primary-color) / 0.42);
-}
-
-.explorer-tabs :deep(.n-tabs-tab:focus-visible) {
-  outline: none;
-  box-shadow:
-    0 0 0 2px rgb(var(--container-bg-color) / 0.9),
-    0 0 0 4px rgb(var(--primary-color) / 0.3);
-}
-
-.explorer-tabs :deep(.n-tabs-tab .text-gray-400) {
-  color: var(--explorer-text-tertiary);
-}
-
-.explorer-tabs :deep(.n-tabs-tab.n-tabs-tab--active .text-gray-400) {
-  color: var(--explorer-text-secondary);
-}
-
 .metric-tag {
   border-radius: 999px;
   padding-inline: 10px;
@@ -2238,53 +2156,10 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   --explorer-tab-hover: rgb(var(--primary-color) / 0.08);
   --explorer-tab-active: rgb(var(--primary-color) / 0.12);
   --explorer-table-hover: rgb(var(--primary-color) / 0.08);
-  background: var(--explorer-page-bg);
 }
 
 .dark .explorer-hero {
-  border-color: var(--explorer-panel-border-strong);
-  background: var(--explorer-hero-bg);
   box-shadow: var(--explorer-panel-shadow);
-}
-
-.dark .explorer-title {
-  color: var(--explorer-text-main);
-}
-
-.dark .explorer-crumb-button.is-current,
-.dark .explorer-crumb-button:disabled {
-  color: var(--explorer-text-main);
-}
-
-.dark .explorer-kind-tag {
-  background: rgb(var(--primary-800-color) / 0.72);
-  color: var(--explorer-text-main);
-}
-
-.dark .explorer-subtitle {
-  color: var(--explorer-text-tertiary);
-}
-
-.dark .explorer-stat-card {
-  border-color: var(--explorer-panel-border);
-  background: var(--explorer-surface-bg);
-  box-shadow: var(--explorer-panel-shadow-soft);
-}
-
-.dark .explorer-stat-card__value {
-  color: var(--explorer-text-main);
-}
-
-.dark .explorer-stat-card__label,
-.dark .explorer-breadcrumb {
-  color: var(--explorer-text-tertiary);
-}
-
-.dark .explorer-crumb-button:focus-visible,
-.dark .explorer-link-button:focus-visible {
-  box-shadow:
-    0 0 0 2px rgb(var(--container-bg-color) / 0.92),
-    0 0 0 4px rgb(var(--primary-400-color) / 0.58);
 }
 
 .dark .explorer-table :deep(th) {
@@ -2314,13 +2189,8 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   background: rgb(var(--container-bg-color) / 0.76);
 }
 
-.dark .explorer-toolbar,
-.dark .explorer-tabs :deep(.n-tabs-nav) {
+.dark .explorer-toolbar {
   background: var(--explorer-toolbar-bg);
-}
-
-.dark .explorer-tabs :deep(.n-tabs-nav) {
-  border-bottom-color: rgb(var(--primary-700-color) / 0.3);
 }
 
 .dark .explorer-entity-icon,
@@ -2330,14 +2200,6 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
 
 .dark .explorer-entity-icon__glyph {
   color: rgb(var(--primary-100-color));
-}
-
-.dark .explorer-tabs :deep(.n-tabs-tab:hover) {
-  background: var(--explorer-tab-hover);
-}
-
-.dark .explorer-tabs :deep(.n-tabs-tab.n-tabs-tab--active) {
-  background: var(--explorer-tab-active);
 }
 
 .dark .metric-tag.metric-tag--neutral {
@@ -2374,7 +2236,6 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
   .overview-detail-card,
   .explorer-crumb-button,
   .explorer-link-button,
-  .explorer-tabs :deep(.n-tabs-tab),
   .explorer-table :deep(.n-data-table-td) {
     transition: none !important;
   }
