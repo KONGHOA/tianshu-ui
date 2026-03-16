@@ -797,7 +797,7 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
       const isPk = pkValue === true || pkValue === 'true' || pkValue === '1' || pkValue === 1;
       return isPk ? (
         <NIcon class="text-warning" size={16}>
-          <div class="i-mdi-key-variant" />
+          <icon-mdi-key-variant />
         </NIcon>
       ) : (
         <span class="text-gray-300">-</span>
@@ -911,8 +911,11 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                   </NBreadcrumbItem>
                 </NBreadcrumb>
 
-                <div v-if="level === 'datasource'" class="flex flex-shrink-0 items-center gap-16px">
-                  <div class="flex items-center gap-6px text-13px">
+                <div
+                  v-if="level === 'datasource' || level === 'table'"
+                  class="flex flex-shrink-0 items-center gap-16px"
+                >
+                  <div v-if="level === 'datasource'" class="flex items-center gap-6px text-13px">
                     <NIcon size="16" class="text-gray-400"><div class="i-mdi-history" /></NIcon>
                     <span class="text-gray-500">最近同步：</span>
                     <span class="text-gray-800 font-medium dark:text-gray-200">
@@ -920,7 +923,7 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                     </span>
                   </div>
                   <NButton
-                    v-if="hasAuth('metadata:datasource:edit')"
+                    v-if="hasAuth('metadata:datasource:edit') && level === 'datasource'"
                     type="primary"
                     secondary
                     size="small"
@@ -931,6 +934,19 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                       <NIcon><div class="i-mdi-refresh" /></NIcon>
                     </template>
                     全量同步元数据
+                  </NButton>
+                  <NButton
+                    v-if="hasAuth('metadata:datasource:edit') && level === 'table'"
+                    type="warning"
+                    secondary
+                    size="small"
+                    :loading="tableSyncing"
+                    @click="handleSyncCurrentTable"
+                  >
+                    <template #icon>
+                      <NIcon><div class="i-mdi-table-sync" /></NIcon>
+                    </template>
+                    同步当前表
                   </NButton>
                 </div>
               </div>
@@ -974,21 +990,6 @@ const columnColumns: DataTableColumns<Api.Metadata.EntityInstance> = [
                   </p>
                 </div>
               </div>
-            </div>
-
-            <div class="flex flex-wrap gap-8px">
-              <NButton
-                v-if="level === 'table' && hasAuth('metadata:datasource:edit')"
-                type="warning"
-                secondary
-                :loading="tableSyncing"
-                @click="handleSyncCurrentTable"
-              >
-                <template #icon>
-                  <NIcon><div class="i-mdi-table-sync" /></NIcon>
-                </template>
-                同步当前表
-              </NButton>
             </div>
           </div>
         </NSpin>
