@@ -202,7 +202,7 @@ async function handleExecute(jobId: CommonType.IdType) {
 </script>
 
 <template>
-  <div class="h-full flex-col-stretch gap-12px overflow-hidden lt-sm:overflow-auto">
+  <div class="relative h-full flex-col-stretch gap-12px overflow-hidden lt-sm:overflow-auto">
     <JobSearch v-model:model="searchParams" @reset="getDataByPage" @search="getDataByPage" />
     <NCard title="接入作业" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
       <template #header-extra>
@@ -231,13 +231,13 @@ async function handleExecute(jobId: CommonType.IdType) {
         :pagination="mobilePagination"
         class="sm:h-full"
       />
-      <JobOperateDrawer
-        v-model:visible="drawerVisible"
-        :operate-type="operateType"
-        :row-data="editingData"
-        @submitted="getData"
-      />
     </NCard>
+    <JobOperateDrawer
+      v-model:visible="drawerVisible"
+      :operate-type="operateType"
+      :row-data="editingData"
+      @submitted="getData"
+    />
   </div>
 </template>
 

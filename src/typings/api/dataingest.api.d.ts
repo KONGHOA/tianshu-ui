@@ -19,7 +19,17 @@ declare namespace Api {
       alertEmail?: string;
       status: string;
       remark?: string;
+      editorMode?: string;
     }>;
+
+    /** DAG edge (connection line between nodes) */
+    type IngestJobLine = {
+      lineId?: CommonType.IdType;
+      jobId?: CommonType.IdType;
+      sourceNodeCode: string;
+      targetNodeCode: string;
+      sortNum?: number;
+    };
 
     type IngestJobSearchParams = CommonType.RecordNullable<
       Pick<IngestJob, 'jobName' | 'jobType' | 'status' | 'srcDatasourceId' | 'sinkDatasourceId'> &
@@ -42,6 +52,7 @@ declare namespace Api {
         | 'alertEmail'
         | 'status'
         | 'remark'
+        | 'editorMode'
       >
     >;
 
@@ -72,12 +83,15 @@ declare namespace Api {
       inputSchemaJson?: string;
       outputSchemaJson?: string;
       sortNum?: number;
+      posX?: number;
+      posY?: number;
     };
 
     /** 创建/更新作业请求（含任务节点） */
     type IngestJobWithTasksParams = {
       job: IngestJobOperateParams;
       tasks: IngestJobTask[];
+      lines?: IngestJobLine[];
       fieldMappings?: IngestFieldMappingOperate[];
     };
 
@@ -101,8 +115,6 @@ declare namespace Api {
       mappingSnapshot?: string;
       errorMsg?: string;
       errorNodeCode?: string;
-      engineJobId?: string;
-      triggerType?: string;
       retryCount?: number;
     }>;
 

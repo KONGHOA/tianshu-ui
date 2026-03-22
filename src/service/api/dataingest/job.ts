@@ -15,6 +15,11 @@ export function fetchGetIngestJobTasks(jobId: CommonType.IdType) {
   return request<Api.Dataingest.IngestJobTask[]>({ url: `/dataingest/job/${jobId}/tasks`, method: 'get' });
 }
 
+/** Get DAG lines for a job */
+export function fetchGetIngestJobLines(jobId: CommonType.IdType) {
+  return request<Api.Dataingest.IngestJobLine[]>({ url: `/dataingest/job/${jobId}/lines`, method: 'get' });
+}
+
 /** 获取作业下的字段映射列表 */
 export function fetchGetIngestJobMappings(jobId: CommonType.IdType) {
   return request<Api.Dataingest.IngestFieldMappingOperate[]>({
