@@ -9,6 +9,7 @@ import { $t } from '@/locales';
 import ButtonIcon from '@/components/custom/button-icon.vue';
 import TableHeaderOperation from '@/components/advanced/table-header-operation.vue';
 import JobOperateDrawer from './modules/JobOperateDrawer.vue';
+import JobInstanceDrawer from './modules/JobInstanceDrawer.vue';
 import JobSearch from './modules/JobSearch.vue';
 
 defineOptions({
@@ -28,6 +29,10 @@ const searchParams = ref<Api.Dataingest.IngestJobSearchParams>({
   sinkDatasourceId: null,
   params: {}
 });
+
+const instanceDrawerVisible = ref(false);
+const instanceJobId = ref<CommonType.IdType | null>(null);
+const instanceJobName = ref('');
 
 const JOB_TYPE_MAP: Record<string, { label: string; type: 'default' | 'info' | 'success' | 'warning' | 'error' }> = {
   BATCH: { label: '离线批量', type: 'info' },
@@ -119,7 +124,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         key: 'operate',
         title: $t('common.operate'),
         align: 'center',
-        width: 200,
+        width: 240,
         render: row => {
           const executeBtn = () => {
             if (!hasAuth('dataingest:job:execute')) return null;
@@ -130,6 +135,18 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
                 icon="material-symbols:play-arrow-outline"
                 tooltipContent="执行"
                 onClick={() => handleExecute(row.jobId!)}
+              />
+            );
+          };
+
+          const historyBtn = () => {
+            return (
+              <ButtonIcon
+                text
+                type="info"
+                icon="material-symbols:history"
+                tooltipContent="执行历史"
+                onClick={() => handleShowHistory(row.jobId!, row.jobName ?? '')}
               />
             );
           };
@@ -164,6 +181,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
           return (
             <div class="flex-center gap-8px">
               {executeBtn()}
+              {historyBtn()}
               {editBtn()}
               {deleteBtn()}
             </div>
@@ -190,6 +208,12 @@ async function handleDelete(jobId: CommonType.IdType) {
   const { error } = await fetchBatchDeleteIngestJob([jobId]);
   if (error) return;
   onDeleted();
+}
+
+function handleShowHistory(jobId: CommonType.IdType, jobName: string) {
+  instanceJobId.value = jobId;
+  instanceJobName.value = jobName;
+  instanceDrawerVisible.value = true;
 }
 
 async function handleExecute(jobId: CommonType.IdType) {
@@ -238,6 +262,7 @@ async function handleExecute(jobId: CommonType.IdType) {
       :row-data="editingData"
       @submitted="getData"
     />
+    <JobInstanceDrawer v-model:visible="instanceDrawerVisible" :job-id="instanceJobId" :job-name="instanceJobName" />
   </div>
 </template>
 
