@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
-import { NAlert, NButton, NDrawer, NDrawerContent, NForm, NFormItem, NInput, NSpace } from 'naive-ui';
+import { NAlert, NButton, NForm, NFormItem, NInput, NModal, NSpace } from 'naive-ui';
 import type { Graph } from '@antv/x6';
 import type { DagNodeData } from '../composables/useDagGraph';
 import SourceConfigPanel from './SourceConfigPanel.vue';
@@ -58,7 +58,7 @@ watch(
   }
 );
 
-function closeDrawer() {
+function closeModal() {
   visible.value = false;
 }
 
@@ -81,42 +81,48 @@ function persistNode() {
   };
   node.setData(nextData);
   emit('saved', nextData);
-  closeDrawer();
+  closeModal();
 }
 </script>
 
 <template>
-  <NDrawer v-model:show="visible" :width="640" placement="right" :trap-focus="false" :z-index="2100">
-    <NDrawerContent :title="title" closable>
-      <template v-if="props.nodeData">
-        <div class="flex flex-col gap-16px">
-          <NForm label-placement="left" :label-width="96">
-            <NFormItem label="节点名称">
-              <NInput v-model:value="nodeLabel" placeholder="用于画布显示" />
-            </NFormItem>
-          </NForm>
-          <SourceConfigPanel
-            v-if="props.nodeData.taskType === 'SOURCE'"
-            :key="panelKey"
-            :config="config"
-            :datasource-options="datasourceOptions"
-          />
-          <SinkConfigPanel
-            v-else-if="props.nodeData.taskType === 'SINK'"
-            :key="panelKey"
-            :config="config"
-            :datasource-options="datasourceOptions"
-          />
-          <TransformConfigPanel v-else :key="panelKey" :config="config" :plugin-type="props.nodeData.pluginType" />
-        </div>
-      </template>
-      <NAlert v-else type="info" :show-icon="false">请选择节点后进行配置</NAlert>
-      <template #footer>
-        <NSpace justify="end">
-          <NButton @click="closeDrawer">取消</NButton>
-          <NButton type="primary" @click="persistNode">保存</NButton>
-        </NSpace>
-      </template>
-    </NDrawerContent>
-  </NDrawer>
+  <NModal
+    v-model:show="visible"
+    :title="title"
+    preset="card"
+    class="w-[640px]"
+    :z-index="2100"
+    :trap-focus="false"
+    style="max-height: 85vh; display: flex; flex-direction: column"
+  >
+    <template v-if="props.nodeData">
+      <div class="flex flex-col gap-16px overflow-y-auto px-4px py-8px" style="max-height: calc(85vh - 130px)">
+        <NForm label-placement="left" :label-width="96">
+          <NFormItem label="节点名称">
+            <NInput v-model:value="nodeLabel" placeholder="用于画布显示" />
+          </NFormItem>
+        </NForm>
+        <SourceConfigPanel
+          v-if="props.nodeData.taskType === 'SOURCE'"
+          :key="panelKey"
+          :config="config"
+          :datasource-options="datasourceOptions"
+        />
+        <SinkConfigPanel
+          v-else-if="props.nodeData.taskType === 'SINK'"
+          :key="panelKey"
+          :config="config"
+          :datasource-options="datasourceOptions"
+        />
+        <TransformConfigPanel v-else :key="panelKey" :config="config" :plugin-type="props.nodeData.pluginType" />
+      </div>
+    </template>
+    <NAlert v-else type="info" :show-icon="false">请选择节点后进行配置</NAlert>
+    <template #footer>
+      <NSpace justify="end">
+        <NButton @click="closeModal">取消</NButton>
+        <NButton type="primary" @click="persistNode">保存</NButton>
+      </NSpace>
+    </template>
+  </NModal>
 </template>

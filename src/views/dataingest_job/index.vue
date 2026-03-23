@@ -1,6 +1,6 @@
 <script setup lang="tsx">
 import { ref } from 'vue';
-import { NCard, NDataTable, NTag } from 'naive-ui';
+import { NCard, NDataTable, NDropdown, NTag } from 'naive-ui';
 import { fetchBatchDeleteIngestJob, fetchExecuteJob, fetchGetIngestJobList } from '@/service/api/dataingest';
 import { useAppStore } from '@/store/modules/app';
 import { useAuth } from '@/hooks/business/auth';
@@ -11,6 +11,7 @@ import TableHeaderOperation from '@/components/advanced/table-header-operation.v
 import JobOperateDrawer from './modules/JobOperateDrawer.vue';
 import JobInstanceDrawer from './modules/JobInstanceDrawer.vue';
 import JobSearch from './modules/JobSearch.vue';
+import WholeDbJobDrawer from './modules/WholeDbJobDrawer.vue';
 
 defineOptions({
   name: 'DataingestJobList'
@@ -81,6 +82,29 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
           const cfg = JOB_TYPE_MAP[row.jobType] ?? { label: row.jobType, type: 'default' as const };
           return (
             <NTag type={cfg.type} size="small">
+              {cfg.label}
+            </NTag>
+          );
+        }
+      },
+      {
+        key: 'syncMode',
+        title: '同步模式',
+        align: 'center',
+        width: 100,
+        render: row => {
+          const map: Record<
+            string,
+            { label: string; type: 'default' | 'info' | 'success' | 'warning' | 'error' | 'primary' }
+          > = {
+            SINGLE: { label: '单表同步', type: 'primary' },
+            WHOLE_DATABASE: { label: '整库同步', type: 'warning' }
+          };
+          const cfg = row.syncMode
+            ? (map[row.syncMode] ?? { label: row.syncMode, type: 'default' as const })
+            : { label: '-', type: 'default' as const };
+          return (
+            <NTag type={cfg.type} size="small" bordered={false}>
               {cfg.label}
             </NTag>
           );
@@ -159,7 +183,7 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
                 text
                 icon="material-symbols:drive-file-rename-outline-outline"
                 tooltipContent={$t('common.edit')}
-                onClick={() => edit(row.jobId!)}
+                onClick={() => editRow(row)}
               />
             );
           };
@@ -191,11 +215,36 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
     ]
   });
 
-const { drawerVisible, operateType, editingData, handleAdd, handleEdit, checkedRowKeys, onBatchDeleted, onDeleted } =
+const { drawerVisible, operateType, editingData, handleEdit, checkedRowKeys, onBatchDeleted, onDeleted } =
   useTableOperate(data, 'jobId', getData);
 
-function edit(jobId: CommonType.IdType) {
-  handleEdit(jobId);
+const currentSyncMode = ref<'SINGLE' | 'WHOLE_DATABASE'>('SINGLE');
+const wholeDbDrawerVisible = ref(false);
+
+const addOptions = [
+  { label: '单表同步', key: 'SINGLE' },
+  { label: '整库同步', key: 'WHOLE_DATABASE' }
+];
+
+function handleAddSplit(mode: string) {
+  operateType.value = 'add';
+  editingData.value = null;
+  if (mode === 'WHOLE_DATABASE') {
+    wholeDbDrawerVisible.value = true;
+  } else {
+    currentSyncMode.value = 'SINGLE';
+    drawerVisible.value = true;
+  }
+}
+
+function editRow(row: Api.Dataingest.IngestJob) {
+  operateType.value = 'edit';
+  editingData.value = row;
+  if (row.syncMode === 'WHOLE_DATABASE') {
+    wholeDbDrawerVisible.value = true;
+  } else {
+    handleEdit(row.jobId!);
+  }
 }
 
 async function handleBatchDelete() {
@@ -228,19 +277,30 @@ async function handleExecute(jobId: CommonType.IdType) {
 <template>
   <div class="relative h-full flex-col-stretch gap-12px overflow-hidden lt-sm:overflow-auto">
     <JobSearch v-model:model="searchParams" @reset="getDataByPage" @search="getDataByPage" />
-    <NCard title="接入作业" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
+
+    <NCard title="接入作业列表" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
       <template #header-extra>
         <TableHeaderOperation
           v-model:columns="columnChecks"
           :disabled-delete="checkedRowKeys.length === 0"
           :loading="loading"
-          :show-add="hasAuth('dataingest:job:add')"
+          :show-add="false"
           :show-delete="hasAuth('dataingest:job:remove')"
           :show-export="false"
-          @add="handleAdd"
           @delete="handleBatchDelete"
           @refresh="getData"
-        />
+        >
+          <template #prefix>
+            <NDropdown :options="addOptions" @select="handleAddSplit">
+              <NButton v-if="hasAuth('dataingest:job:add')" size="small" ghost type="primary">
+                <template #icon>
+                  <icon-material-symbols-add class="text-icon" />
+                </template>
+                新增作业
+              </NButton>
+            </NDropdown>
+          </template>
+        </TableHeaderOperation>
       </template>
       <NDataTable
         v-model:checked-row-keys="checkedRowKeys"
@@ -258,6 +318,13 @@ async function handleExecute(jobId: CommonType.IdType) {
     </NCard>
     <JobOperateDrawer
       v-model:visible="drawerVisible"
+      :operate-type="operateType"
+      :row-data="editingData"
+      :initial-sync-mode="currentSyncMode"
+      @submitted="getData"
+    />
+    <WholeDbJobDrawer
+      v-model:visible="wholeDbDrawerVisible"
       :operate-type="operateType"
       :row-data="editingData"
       @submitted="getData"

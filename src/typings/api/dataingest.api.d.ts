@@ -3,11 +3,26 @@
  */
 declare namespace Api {
   namespace Dataingest {
+    type SyncMode = 'SINGLE' | 'WHOLE_DATABASE';
+
+    type IngestJobTableConfig = {
+      tableConfigId?: CommonType.IdType;
+      jobId?: CommonType.IdType;
+      taskId?: CommonType.IdType;
+      sourceTableName: string;
+      targetTableName?: string | null;
+      mappingMode?: 'AUTO' | 'CUSTOM';
+      whereCondition?: string | null;
+      isEnable?: string;
+      sortNum?: number;
+    };
+
     /** 接入作业 */
     type IngestJob = Common.CommonRecord<{
       jobId: CommonType.IdType;
       jobName: string;
       jobType: 'BATCH' | 'STREAM' | 'CDC';
+      syncMode?: SyncMode;
       srcDatasourceId?: CommonType.IdType;
       sinkDatasourceId?: CommonType.IdType;
       scheduleType?: string;
@@ -42,6 +57,7 @@ declare namespace Api {
         | 'jobId'
         | 'jobName'
         | 'jobType'
+        | 'syncMode'
         | 'srcDatasourceId'
         | 'sinkDatasourceId'
         | 'scheduleType'
@@ -71,6 +87,8 @@ declare namespace Api {
       schemaName?: string;
       tableName?: string;
       tablePattern?: string;
+      tableIncludePattern?: string;
+      tableExcludePattern?: string;
       whereCondition?: string;
       readMode?: 'FULL' | 'INCREMENTAL';
       incrementalColumn?: string;
@@ -93,6 +111,7 @@ declare namespace Api {
       tasks: IngestJobTask[];
       lines?: IngestJobLine[];
       fieldMappings?: IngestFieldMappingOperate[];
+      tableConfigs?: IngestJobTableConfig[];
     };
 
     /** 作业执行实例 */

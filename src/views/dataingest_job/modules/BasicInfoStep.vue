@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /* eslint-disable vue/no-mutating-props */
-import { NForm, NFormItem, NInput, NInputNumber, NSelect } from 'naive-ui';
+import { NForm, NFormItem, NInput, NInputNumber, NRadioButton, NRadioGroup, NSelect } from 'naive-ui';
 
 defineOptions({
   name: 'BasicInfoStep'
@@ -23,6 +23,12 @@ defineProps<Props>();
     </NFormItem>
     <NFormItem label="作业类型">
       <NSelect v-model:value="model.jobType" :options="jobTypeOptions" />
+    </NFormItem>
+    <NFormItem label="同步模式" path="syncMode">
+      <NRadioGroup v-model:value="model.syncMode" disabled>
+        <NRadioButton value="SINGLE">单表同步</NRadioButton>
+        <NRadioButton value="WHOLE_DATABASE">整库同步</NRadioButton>
+      </NRadioGroup>
     </NFormItem>
     <NFormItem label="调度方式">
       <NSelect v-model:value="model.scheduleType" :options="scheduleTypeOptions" />

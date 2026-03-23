@@ -5,12 +5,14 @@ import { jsonClone } from '@sa/utils';
 import {
   fetchCreateIngestJob,
   fetchGetIngestJob,
-  fetchGetIngestJobMappings,
+  fetchGetIngestJobLines,
+  fetchGetIngestJobTableConfigs,
   fetchGetIngestJobTasks,
   fetchUpdateIngestJob
 } from '@/service/api/dataingest';
 import { fetchGetDatasourceSelect } from '@/service/api/metadata/datasource';
 import BasicInfoStep from './BasicInfoStep.vue';
+import WholeDbConfigPanel from './WholeDbConfigPanel.vue';
 
 defineOptions({ name: 'JobOperateDrawer' });
 
@@ -19,13 +21,18 @@ const DagEditor = defineAsyncComponent(() => import('./dag/DagEditor.vue'));
 interface Props {
   operateType: NaiveUI.TableOperateType;
   rowData?: Api.Dataingest.IngestJob | null;
+  initialSyncMode?: 'SINGLE' | 'WHOLE_DATABASE';
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<{ (e: 'submitted'): void }>();
 
 const visible = defineModel<boolean>('visible', { default: false });
-const title = computed(() => (props.operateType === 'add' ? '新增接入作业' : '编辑接入作业'));
+
+const SYNC_MODE_MAP: Record<string, string> = {
+  SINGLE: '单表同步',
+  WHOLE_DATABASE: '整库同步'
+};
 
 const dagSaveLoading = ref(false);
 const saveModalVisible = ref(false);
@@ -49,12 +56,22 @@ const datasourceOptions = ref<{ label: string; value: CommonType.IdType }[]>([])
 const jobModel = ref<Api.Dataingest.IngestJobOperateParams>({
   jobName: '',
   jobType: 'BATCH',
+  syncMode: 'SINGLE',
   scheduleType: 'MANUAL',
   scheduleExpression: '',
   status: '0',
   remark: '',
   editorMode: 'DAG'
 });
+
+const title = computed(() => {
+  const modeName = jobModel.value.syncMode ? SYNC_MODE_MAP[jobModel.value.syncMode] || '' : '';
+  return props.operateType === 'add' ? `新增作业 (${modeName})` : `编辑作业 (${modeName})`;
+});
+
+const tableConfigs = ref<Api.Dataingest.IngestJobTableConfig[]>([]);
+const includePattern = ref('');
+const excludePattern = ref('');
 
 const dagTasksToSave = ref<any[]>([]);
 const dagLinesToSave = ref<any[]>([]);
@@ -73,10 +90,11 @@ async function loadEditDetail() {
   if (!(props.operateType === 'edit' && props.rowData?.jobId)) return;
 
   const jobId = props.rowData.jobId;
-  const [{ data: jobData }, { data: tasks }, { data: mappings }] = await Promise.all([
+  const [{ data: jobData }, { data: tasks }, { data: lines }, { data: tblConfigs }] = await Promise.all([
     fetchGetIngestJob(jobId),
     fetchGetIngestJobTasks(jobId),
-    fetchGetIngestJobMappings(jobId)
+    fetchGetIngestJobLines(jobId),
+    fetchGetIngestJobTableConfigs(jobId)
   ]);
 
   if (jobData) {
@@ -85,7 +103,8 @@ async function loadEditDetail() {
   }
 
   if (tasks) loadedDagTasks.value = tasks;
-  if (mappings) loadedDagLines.value = mappings;
+  if (lines) loadedDagLines.value = lines;
+  if (tblConfigs) tableConfigs.value = tblConfigs;
 }
 
 function resetState() {
@@ -93,6 +112,7 @@ function resetState() {
     jobId: props.rowData?.jobId,
     jobName: '',
     jobType: 'BATCH',
+    syncMode: props.initialSyncMode || 'SINGLE',
     scheduleType: 'MANUAL',
     scheduleExpression: '',
     status: '0',
@@ -103,6 +123,9 @@ function resetState() {
   dagLinesToSave.value = [];
   loadedDagTasks.value = [];
   loadedDagLines.value = [];
+  tableConfigs.value = [];
+  includePattern.value = '';
+  excludePattern.value = '';
 }
 
 watch(visible, async value => {
@@ -131,7 +154,8 @@ async function confirmSaveDag() {
       editorMode: 'DAG'
     },
     tasks: dagTasksToSave.value,
-    lines: dagLinesToSave.value
+    lines: dagLinesToSave.value,
+    tableConfigs: jobModel.value.syncMode !== 'SINGLE' ? tableConfigs.value : undefined
   };
 
   const request = props.operateType === 'add' ? fetchCreateIngestJob(payload) : fetchUpdateIngestJob(payload);
@@ -170,7 +194,7 @@ async function confirmSaveDag() {
       v-model:show="saveModalVisible"
       preset="card"
       title="保存作业"
-      class="w-600px"
+      :class="jobModel.syncMode === 'SINGLE' ? 'w-600px' : 'w-900px'"
       :segmented="{ content: true, footer: true }"
     >
       <BasicInfoStep
@@ -178,6 +202,15 @@ async function confirmSaveDag() {
         :job-type-options="jobTypeOptions"
         :schedule-type-options="scheduleTypeOptions"
         :status-options="statusOptions"
+      />
+      <WholeDbConfigPanel
+        v-if="jobModel.syncMode === 'WHOLE_DATABASE'"
+        v-model:include-pattern="includePattern"
+        v-model:exclude-pattern="excludePattern"
+        v-model="tableConfigs"
+        :datasource-id="dagTasksToSave.find(t => t.taskType === 'SOURCE')?.datasourceId"
+        :database-name="dagTasksToSave.find(t => t.taskType === 'SOURCE')?.databaseName"
+        :schema-name="dagTasksToSave.find(t => t.taskType === 'SOURCE')?.schemaName"
       />
       <template #footer>
         <div class="flex justify-end gap-12px">

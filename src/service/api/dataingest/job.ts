@@ -42,3 +42,22 @@ export function fetchUpdateIngestJob(data: Api.Dataingest.IngestJobWithTasksPara
 export function fetchBatchDeleteIngestJob(jobIds: CommonType.IdType[]) {
   return request<boolean>({ url: `/dataingest/job/${jobIds.join(',')}`, method: 'delete' });
 }
+
+/** 获取作业的多表配置 */
+export function fetchGetIngestJobTableConfigs(jobId: CommonType.IdType) {
+  return request<Api.Dataingest.IngestJobTableConfig[]>({
+    url: `/dataingest/job/${jobId}/tableConfigs`,
+    method: 'get'
+  });
+}
+
+/** 整库同步表发现 */
+export function fetchDiscoverTables(params: {
+  datasourceId: CommonType.IdType;
+  databaseName?: string;
+  schemaName?: string;
+  includePattern?: string;
+  excludePattern?: string;
+}) {
+  return request<string[]>({ url: '/dataingest/job/discoverTables', method: 'post', data: params });
+}
