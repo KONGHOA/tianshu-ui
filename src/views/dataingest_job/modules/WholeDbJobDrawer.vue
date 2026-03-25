@@ -1,6 +1,19 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { NAlert, NButton, NCard, NDrawer, NDrawerContent, NForm, NFormItem, NInput, NPopconfirm, NSelect, NSpace, NSwitch } from 'naive-ui';
+import {
+  NAlert,
+  NButton,
+  NCard,
+  NDrawer,
+  NDrawerContent,
+  NForm,
+  NFormItem,
+  NInput,
+  NPopconfirm,
+  NSelect,
+  NSpace,
+  NSwitch
+} from 'naive-ui';
 import { jsonClone } from '@sa/utils';
 import {
   fetchCreateIngestJob,
@@ -129,12 +142,16 @@ function createEmptyManagedCustomField(): Api.Dataingest.IngestManagedCustomFiel
   };
 }
 
-function normalizeManagedCustomFields(rawManagedFields: Record<string, any>): Api.Dataingest.IngestManagedCustomField[] {
+function normalizeManagedCustomFields(
+  rawManagedFields: Record<string, any>
+): Api.Dataingest.IngestManagedCustomField[] {
   const customFields = Array.isArray(rawManagedFields.customFields)
     ? rawManagedFields.customFields
         .map((item: Record<string, unknown>) => ({
           fieldName: typeof item?.fieldName === 'string' ? item.fieldName : '',
-          valueType: (typeof item?.valueType === 'string' ? item.valueType : 'CURRENT_TIME') as ManagedCustomFieldValueType,
+          valueType: (typeof item?.valueType === 'string'
+            ? item.valueType
+            : 'CURRENT_TIME') as ManagedCustomFieldValueType,
           fixedValue: typeof item?.fixedValue === 'string' ? item.fixedValue : ''
         }))
         .filter(item => item.fieldName || item.valueType || item.fixedValue)
@@ -354,7 +371,7 @@ function buildSinkNodeConfig() {
     managedFields.technicalKey = {
       fieldName: technicalKey.fieldName.trim(),
       sourceMode: technicalKey.sourceMode ?? 'PRIMARY_KEYS',
-      sourceFields: technicalKey.sourceMode === 'CUSTOM_FIELDS' ? technicalKey.sourceFields ?? [] : [],
+      sourceFields: technicalKey.sourceMode === 'CUSTOM_FIELDS' ? (technicalKey.sourceFields ?? []) : [],
       includeTableName: ['PRIMARY_KEYS', 'CUSTOM_FIELDS'].includes(technicalKey.sourceMode ?? 'PRIMARY_KEYS')
         ? (technicalKey.includeTableName ?? true)
         : false
@@ -404,14 +421,18 @@ async function handleSubmit() {
   }
 
   // Generate required tasks and lines explicitly for backend compatibility
-  const sourceTaskId = props.operateType === 'edit' ? loadedTasks.value.find(t => t.taskType === 'SOURCE')?.taskId : undefined;
-  const sinkTaskId = props.operateType === 'edit' ? loadedTasks.value.find(t => t.taskType === 'SINK')?.taskId : undefined;
+  const sourceTaskId =
+    props.operateType === 'edit' ? loadedTasks.value.find(t => t.taskType === 'SOURCE')?.taskId : undefined;
+  const sinkTaskId =
+    props.operateType === 'edit' ? loadedTasks.value.find(t => t.taskType === 'SINK')?.taskId : undefined;
   const lineId = props.operateType === 'edit' ? loadedLines.value[0]?.lineId : undefined;
   const currentJobId = props.operateType === 'edit' ? props.rowData?.jobId : undefined;
 
   const tasks: Api.Dataingest.IngestJobTask[] = [
     {
-      ...(sourceTaskId !== undefined && currentJobId !== undefined ? { taskId: sourceTaskId, jobId: currentJobId } : {}),
+      ...(sourceTaskId !== undefined && currentJobId !== undefined
+        ? { taskId: sourceTaskId, jobId: currentJobId }
+        : {}),
       nodeCode: 'source_1',
       nodeName: '源数据库',
       taskType: 'SOURCE',
@@ -502,7 +523,11 @@ async function handleSubmit() {
                     :positive-button-props="{ type: 'error' }"
                     @positive-click="confirmSchemaSaveMode"
                     @negative-click="cancelSchemaSaveMode"
-                    @update:show="(v: boolean) => { if (!v) cancelSchemaSaveMode(); }"
+                    @update:show="
+                      (v: boolean) => {
+                        if (!v) cancelSchemaSaveMode();
+                      }
+                    "
                   >
                     <template #trigger>
                       <NSelect
@@ -522,7 +547,11 @@ async function handleSubmit() {
                     :positive-button-props="{ type: 'error' }"
                     @positive-click="confirmDataSaveMode"
                     @negative-click="cancelDataSaveMode"
-                    @update:show="(v: boolean) => { if (!v) cancelDataSaveMode(); }"
+                    @update:show="
+                      (v: boolean) => {
+                        if (!v) cancelDataSaveMode();
+                      }
+                    "
                   >
                     <template #trigger>
                       <NSelect
@@ -542,7 +571,7 @@ async function handleSubmit() {
                     <div
                       v-for="(field, index) in managedFieldsModel.customFields"
                       :key="`whole-managed-field-${index}`"
-                      class="rounded-12px border border-[#d9e1f2] bg-[#f8fafc] p-12px"
+                      class="border border-[#d9e1f2] rounded-12px bg-[#f8fafc] p-12px"
                     >
                       <div class="grid gap-12px md:grid-cols-[minmax(0,1fr),180px,72px]">
                         <NInput v-model:value="field.fieldName" placeholder="字段名，如 ingest_time" />
@@ -553,8 +582,10 @@ async function handleSubmit() {
                         <NInput v-model:value="field.fixedValue" placeholder="固定值内容，支持空字符串" />
                       </div>
                     </div>
-                    <NButton quaternary type="primary" class="self-start" @click="addManagedCustomField">新增字段</NButton>
-                    <div class="mt-4px rounded-12px border border-dashed border-[#d9e1f2] bg-[#fcfdff] p-12px">
+                    <NButton quaternary type="primary" class="self-start" @click="addManagedCustomField">
+                      新增字段
+                    </NButton>
+                    <div class="mt-4px border border-[#d9e1f2] rounded-12px border-dashed bg-[#fcfdff] p-12px">
                       <div class="mb-12px text-13px text-[#4b5675] font-medium">技术主键</div>
                       <div class="grid gap-12px md:grid-cols-[minmax(0,1fr),180px]">
                         <NInput
@@ -582,15 +613,14 @@ async function handleSubmit() {
                 </NFormItem>
               </NForm>
               <NAlert v-if="capabilityLoading" type="info" :show-icon="false">正在加载目标端能力...</NAlert>
-              <NAlert
-                v-if="managedFieldsModel.technicalKey?.fieldName"
-                type="info"
-                :show-icon="false"
-              >
+              <NAlert v-if="managedFieldsModel.technicalKey?.fieldName" type="info" :show-icon="false">
                 整库同步技术主键支持 UUID、雪花ID、源表主键，不支持指定字段拼接。
               </NAlert>
               <NAlert
-                v-if="managedFieldsModel.technicalKey?.fieldName && managedFieldsModel.technicalKey?.sourceMode === 'CUSTOM_FIELDS'"
+                v-if="
+                  managedFieldsModel.technicalKey?.fieldName &&
+                  managedFieldsModel.technicalKey?.sourceMode === 'CUSTOM_FIELDS'
+                "
                 type="warning"
                 :show-icon="false"
               >

@@ -337,10 +337,14 @@ async function copyToClipboard(text: string | undefined, label: string) {
                   </NTag>
                 </NDescriptionsItem>
                 <NDescriptionsItem label="增量列">
-                  <span class="text-13px font-mono">{{ detail.incremental ? detail.incrementalColumn || '未配置' : '-' }}</span>
+                  <span class="text-13px font-mono">
+                    {{ detail.incremental ? detail.incrementalColumn || '未配置' : '-' }}
+                  </span>
                 </NDescriptionsItem>
                 <NDescriptionsItem label="本次水位区间">
-                  <span class="text-13px font-mono">{{ detail.incremental ? detail.incrementalRangeText || '未记录' : '-' }}</span>
+                  <span class="text-13px font-mono">
+                    {{ detail.incremental ? detail.incrementalRangeText || '未记录' : '-' }}
+                  </span>
                 </NDescriptionsItem>
                 <NDescriptionsItem label="起始水位">
                   <span class="text-13px font-mono">
@@ -354,7 +358,9 @@ async function copyToClipboard(text: string | undefined, label: string) {
                 </NDescriptionsItem>
                 <NDescriptionsItem label="水位状态">
                   <NTag :type="detail.incrementalUpperBound ? 'success' : 'default'" size="small" round quaternary>
-                    {{ detail.incremental ? (detail.incrementalUpperBound ? '区间已记录' : '区间未记录') : '非增量实例' }}
+                    {{
+                      detail.incremental ? (detail.incrementalUpperBound ? '区间已记录' : '区间未记录') : '非增量实例'
+                    }}
                   </NTag>
                 </NDescriptionsItem>
               </NDescriptions>

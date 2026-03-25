@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /* eslint-disable vue/no-mutating-props */
 import { NAlert, NDivider, NDynamicTags, NForm, NFormItem, NInput, NPopconfirm, NSelect } from 'naive-ui';
-import { schemaSaveModeOptions, dataSaveModeOptions } from './sink-constants';
+import { dataSaveModeOptions, schemaSaveModeOptions } from './sink-constants';
 import { useSaveModeConfirm } from './useSaveModeConfirm';
 
 defineOptions({
@@ -44,7 +44,9 @@ const {
   cancel: cancelSchemaSaveMode
 } = useSaveModeConfirm(
   () => props.sinkModel.schemaSaveMode,
-  v => { props.sinkModel.schemaSaveMode = v; },
+  v => {
+    props.sinkModel.schemaSaveMode = v;
+  },
   'RECREATE_SCHEMA',
   'CREATE_SCHEMA_WHEN_NOT_EXIST'
 );
@@ -56,7 +58,9 @@ const {
   cancel: cancelDataSaveMode
 } = useSaveModeConfirm(
   () => props.sinkModel.dataSaveMode,
-  v => { props.sinkModel.dataSaveMode = v; },
+  v => {
+    props.sinkModel.dataSaveMode = v;
+  },
   'DROP_DATA',
   'APPEND_DATA'
 );
@@ -206,7 +210,11 @@ defineEmits<Emits>();
               :positive-button-props="{ type: 'error' }"
               @positive-click="confirmSchemaSaveMode"
               @negative-click="cancelSchemaSaveMode"
-              @update:show="(v: boolean) => { if (!v) cancelSchemaSaveMode(); }"
+              @update:show="
+                (v: boolean) => {
+                  if (!v) cancelSchemaSaveMode();
+                }
+              "
             >
               <template #trigger>
                 <NSelect
@@ -226,7 +234,11 @@ defineEmits<Emits>();
               :positive-button-props="{ type: 'error' }"
               @positive-click="confirmDataSaveMode"
               @negative-click="cancelDataSaveMode"
-              @update:show="(v: boolean) => { if (!v) cancelDataSaveMode(); }"
+              @update:show="
+                (v: boolean) => {
+                  if (!v) cancelDataSaveMode();
+                }
+              "
             >
               <template #trigger>
                 <NSelect

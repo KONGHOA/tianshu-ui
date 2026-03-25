@@ -5,7 +5,7 @@ import { NAlert, NButton, NForm, NFormItem, NInput, NPopconfirm, NSelect, NSwitc
 import { fetchGetIngestSinkCapabilities } from '@/service/api/dataingest';
 import { fetchGetColumns, fetchGetDatabases, fetchGetSchemas, fetchGetTables } from '@/service/api/metadata/catalog';
 import { type SelectOption, findOptionLabel, mapCatalogColumns, mapCatalogOptions } from '../utils/catalog';
-import { schemaSaveModeOptions, dataSaveModeOptions, writeModeOptions } from '../../sink-constants';
+import { dataSaveModeOptions, schemaSaveModeOptions, writeModeOptions } from '../../sink-constants';
 import { useSaveModeConfirm } from '../../useSaveModeConfirm';
 
 defineOptions({ name: 'SinkConfigPanel' });
@@ -60,7 +60,9 @@ const {
   cancel: cancelSchemaSaveMode
 } = useSaveModeConfirm(
   () => props.config.schemaSaveMode,
-  v => { props.config.schemaSaveMode = v; },
+  v => {
+    props.config.schemaSaveMode = v;
+  },
   'RECREATE_SCHEMA',
   'CREATE_SCHEMA_WHEN_NOT_EXIST'
 );
@@ -72,7 +74,9 @@ const {
   cancel: cancelDataSaveMode
 } = useSaveModeConfirm(
   () => props.config.dataSaveMode,
-  v => { props.config.dataSaveMode = v; },
+  v => {
+    props.config.dataSaveMode = v;
+  },
   'DROP_DATA',
   'APPEND_DATA'
 );
@@ -121,12 +125,16 @@ function createEmptyManagedCustomField(): Api.Dataingest.IngestManagedCustomFiel
   };
 }
 
-function normalizeManagedCustomFields(rawManagedFields: Record<string, any>): Api.Dataingest.IngestManagedCustomField[] {
+function normalizeManagedCustomFields(
+  rawManagedFields: Record<string, any>
+): Api.Dataingest.IngestManagedCustomField[] {
   const customFields = Array.isArray(rawManagedFields.customFields)
     ? rawManagedFields.customFields
         .map((item: Record<string, unknown>) => ({
           fieldName: typeof item?.fieldName === 'string' ? item.fieldName : '',
-          valueType: (typeof item?.valueType === 'string' ? item.valueType : 'CURRENT_TIME') as ManagedCustomFieldValueType,
+          valueType: (typeof item?.valueType === 'string'
+            ? item.valueType
+            : 'CURRENT_TIME') as ManagedCustomFieldValueType,
           fixedValue: typeof item?.fixedValue === 'string' ? item.fixedValue : ''
         }))
         .filter(item => item.fieldName || item.valueType || item.fixedValue)
@@ -424,7 +432,13 @@ onMounted(async () => {
 });
 
 watch(
-  [managedCustomFields, technicalKeyFieldName, technicalKeySourceMode, technicalKeySourceFields, technicalKeyIncludeTableName],
+  [
+    managedCustomFields,
+    technicalKeyFieldName,
+    technicalKeySourceMode,
+    technicalKeySourceFields,
+    technicalKeyIncludeTableName
+  ],
   () => {
     syncManagedFieldsToNodeConfig();
   },
@@ -503,7 +517,11 @@ watch(
         :positive-button-props="{ type: 'error' }"
         @positive-click="confirmSchemaSaveMode"
         @negative-click="cancelSchemaSaveMode"
-        @update:show="(v: boolean) => { if (!v) cancelSchemaSaveMode(); }"
+        @update:show="
+          (v: boolean) => {
+            if (!v) cancelSchemaSaveMode();
+          }
+        "
       >
         <template #trigger>
           <NSelect
@@ -524,7 +542,11 @@ watch(
         :positive-button-props="{ type: 'error' }"
         @positive-click="confirmDataSaveMode"
         @negative-click="cancelDataSaveMode"
-        @update:show="(v: boolean) => { if (!v) cancelDataSaveMode(); }"
+        @update:show="
+          (v: boolean) => {
+            if (!v) cancelDataSaveMode();
+          }
+        "
       >
         <template #trigger>
           <NSelect
@@ -557,11 +579,15 @@ watch(
         <div
           v-for="(field, index) in managedCustomFields"
           :key="`managed-field-${index}`"
-          class="rounded-12px border border-[#d9e1f2] bg-[#f8fafc] p-12px"
+          class="border border-[#d9e1f2] rounded-12px bg-[#f8fafc] p-12px"
         >
           <div class="grid gap-12px md:grid-cols-[minmax(0,1fr),180px,72px]">
             <NInput v-model:value="field.fieldName" placeholder="字段名，如 ingest_time" />
-            <NSelect v-model:value="field.valueType" :options="customFieldValueTypeOptions" :menu-props="selectMenuProps" />
+            <NSelect
+              v-model:value="field.valueType"
+              :options="customFieldValueTypeOptions"
+              :menu-props="selectMenuProps"
+            />
             <NButton quaternary type="error" @click="removeManagedCustomField(index)">删除</NButton>
           </div>
           <div v-if="field.valueType === 'FIXED_VALUE'" class="mt-12px">
@@ -569,11 +595,16 @@ watch(
           </div>
         </div>
         <NButton quaternary type="primary" class="self-start" @click="addManagedCustomField">新增字段</NButton>
-        <div class="mt-4px rounded-12px border border-dashed border-[#d9e1f2] bg-[#fcfdff] p-12px">
+        <div class="mt-4px border border-[#d9e1f2] rounded-12px border-dashed bg-[#fcfdff] p-12px">
           <div class="mb-12px text-13px text-[#4b5675] font-medium">技术主键</div>
           <div class="grid gap-12px md:grid-cols-[minmax(0,1fr),180px]">
             <NInput v-model:value="technicalKeyFieldName" placeholder="字段名，如 tech_key；留空则不生成技术主键" />
-            <NSelect v-if="technicalKeyFieldName" v-model:value="technicalKeySourceMode" :options="managedFieldModeOptions" :menu-props="selectMenuProps" />
+            <NSelect
+              v-if="technicalKeyFieldName"
+              v-model:value="technicalKeySourceMode"
+              :options="managedFieldModeOptions"
+              :menu-props="selectMenuProps"
+            />
           </div>
           <div v-if="technicalKeyFieldName && technicalKeySourceMode === 'CUSTOM_FIELDS'" class="mt-12px">
             <NSelect
