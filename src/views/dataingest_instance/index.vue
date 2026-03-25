@@ -122,6 +122,36 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
         render: row => (row.writeRowCount !== undefined && row.writeRowCount !== null ? row.writeRowCount : '-')
       },
       {
+        key: 'incrementalColumn',
+        title: '增量列',
+        align: 'center',
+        width: 120,
+        render: row =>
+          row.incremental ? (
+            <NTag size="small" type="info" round bordered={false}>
+              <span class="font-mono">{row.incrementalColumn ?? '未配置'}</span>
+            </NTag>
+          ) : (
+            '-'
+          )
+      },
+      {
+        key: 'incrementalRangeText',
+        title: '本次水位区间',
+        align: 'center',
+        minWidth: 240,
+        render: row =>
+          row.incremental ? (
+            <div class="text-left text-12px leading-18px">
+              <div class="font-mono">{row.incrementalStartValue ?? '起始未记录'}</div>
+              <div class="op-50">至</div>
+              <div class="font-mono">{row.incrementalUpperBound ?? '结束未记录'}</div>
+            </div>
+          ) : (
+            '-'
+          )
+      },
+      {
         key: 'operate',
         title: $t('common.operate'),
         align: 'center',

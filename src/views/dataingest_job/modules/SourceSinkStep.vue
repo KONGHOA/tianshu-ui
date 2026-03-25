@@ -1,6 +1,8 @@
 <script setup lang="ts">
 /* eslint-disable vue/no-mutating-props */
-import { NAlert, NDivider, NDynamicTags, NForm, NFormItem, NInput, NSelect } from 'naive-ui';
+import { NAlert, NDivider, NDynamicTags, NForm, NFormItem, NInput, NPopconfirm, NSelect } from 'naive-ui';
+import { schemaSaveModeOptions, dataSaveModeOptions } from './sink-constants';
+import { useSaveModeConfirm } from './useSaveModeConfirm';
 
 defineOptions({
   name: 'SourceSinkStep'
@@ -33,7 +35,31 @@ interface Props {
   sinkFieldLoading: boolean;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+const {
+  show: showSchemaConfirm,
+  handleChange: handleSchemaSaveModeChange,
+  confirm: confirmSchemaSaveMode,
+  cancel: cancelSchemaSaveMode
+} = useSaveModeConfirm(
+  () => props.sinkModel.schemaSaveMode,
+  v => { props.sinkModel.schemaSaveMode = v; },
+  'RECREATE_SCHEMA',
+  'CREATE_SCHEMA_WHEN_NOT_EXIST'
+);
+
+const {
+  show: showDataConfirm,
+  handleChange: handleDataSaveModeChange,
+  confirm: confirmDataSaveMode,
+  cancel: cancelDataSaveMode
+} = useSaveModeConfirm(
+  () => props.sinkModel.dataSaveMode,
+  v => { props.sinkModel.dataSaveMode = v; },
+  'DROP_DATA',
+  'APPEND_DATA'
+);
 
 interface Emits {
   (e: 'sourceDatasourceChange', value: CommonType.IdType | null): void;
@@ -171,6 +197,46 @@ defineEmits<Emits>();
               :disabled="!sinkModel.databaseName || sinkTableLoading || sinkSchemaLoading"
               @update:value="$emit('sinkTableChange', $event)"
             />
+          </NFormItem>
+          <NFormItem label="建表策略">
+            <NPopconfirm
+              :show="showSchemaConfirm"
+              positive-text="确认重建"
+              negative-text="取消"
+              :positive-button-props="{ type: 'error' }"
+              @positive-click="confirmSchemaSaveMode"
+              @negative-click="cancelSchemaSaveMode"
+              @update:show="(v: boolean) => { if (!v) cancelSchemaSaveMode(); }"
+            >
+              <template #trigger>
+                <NSelect
+                  :value="sinkModel.schemaSaveMode"
+                  :options="schemaSaveModeOptions"
+                  @update:value="handleSchemaSaveModeChange"
+                />
+              </template>
+              每次执行会删除并重建目标表，现有数据将全部丢失。确认使用此策略？
+            </NPopconfirm>
+          </NFormItem>
+          <NFormItem label="数据处理策略">
+            <NPopconfirm
+              :show="showDataConfirm"
+              positive-text="确认清空"
+              negative-text="取消"
+              :positive-button-props="{ type: 'error' }"
+              @positive-click="confirmDataSaveMode"
+              @negative-click="cancelDataSaveMode"
+              @update:show="(v: boolean) => { if (!v) cancelDataSaveMode(); }"
+            >
+              <template #trigger>
+                <NSelect
+                  :value="sinkModel.dataSaveMode"
+                  :options="dataSaveModeOptions"
+                  @update:value="handleDataSaveModeChange"
+                />
+              </template>
+              每次执行前会清空目标表数据。确认使用此策略？
+            </NPopconfirm>
           </NFormItem>
           <NFormItem label="写入模式">
             <NSelect v-model:value="sinkModel.writeMode" :options="writeModeOptions" :disabled="sinkFieldLoading" />

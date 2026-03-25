@@ -94,6 +94,8 @@ declare namespace Api {
       incrementalColumn?: string;
       incrementalLastValue?: string;
       fieldList?: string[];
+      schemaSaveMode?: string;
+      dataSaveMode?: string;
       writeMode?: string;
       primaryKeys?: string[];
       extraConfig?: string;
@@ -132,6 +134,12 @@ declare namespace Api {
       jobConfig?: string;
       configSnapshot?: string;
       mappingSnapshot?: string;
+      triggerParams?: string;
+      incremental?: boolean;
+      incrementalColumn?: string;
+      incrementalStartValue?: string;
+      incrementalUpperBound?: string;
+      incrementalRangeText?: string;
       errorMsg?: string;
       errorNodeCode?: string;
       retryCount?: number;
@@ -205,6 +213,8 @@ declare namespace Api {
       databaseName?: string;
       schemaName?: string;
       tableName?: string;
+      schemaSaveMode?: string;
+      dataSaveMode?: string;
       writeMode?: string;
       primaryKeys?: string[];
     };
@@ -237,6 +247,29 @@ declare namespace Api {
       valid: boolean;
       errors: IngestValidationMessage[];
       warnings: IngestValidationMessage[];
+    };
+
+    type IngestSinkCapability = {
+      supportsSchemaSaveMode: boolean;
+      supportsDataSaveMode: boolean;
+    };
+
+    type IngestTechnicalKeyConfig = {
+      fieldName?: string;
+      sourceMode?: 'UUID' | 'SNOWFLAKE' | 'PRIMARY_KEYS' | 'CUSTOM_FIELDS';
+      sourceFields?: string[];
+      includeTableName?: boolean;
+    };
+
+    type IngestManagedCustomField = {
+      fieldName?: string;
+      valueType?: 'FIXED_VALUE' | 'CURRENT_TIME' | 'JOB_ID' | 'INSTANCE_ID' | 'SOURCE_TABLE_NAME';
+      fixedValue?: string;
+    };
+
+    type IngestManagedFieldsConfig = {
+      customFields?: IngestManagedCustomField[];
+      technicalKey?: IngestTechnicalKeyConfig;
     };
 
     type IngestJobInstanceSearchParams = CommonType.RecordNullable<

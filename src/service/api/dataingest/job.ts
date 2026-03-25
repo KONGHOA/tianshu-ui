@@ -61,3 +61,12 @@ export function fetchDiscoverTables(params: {
 }) {
   return request<string[]>({ url: '/dataingest/job/discoverTables', method: 'post', data: params });
 }
+
+/** 获取 Sink 能力 */
+export function fetchGetIngestSinkCapabilities(datasourceId: CommonType.IdType, pluginType: string) {
+  return request<Api.Dataingest.IngestSinkCapability>({
+    url: '/dataingest/sink/capabilities',
+    method: 'get',
+    params: { datasourceId, pluginType }
+  });
+}

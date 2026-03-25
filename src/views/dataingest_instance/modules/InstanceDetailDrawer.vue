@@ -324,6 +324,42 @@ async function copyToClipboard(text: string | undefined, label: string) {
               </NDescriptions>
             </NCard>
 
+            <NCard
+              title="增量执行信息"
+              :bordered="false"
+              size="small"
+              class="rounded-16px bg-gray-50/50 dark:bg-white/5"
+            >
+              <NDescriptions label-placement="left" :column="3" size="small" label-class="op-60">
+                <NDescriptionsItem label="执行模式">
+                  <NTag :type="detail.incremental ? 'info' : 'default'" size="small" round quaternary>
+                    {{ detail.incremental ? '增量' : '全量' }}
+                  </NTag>
+                </NDescriptionsItem>
+                <NDescriptionsItem label="增量列">
+                  <span class="text-13px font-mono">{{ detail.incremental ? detail.incrementalColumn || '未配置' : '-' }}</span>
+                </NDescriptionsItem>
+                <NDescriptionsItem label="本次水位区间">
+                  <span class="text-13px font-mono">{{ detail.incremental ? detail.incrementalRangeText || '未记录' : '-' }}</span>
+                </NDescriptionsItem>
+                <NDescriptionsItem label="起始水位">
+                  <span class="text-13px font-mono">
+                    {{ detail.incremental ? detail.incrementalStartValue || '未记录' : '-' }}
+                  </span>
+                </NDescriptionsItem>
+                <NDescriptionsItem label="结束水位">
+                  <span class="text-13px font-mono">
+                    {{ detail.incremental ? detail.incrementalUpperBound || '未记录' : '-' }}
+                  </span>
+                </NDescriptionsItem>
+                <NDescriptionsItem label="水位状态">
+                  <NTag :type="detail.incrementalUpperBound ? 'success' : 'default'" size="small" round quaternary>
+                    {{ detail.incremental ? (detail.incrementalUpperBound ? '区间已记录' : '区间未记录') : '非增量实例' }}
+                  </NTag>
+                </NDescriptionsItem>
+              </NDescriptions>
+            </NCard>
+
             <!-- 配置与快照 -->
             <div class="border border-gray-100 rounded-16px bg-gray-50/50 p-16px dark:border-white/10 dark:bg-white/5">
               <NTabs type="segment" animated>

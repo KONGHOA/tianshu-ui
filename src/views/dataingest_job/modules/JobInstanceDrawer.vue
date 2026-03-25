@@ -96,6 +96,36 @@ const columns = [
     render: (row: Api.Dataingest.IngestJobInstance) => row.writeRowCount ?? '-'
   },
   {
+    key: 'incrementalColumn',
+    title: '增量列',
+    align: 'center' as const,
+    width: 120,
+    render: (row: Api.Dataingest.IngestJobInstance) =>
+      row.incremental ? (
+        <NTag size="small" type="info" round bordered={false}>
+          <span class="font-mono">{row.incrementalColumn || '未配置'}</span>
+        </NTag>
+      ) : (
+        '-'
+      )
+  },
+  {
+    key: 'incrementalRangeText',
+    title: '本次水位区间',
+    align: 'center' as const,
+    width: 260,
+    render: (row: Api.Dataingest.IngestJobInstance) =>
+      row.incremental ? (
+        <div class="text-left text-12px leading-18px">
+          <div class="font-mono">{row.incrementalStartValue || '起始未记录'}</div>
+          <div class="op-50">至</div>
+          <div class="font-mono">{row.incrementalUpperBound || '结束未记录'}</div>
+        </div>
+      ) : (
+        '-'
+      )
+  },
+  {
     key: 'operate',
     title: '操作',
     align: 'center' as const,
@@ -197,7 +227,7 @@ async function handleCancel(instanceId: CommonType.IdType) {
 </script>
 
 <template>
-  <NDrawer v-model:show="visible" :width="880" display-directive="show" class="max-w-95%">
+  <NDrawer v-model:show="visible" :width="1180" display-directive="show" class="max-w-95%">
     <NDrawerContent :native-scrollbar="false" closable>
       <template #header>
         <span>执行历史</span>

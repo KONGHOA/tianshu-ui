@@ -112,6 +112,7 @@ function persistNode() {
           v-else-if="props.nodeData.taskType === 'SINK'"
           :key="panelKey"
           :config="config"
+          :plugin-type="props.nodeData.pluginType"
           :datasource-options="datasourceOptions"
         />
         <TransformConfigPanel v-else :key="panelKey" :config="config" :plugin-type="props.nodeData.pluginType" />
