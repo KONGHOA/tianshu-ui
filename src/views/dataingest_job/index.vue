@@ -1,6 +1,6 @@
 <script setup lang="tsx">
 import { ref } from 'vue';
-import { NCard, NDataTable, NDropdown, NTag } from 'naive-ui';
+import { NCard, NDataTable, NDrawer, NDrawerContent, NDropdown, NTag } from 'naive-ui';
 import { fetchBatchDeleteIngestJob, fetchExecuteJob, fetchGetIngestJobList } from '@/service/api/dataingest';
 import { useAppStore } from '@/store/modules/app';
 import { useAuth } from '@/hooks/business/auth';
@@ -218,8 +218,14 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
 const { drawerVisible, operateType, editingData, handleEdit, checkedRowKeys, onBatchDeleted, onDeleted } =
   useTableOperate(data, 'jobId', getData);
 
+const searchDrawerVisible = ref(false);
 const currentSyncMode = ref<'SINGLE' | 'WHOLE_DATABASE'>('SINGLE');
 const wholeDbDrawerVisible = ref(false);
+
+function handleSearch() {
+  getDataByPage();
+  searchDrawerVisible.value = false;
+}
 
 const addOptions = [
   { label: '单表同步', key: 'SINGLE' },
@@ -276,8 +282,6 @@ async function handleExecute(jobId: CommonType.IdType) {
 
 <template>
   <div class="relative h-full flex-col-stretch gap-12px overflow-hidden lt-sm:overflow-auto">
-    <JobSearch v-model:model="searchParams" @reset="getDataByPage" @search="getDataByPage" />
-
     <NCard title="接入作业列表" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
       <template #header-extra>
         <TableHeaderOperation
@@ -299,6 +303,14 @@ async function handleExecute(jobId: CommonType.IdType) {
                 新增作业
               </NButton>
             </NDropdown>
+          </template>
+          <template #after>
+            <NButton size="small" @click="searchDrawerVisible = true">
+              <template #icon>
+                <icon-material-symbols-filter-alt-outline class="text-icon" />
+              </template>
+              筛选
+            </NButton>
           </template>
         </TableHeaderOperation>
       </template>
@@ -330,6 +342,11 @@ async function handleExecute(jobId: CommonType.IdType) {
       @submitted="getData"
     />
     <JobInstanceDrawer v-model:visible="instanceDrawerVisible" :job-id="instanceJobId" :job-name="instanceJobName" />
+    <NDrawer v-model:show="searchDrawerVisible" :width="360" display-directive="show">
+      <NDrawerContent title="筛选条件" :native-scrollbar="false" closable>
+        <JobSearch v-model:model="searchParams" @reset="getDataByPage" @search="handleSearch" />
+      </NDrawerContent>
+    </NDrawer>
   </div>
 </template>
 

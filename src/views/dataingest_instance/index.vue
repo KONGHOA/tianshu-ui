@@ -1,6 +1,6 @@
 <script setup lang="tsx">
 import { ref } from 'vue';
-import { NCard, NDataTable, NTag } from 'naive-ui';
+import { NCard, NDataTable, NDrawer, NDrawerContent, NTag } from 'naive-ui';
 import { fetchCancelJobInstance, fetchGetJobInstanceList, fetchSyncInstanceStatus } from '@/service/api/dataingest';
 import { useAppStore } from '@/store/modules/app';
 import { useAuth } from '@/hooks/business/auth';
@@ -29,6 +29,12 @@ const searchParams = ref<Api.Dataingest.IngestJobInstanceSearchParams>({
 
 const detailVisible = ref(false);
 const currentInstanceId = ref<CommonType.IdType | null>(null);
+const searchDrawerVisible = ref(false);
+
+function handleSearch() {
+  getDataByPage();
+  searchDrawerVisible.value = false;
+}
 
 type JobStatus = Api.Dataingest.IngestJobInstance['jobStatus'];
 
@@ -234,8 +240,7 @@ function handleDetail(instanceId: CommonType.IdType) {
 </script>
 
 <template>
-  <div class="h-full flex-col-stretch gap-12px overflow-hidden lt-sm:overflow-auto">
-    <InstanceSearch v-model:model="searchParams" @reset="getDataByPage" @search="getDataByPage" />
+  <div class="relative h-full flex-col-stretch gap-12px overflow-hidden lt-sm:overflow-auto">
     <NCard title="执行历史" :bordered="false" size="small" class="card-wrapper sm:flex-1-hidden">
       <template #header-extra>
         <TableHeaderOperation
@@ -246,7 +251,16 @@ function handleDetail(instanceId: CommonType.IdType) {
           :show-delete="false"
           :show-export="false"
           @refresh="getData"
-        />
+        >
+          <template #after>
+            <NButton size="small" @click="searchDrawerVisible = true">
+              <template #icon>
+                <icon-material-symbols-filter-alt-outline class="text-icon" />
+              </template>
+              筛选
+            </NButton>
+          </template>
+        </TableHeaderOperation>
       </template>
       <NDataTable
         :columns="columns"
@@ -262,6 +276,11 @@ function handleDetail(instanceId: CommonType.IdType) {
       />
     </NCard>
     <InstanceDetailDrawer v-model:visible="detailVisible" :instance-id="currentInstanceId" />
+    <NDrawer v-model:show="searchDrawerVisible" :width="360" display-directive="show">
+      <NDrawerContent title="筛选条件" :native-scrollbar="false" closable>
+        <InstanceSearch v-model:model="searchParams" @reset="getDataByPage" @search="handleSearch" />
+      </NDrawerContent>
+    </NDrawer>
   </div>
 </template>
 

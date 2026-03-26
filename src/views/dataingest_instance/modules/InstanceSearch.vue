@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NButton, NCard, NFormItem, NGrid, NGridItem, NInput, NSelect } from 'naive-ui';
+import { NButton, NFormItem, NInput, NSelect } from 'naive-ui';
 
 defineOptions({
   name: 'InstanceSearch'
@@ -39,32 +39,31 @@ function reset() {
 </script>
 
 <template>
-  <NCard :bordered="false" size="small" class="card-wrapper">
-    <NGrid :x-gap="12" :y-gap="8" :cols="24" responsive="screen" :item-responsive="true">
-      <NGridItem span="24 s:12 m:8">
-        <NFormItem label="作业ID" label-placement="left" :label-width="80">
-          <NInput v-model:value="model.jobId" placeholder="请输入作业ID" clearable />
-        </NFormItem>
-      </NGridItem>
-      <NGridItem span="24 s:12 m:8">
-        <NFormItem label="执行状态" label-placement="left" :label-width="80">
-          <NSelect v-model:value="model.jobStatus" :options="statusOptions" placeholder="请选择状态" clearable />
-        </NFormItem>
-      </NGridItem>
-      <NGridItem span="24 s:12 m:8">
-        <NFormItem label="触发方式" label-placement="left" :label-width="80">
-          <NSelect
-            v-model:value="model.triggerType"
-            :options="triggerTypeOptions"
-            placeholder="请选择触发方式"
-            clearable
-          />
-        </NFormItem>
-      </NGridItem>
-    </NGrid>
-    <div class="flex items-center justify-end gap-12px">
+  <div class="flex-col gap-16px pt-8px">
+    <NFormItem label="作业ID" label-placement="left" :label-width="80">
+      <NInput v-model:value="model.jobId" placeholder="请输入作业ID" clearable @keydown.enter="emit('search')" />
+    </NFormItem>
+    <NFormItem label="执行状态" label-placement="left" :label-width="80">
+      <NSelect
+        v-model:value="model.jobStatus"
+        :options="statusOptions"
+        placeholder="请选择状态"
+        clearable
+        @update:value="emit('search')"
+      />
+    </NFormItem>
+    <NFormItem label="触发方式" label-placement="left" :label-width="80">
+      <NSelect
+        v-model:value="model.triggerType"
+        :options="triggerTypeOptions"
+        placeholder="请选择触发方式"
+        clearable
+        @update:value="emit('search')"
+      />
+    </NFormItem>
+    <div class="mt-8px flex items-center justify-end gap-12px">
       <NButton @click="reset">重置</NButton>
       <NButton type="primary" @click="emit('search')">查询</NButton>
     </div>
-  </NCard>
+  </div>
 </template>
