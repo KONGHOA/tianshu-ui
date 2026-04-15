@@ -45,6 +45,13 @@ declare module "@elegant-router/types" {
     "monitor_online": "/monitor/online";
     "monitor_operlog": "/monitor/operlog";
     "social-callback": "/social-callback";
+    "standard": "/standard";
+    "standard_code-set": "/standard/code-set";
+    "standard_element": "/standard/element";
+    "standard_item": "/standard/item";
+    "standard_item-mapping": "/standard/item-mapping";
+    "standard_qualifier": "/standard/qualifier";
+    "standard_reviewer-config": "/standard/reviewer-config";
     "system": "/system";
     "system_client": "/system/client";
     "system_config": "/system/config";
@@ -109,6 +116,7 @@ declare module "@elegant-router/types" {
     | "metadata"
     | "monitor"
     | "social-callback"
+    | "standard"
     | "system"
     | "tool"
     | "user-center"
@@ -150,6 +158,12 @@ declare module "@elegant-router/types" {
     | "monitor_logininfor"
     | "monitor_online"
     | "monitor_operlog"
+    | "standard_code-set"
+    | "standard_element"
+    | "standard_item-mapping"
+    | "standard_item"
+    | "standard_qualifier"
+    | "standard_reviewer-config"
     | "system_client"
     | "system_config"
     | "system_dept"

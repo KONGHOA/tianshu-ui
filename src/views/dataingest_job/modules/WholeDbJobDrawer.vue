@@ -242,6 +242,33 @@ async function loadDatasources() {
   }
 }
 
+async function hydrateFromSinkTask(sinkTask: Api.Dataingest.IngestJobTask) {
+  targetModel.value = {
+    datasourceId: sinkTask.datasourceId ?? null,
+    databaseName: sinkTask.databaseName ?? '',
+    schemaName: sinkTask.schemaName ?? ''
+  };
+  sinkStrategyModel.value = {
+    schemaSaveMode: sinkTask.schemaSaveMode ?? 'CREATE_SCHEMA_WHEN_NOT_EXIST',
+    dataSaveMode: sinkTask.dataSaveMode ?? 'APPEND_DATA',
+    writeMode: sinkTask.writeMode ?? 'APPEND'
+  };
+  const nodeConfig = parseNodeConfig(sinkTask.nodeConfig);
+  const managedFields = nodeConfig.managedFields ?? {};
+  managedFieldsModel.value = {
+    customFields: normalizeManagedCustomFields(managedFields),
+    technicalKey: {
+      fieldName: managedFields.technicalKey?.fieldName ?? '',
+      sourceMode: managedFields.technicalKey?.sourceMode ?? 'PRIMARY_KEYS',
+      sourceFields: Array.isArray(managedFields.technicalKey?.sourceFields)
+        ? managedFields.technicalKey.sourceFields.map((item: unknown) => String(item))
+        : [],
+      includeTableName: managedFields.technicalKey?.includeTableName ?? true
+    }
+  };
+  await loadSinkCapabilities(sinkTask.datasourceId ?? null);
+}
+
 async function loadEditDetail() {
   if (!(props.operateType === 'edit' && props.rowData?.jobId)) return;
 
@@ -271,30 +298,7 @@ async function loadEditDetail() {
       };
     }
     if (sinkTask) {
-      targetModel.value = {
-        datasourceId: sinkTask.datasourceId ?? null,
-        databaseName: sinkTask.databaseName ?? '',
-        schemaName: sinkTask.schemaName ?? ''
-      };
-      sinkStrategyModel.value = {
-        schemaSaveMode: sinkTask.schemaSaveMode ?? 'CREATE_SCHEMA_WHEN_NOT_EXIST',
-        dataSaveMode: sinkTask.dataSaveMode ?? 'APPEND_DATA',
-        writeMode: sinkTask.writeMode ?? 'APPEND'
-      };
-      const nodeConfig = parseNodeConfig(sinkTask.nodeConfig);
-      const managedFields = nodeConfig.managedFields ?? {};
-      managedFieldsModel.value = {
-        customFields: normalizeManagedCustomFields(managedFields),
-        technicalKey: {
-          fieldName: managedFields.technicalKey?.fieldName ?? '',
-          sourceMode: managedFields.technicalKey?.sourceMode ?? 'PRIMARY_KEYS',
-          sourceFields: Array.isArray(managedFields.technicalKey?.sourceFields)
-            ? managedFields.technicalKey.sourceFields.map((item: unknown) => String(item))
-            : [],
-          includeTableName: managedFields.technicalKey?.includeTableName ?? true
-        }
-      };
-      await loadSinkCapabilities(sinkTask.datasourceId ?? null);
+      await hydrateFromSinkTask(sinkTask);
     }
   }
 
@@ -406,21 +410,7 @@ watch(
   }
 );
 
-async function handleSubmit() {
-  if (!jobModel.value.jobName?.trim()) {
-    window.$message?.warning('请输入作业名称');
-    return;
-  }
-  if (!sourceModel.value.datasourceId || !targetModel.value.datasourceId) {
-    window.$message?.warning('请选择源端和目标端数据源');
-    return;
-  }
-  if (!tableConfigs.value.length) {
-    window.$message?.warning('请生成并勾选需要同步的表');
-    return;
-  }
-
-  // Generate required tasks and lines explicitly for backend compatibility
+function buildSubmitPayload(): Api.Dataingest.IngestJobWithTasksParams {
   const sourceTaskId =
     props.operateType === 'edit' ? loadedTasks.value.find(t => t.taskType === 'SOURCE')?.taskId : undefined;
   const sinkTaskId =
@@ -437,7 +427,7 @@ async function handleSubmit() {
       nodeName: '源数据库',
       taskType: 'SOURCE',
       pluginType: 'JDBC',
-      datasourceId: sourceModel.value.datasourceId,
+      datasourceId: sourceModel.value.datasourceId ?? undefined,
       databaseName: sourceModel.value.databaseName,
       schemaName: sourceModel.value.schemaName,
       posX: 100,
@@ -449,7 +439,7 @@ async function handleSubmit() {
       nodeName: '目标数据库',
       taskType: 'SINK',
       pluginType: 'JDBC',
-      datasourceId: targetModel.value.datasourceId,
+      datasourceId: targetModel.value.datasourceId ?? undefined,
       databaseName: targetModel.value.databaseName,
       schemaName: targetModel.value.schemaName,
       schemaSaveMode: sinkStrategyModel.value.schemaSaveMode,
@@ -469,13 +459,29 @@ async function handleSubmit() {
     }
   ];
 
-  const payload: Api.Dataingest.IngestJobWithTasksParams = {
+  return {
     job: { ...jobModel.value },
     tasks,
     lines,
     tableConfigs: tableConfigs.value
   };
+}
 
+async function handleSubmit() {
+  if (!jobModel.value.jobName?.trim()) {
+    window.$message?.warning('请输入作业名称');
+    return;
+  }
+  if (!sourceModel.value.datasourceId || !targetModel.value.datasourceId) {
+    window.$message?.warning('请选择源端和目标端数据源');
+    return;
+  }
+  if (!tableConfigs.value.length) {
+    window.$message?.warning('请生成并勾选需要同步的表');
+    return;
+  }
+
+  const payload = buildSubmitPayload();
   saveLoading.value = true;
   const request = props.operateType === 'add' ? fetchCreateIngestJob(payload) : fetchUpdateIngestJob(payload);
   const { error } = await request;

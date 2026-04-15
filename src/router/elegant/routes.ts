@@ -252,6 +252,73 @@ export const generatedRoutes: GeneratedRoute[] = [
     }
   },
   {
+    name: 'standard',
+    path: '/standard',
+    component: 'layout.base',
+    meta: {
+      title: 'standard',
+      i18nKey: 'route.standard'
+    },
+    children: [
+      {
+        name: 'standard_code-set',
+        path: '/standard/code-set',
+        component: 'view.standard_code-set',
+        meta: {
+          title: 'standard_code-set',
+          i18nKey: 'route.standard_code-set'
+        }
+      },
+      {
+        name: 'standard_element',
+        path: '/standard/element',
+        component: 'view.standard_element',
+        meta: {
+          title: 'standard_element',
+          i18nKey: 'route.standard_element'
+        }
+      },
+      {
+        name: 'standard_item',
+        path: '/standard/item',
+        component: 'view.standard_item',
+        meta: {
+          title: 'standard_item',
+          i18nKey: 'route.standard_item'
+        }
+      },
+      {
+        name: 'standard_item-mapping',
+        path: '/standard/item-mapping',
+        component: 'view.standard_item-mapping',
+        meta: {
+          title: 'standard_item-mapping',
+          i18nKey: 'route.standard_item-mapping',
+          hideInMenu: true,
+          activeMenu: 'standard_item'
+        }
+      },
+      {
+        name: 'standard_qualifier',
+        path: '/standard/qualifier',
+        component: 'view.standard_qualifier',
+        meta: {
+          title: 'standard_qualifier',
+          i18nKey: 'route.standard_qualifier'
+        }
+      },
+      {
+        name: 'standard_reviewer-config',
+        path: '/standard/reviewer-config',
+        component: 'view.standard_reviewer-config',
+        meta: {
+          title: 'standard_reviewer-config',
+          i18nKey: 'route.standard_reviewer-config'
+        }
+      }
+    ]
+  },
+  {
     name: 'system',
     path: '/system',
     component: 'layout.base',

@@ -117,6 +117,434 @@ declare namespace Api {
       sortNum?: number;
     };
 
+    type StdQualifierRef = {
+      qualifierId: CommonType.IdType;
+      qualifierName: string;
+      qualifierSymbol: string;
+      sortNum?: number | null;
+    };
+
+    type StdDataItem = Common.CommonRecord<{
+      itemId: CommonType.IdType;
+      itemName: string;
+      itemIdentifier: string;
+      dataElementId: CommonType.IdType;
+      qualifierSignature?: string;
+      sourceType?: string;
+      mappingStatus?: string;
+      referenceCount?: number;
+      baseItemType?: string;
+      standardCategory?: string;
+      standardNumber?: string;
+      standardName?: string;
+      standardStatus?: string;
+      description?: string;
+      dataElementName?: string;
+      dataElementSymbol?: string;
+      qualifiers?: StdQualifierRef[];
+      remark?: string;
+    }>;
+
+    type StdDataItemSearchParams = CommonType.RecordNullable<
+      Pick<StdDataItem, 'itemName' | 'itemIdentifier' | 'dataElementId' | 'sourceType' | 'mappingStatus'> &
+        Api.Common.CommonSearchParams
+    >;
+
+    type StdDataItemOperateParams = CommonType.RecordNullable<
+      Pick<
+        StdDataItem,
+        | 'itemId'
+        | 'itemName'
+        | 'itemIdentifier'
+        | 'dataElementId'
+        | 'description'
+        | 'baseItemType'
+        | 'sourceType'
+        | 'mappingStatus'
+        | 'standardCategory'
+        | 'standardNumber'
+        | 'standardName'
+        | 'standardStatus'
+        | 'remark'
+        | 'dataElementName'
+        | 'dataElementSymbol'
+        | 'qualifiers'
+      >
+    >;
+
+    type StdDataItemPreviewParams = {
+      dataElementId: CommonType.IdType;
+      dataElementName: string;
+      dataElementSymbol: string;
+      qualifiers?: StdQualifierRef[];
+    };
+
+    type StdDataItemPreview = {
+      itemName: string;
+      itemIdentifier: string;
+      qualifierSignature: string;
+    };
+
+    type StdDataItemList = Common.PaginatingQueryRecord<StdDataItem>;
+
+    type StdDataItemMapping = Common.CommonRecord<{
+      mappingId: CommonType.IdType;
+      datasourceId?: CommonType.IdType;
+      databaseName?: string;
+      schemaName?: string;
+      tableName: string;
+      columnName: string;
+      columnComment?: string;
+      entityUuid?: string;
+      attributeUuid?: string;
+      itemId: CommonType.IdType;
+      dataElementId: CommonType.IdType;
+      mappingBasis?: string;
+      mappingConfidence?: number;
+      status?: string;
+      mappedTime?: string;
+    }>;
+
+    type StdDataItemMappingSearchParams = CommonType.RecordNullable<
+      Pick<StdDataItemMapping, 'datasourceId' | 'tableName' | 'columnName' | 'itemId' | 'status'> &
+        Api.Common.CommonSearchParams
+    >;
+
+    type StdDataItemMappingOperateParams = CommonType.RecordNullable<
+      Pick<
+        StdDataItemMapping,
+        | 'mappingId'
+        | 'datasourceId'
+        | 'databaseName'
+        | 'schemaName'
+        | 'tableName'
+        | 'columnName'
+        | 'columnComment'
+        | 'entityUuid'
+        | 'attributeUuid'
+        | 'itemId'
+        | 'dataElementId'
+        | 'mappingBasis'
+        | 'mappingConfidence'
+        | 'status'
+      >
+    >;
+
+    type StdDataItemMappingRecommendParams = {
+      datasourceId?: CommonType.IdType;
+      databaseName?: string;
+      schemaName?: string;
+      tableName: string;
+      columnName: string;
+      columnComment?: string;
+    };
+
+    type StdMappingRecommend = {
+      itemId?: CommonType.IdType;
+      dataElementId?: CommonType.IdType;
+      itemName?: string;
+      itemIdentifier?: string;
+      mappingBasis?: string;
+      mappingConfidence?: number;
+    };
+
+    type StdDataItemMappingList = Common.PaginatingQueryRecord<StdDataItemMapping>;
+
+    type StdCodeItem = Common.CommonRecord<{
+      codeItemId: CommonType.IdType;
+      codeSetId: CommonType.IdType;
+      codeValue: string;
+      codeName: string;
+      description?: string;
+      sortNum?: number;
+      enabledFlag?: string;
+    }>;
+
+    type StdCodeSet = Common.CommonRecord<{
+      codeSetId: CommonType.IdType;
+      codeSetCode: string;
+      codeSetName: string;
+      description?: string;
+      version?: string;
+      source?: string;
+      codeCount?: number;
+      publishStatus?: string;
+      standardCategory?: string;
+      standardNumber?: string;
+      standardName?: string;
+      standardStatus?: string;
+      remark?: string;
+      items?: StdCodeItem[];
+    }>;
+
+    type StdCodeSetSearchParams = CommonType.RecordNullable<
+      Pick<StdCodeSet, 'codeSetCode' | 'codeSetName' | 'publishStatus'> & Api.Common.CommonSearchParams
+    >;
+
+    type StdCodeSetOperateParams = CommonType.RecordNullable<
+      Pick<
+        StdCodeSet,
+        | 'codeSetId'
+        | 'codeSetCode'
+        | 'codeSetName'
+        | 'description'
+        | 'version'
+        | 'source'
+        | 'publishStatus'
+        | 'standardCategory'
+        | 'standardNumber'
+        | 'standardName'
+        | 'standardStatus'
+        | 'remark'
+        | 'items'
+      >
+    >;
+
+    type StdCodeItemOperateParams = CommonType.RecordNullable<
+      Pick<
+        StdCodeItem,
+        'codeItemId' | 'codeSetId' | 'codeValue' | 'codeName' | 'description' | 'sortNum' | 'enabledFlag'
+      >
+    >;
+
+    type StdCodeSetList = Common.PaginatingQueryRecord<StdCodeSet>;
+
+    type StdDataElement = Common.CommonRecord<{
+      dataElementId: CommonType.IdType;
+      bizId: string;
+      dataElementType?: string;
+      internalIdentifier: string;
+      chineseName: string;
+      englishName?: string;
+      pinyinName?: string;
+      keywordFieldName?: string;
+      publishedName?: string;
+      language?: string;
+      symbol?: string;
+      context?: string;
+      version?: string;
+      synonym?: string;
+      definition?: string;
+      objectTerm?: string;
+      featureTerm?: string;
+      applicationConstraint?: string;
+      applicationContext?: string;
+      classificationScheme?: string;
+      classificationValue?: string;
+      relationship?: string;
+      relationshipDescription?: string;
+      representationTerm?: string;
+      dataType?: string;
+      dataFormat?: string;
+      normalizedIdentifier?: string;
+      codeSetId?: CommonType.IdType;
+      codeSetCode?: string;
+      codeSetName?: string;
+      valueRange?: string;
+      measurementUnit?: string;
+      fusionUnitType?: string;
+      fusionUnitCode?: string;
+      lifecycleStatus?: string;
+      submissionOrg?: string;
+      registrationOrg?: string;
+      responsiblePerson?: string;
+      approvalDate?: string;
+      standardCategory?: string;
+      standardNumber?: string;
+      standardName?: string;
+      standardStatus?: string;
+      description?: string;
+      remark?: string;
+    }>;
+
+    type StdDataElementSearchParams = CommonType.RecordNullable<
+      Pick<StdDataElement, 'chineseName' | 'internalIdentifier' | 'symbol' | 'lifecycleStatus' | 'standardCategory'> &
+        Api.Common.CommonSearchParams
+    >;
+
+    type StdDataElementOperateParams = CommonType.RecordNullable<
+      Pick<
+        StdDataElement,
+        | 'dataElementId'
+        | 'bizId'
+        | 'dataElementType'
+        | 'internalIdentifier'
+        | 'chineseName'
+        | 'englishName'
+        | 'pinyinName'
+        | 'keywordFieldName'
+        | 'publishedName'
+        | 'language'
+        | 'symbol'
+        | 'context'
+        | 'version'
+        | 'synonym'
+        | 'definition'
+        | 'objectTerm'
+        | 'featureTerm'
+        | 'applicationConstraint'
+        | 'applicationContext'
+        | 'classificationScheme'
+        | 'classificationValue'
+        | 'relationship'
+        | 'relationshipDescription'
+        | 'representationTerm'
+        | 'dataType'
+        | 'dataFormat'
+        | 'normalizedIdentifier'
+        | 'codeSetId'
+        | 'codeSetCode'
+        | 'codeSetName'
+        | 'valueRange'
+        | 'measurementUnit'
+        | 'fusionUnitType'
+        | 'fusionUnitCode'
+        | 'lifecycleStatus'
+        | 'submissionOrg'
+        | 'registrationOrg'
+        | 'responsiblePerson'
+        | 'approvalDate'
+        | 'standardCategory'
+        | 'standardNumber'
+        | 'standardName'
+        | 'standardStatus'
+        | 'description'
+        | 'remark'
+      >
+    >;
+
+    type StdDataElementVersion = Common.CommonRecord<{
+      versionId: CommonType.IdType;
+      bizId: string;
+      versionNo: string;
+      actionType: string;
+      chineseName: string;
+      symbol: string;
+      lifecycleStatus: string;
+      isCurrent: string;
+    }>;
+
+    type StdDataElementList = Common.PaginatingQueryRecord<StdDataElement>;
+
+    type StdSubmitParams = CommonType.RecordNullable<{
+      id: CommonType.IdType;
+      bizId: string;
+      flowCode: string;
+      submitReason?: string;
+    }>;
+
+    type StdReviewerConfig = Common.CommonRecord<{
+      reviewerConfigId: CommonType.IdType;
+      businessType: string;
+      actionType: string;
+      flowCode: string;
+      stageCode: string;
+      stageName: string;
+      roleId?: CommonType.IdType;
+      roleName?: string;
+      userId?: CommonType.IdType;
+      userName?: string;
+      sortNum?: number;
+      enabledFlag?: string;
+      remark?: string;
+    }>;
+
+    type StdReviewerConfigSearchParams = CommonType.RecordNullable<
+      Pick<StdReviewerConfig, 'businessType' | 'actionType' | 'flowCode' | 'stageCode' | 'enabledFlag'> &
+        Api.Common.CommonSearchParams
+    >;
+
+    type StdReviewerConfigOperateParams = CommonType.RecordNullable<
+      Pick<
+        StdReviewerConfig,
+        | 'reviewerConfigId'
+        | 'businessType'
+        | 'actionType'
+        | 'flowCode'
+        | 'stageCode'
+        | 'stageName'
+        | 'roleId'
+        | 'roleName'
+        | 'userId'
+        | 'userName'
+        | 'sortNum'
+        | 'enabledFlag'
+        | 'remark'
+      >
+    >;
+
+    type StdReviewerConfigList = Common.PaginatingQueryRecord<StdReviewerConfig>;
+
+    type StdQualifier = Common.CommonRecord<{
+      qualifierId: CommonType.IdType;
+      bizId: string;
+      internalIdentifier: string;
+      qualifierName: string;
+      englishName?: string;
+      pinyinName?: string;
+      qualifierSymbol?: string;
+      description?: string;
+      context?: string;
+      version?: string;
+      lifecycleStatus?: string;
+      submissionOrg?: string;
+      registrationOrg?: string;
+      responsiblePerson?: string;
+      approvalDate?: string;
+      standardCategory?: string;
+      standardNumber?: string;
+      standardName?: string;
+      standardStatus?: string;
+      remark?: string;
+    }>;
+
+    type StdQualifierSearchParams = CommonType.RecordNullable<
+      Pick<
+        StdQualifier,
+        'qualifierName' | 'internalIdentifier' | 'qualifierSymbol' | 'lifecycleStatus' | 'standardCategory'
+      > &
+        Api.Common.CommonSearchParams
+    >;
+
+    type StdQualifierOperateParams = CommonType.RecordNullable<
+      Pick<
+        StdQualifier,
+        | 'qualifierId'
+        | 'bizId'
+        | 'internalIdentifier'
+        | 'qualifierName'
+        | 'englishName'
+        | 'pinyinName'
+        | 'qualifierSymbol'
+        | 'description'
+        | 'context'
+        | 'version'
+        | 'lifecycleStatus'
+        | 'submissionOrg'
+        | 'registrationOrg'
+        | 'responsiblePerson'
+        | 'approvalDate'
+        | 'standardCategory'
+        | 'standardNumber'
+        | 'standardName'
+        | 'standardStatus'
+        | 'remark'
+      >
+    >;
+
+    type StdQualifierVersion = Common.CommonRecord<{
+      versionId: CommonType.IdType;
+      bizId: string;
+      versionNo: string;
+      actionType: string;
+      qualifierName: string;
+      qualifierSymbol: string;
+      lifecycleStatus: string;
+      isCurrent: string;
+    }>;
+
+    type StdQualifierList = Common.PaginatingQueryRecord<StdQualifier>;
+
     /** 元数据实体实例 */
     type EntityInstance = Common.CommonRecord<{
       instanceId: CommonType.IdType;

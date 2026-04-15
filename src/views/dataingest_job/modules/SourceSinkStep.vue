@@ -42,28 +42,28 @@ const {
   handleChange: handleSchemaSaveModeChange,
   confirm: confirmSchemaSaveMode,
   cancel: cancelSchemaSaveMode
-} = useSaveModeConfirm(
-  () => props.sinkModel.schemaSaveMode,
-  v => {
+} = useSaveModeConfirm({
+  getter: () => props.sinkModel.schemaSaveMode,
+  setter: v => {
     props.sinkModel.schemaSaveMode = v;
   },
-  'RECREATE_SCHEMA',
-  'CREATE_SCHEMA_WHEN_NOT_EXIST'
-);
+  dangerousValue: 'RECREATE_SCHEMA',
+  defaultValue: 'CREATE_SCHEMA_WHEN_NOT_EXIST'
+});
 
 const {
   show: showDataConfirm,
   handleChange: handleDataSaveModeChange,
   confirm: confirmDataSaveMode,
   cancel: cancelDataSaveMode
-} = useSaveModeConfirm(
-  () => props.sinkModel.dataSaveMode,
-  v => {
+} = useSaveModeConfirm({
+  getter: () => props.sinkModel.dataSaveMode,
+  setter: v => {
     props.sinkModel.dataSaveMode = v;
   },
-  'DROP_DATA',
-  'APPEND_DATA'
-);
+  dangerousValue: 'DROP_DATA',
+  defaultValue: 'APPEND_DATA'
+});
 
 interface Emits {
   (e: 'sourceDatasourceChange', value: CommonType.IdType | null): void;

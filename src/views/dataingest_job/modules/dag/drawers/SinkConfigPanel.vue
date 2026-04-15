@@ -58,28 +58,28 @@ const {
   handleChange: handleSchemaSaveModeChange,
   confirm: confirmSchemaSaveMode,
   cancel: cancelSchemaSaveMode
-} = useSaveModeConfirm(
-  () => props.config.schemaSaveMode,
-  v => {
+} = useSaveModeConfirm({
+  getter: () => props.config.schemaSaveMode,
+  setter: v => {
     props.config.schemaSaveMode = v;
   },
-  'RECREATE_SCHEMA',
-  'CREATE_SCHEMA_WHEN_NOT_EXIST'
-);
+  dangerousValue: 'RECREATE_SCHEMA',
+  defaultValue: 'CREATE_SCHEMA_WHEN_NOT_EXIST'
+});
 
 const {
   show: showDataConfirm,
   handleChange: handleDataSaveModeChange,
   confirm: confirmDataSaveMode,
   cancel: cancelDataSaveMode
-} = useSaveModeConfirm(
-  () => props.config.dataSaveMode,
-  v => {
+} = useSaveModeConfirm({
+  getter: () => props.config.dataSaveMode,
+  setter: v => {
     props.config.dataSaveMode = v;
   },
-  'DROP_DATA',
-  'APPEND_DATA'
-);
+  dangerousValue: 'DROP_DATA',
+  defaultValue: 'APPEND_DATA'
+});
 const managedFieldModeOptions = [
   { label: 'UUID', value: 'UUID' },
   { label: '雪花ID', value: 'SNOWFLAKE' },
@@ -350,7 +350,6 @@ async function hydrateFromConfig() {
   props.config.writeMode = savedWriteMode;
   props.config.schemaSaveMode = savedSchemaSaveMode;
   props.config.dataSaveMode = savedDataSaveMode;
-  props.config.nodeConfig = props.config.nodeConfig;
   ensurePrimaryKeys();
   hydrateManagedFields();
   if (props.config.datasourceId) {

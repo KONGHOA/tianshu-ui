@@ -31,11 +31,6 @@ const detailVisible = ref(false);
 const currentInstanceId = ref<CommonType.IdType | null>(null);
 const searchDrawerVisible = ref(false);
 
-function handleSearch() {
-  getDataByPage();
-  searchDrawerVisible.value = false;
-}
-
 type JobStatus = Api.Dataingest.IngestJobInstance['jobStatus'];
 
 const STATUS_CONFIG: Record<JobStatus, { label: string; type: 'default' | 'info' | 'success' | 'warning' | 'error' }> =
@@ -216,6 +211,11 @@ const { columns, columnChecks, data, getData, getDataByPage, loading, mobilePagi
       }
     ]
   });
+
+function handleSearch() {
+  getDataByPage();
+  searchDrawerVisible.value = false;
+}
 
 async function handleSync(instanceId: CommonType.IdType) {
   const { error } = await fetchSyncInstanceStatus(instanceId);

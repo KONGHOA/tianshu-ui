@@ -1,19 +1,17 @@
 import { ref } from 'vue';
 
+interface SaveModeConfirmOptions {
+  getter: () => string | undefined;
+  setter: (v: string) => void;
+  dangerousValue: string;
+  defaultValue: string;
+}
+
 /**
  * Composable for destructive save-mode selection with NPopconfirm rollback.
- *
- * @param getter - reads the current value from the model
- * @param setter - writes a new value to the model
- * @param dangerousValue - the value that triggers confirmation
- * @param defaultValue - fallback when current value is nullish
  */
-export function useSaveModeConfirm(
-  getter: () => string | undefined,
-  setter: (v: string) => void,
-  dangerousValue: string,
-  defaultValue: string
-) {
+export function useSaveModeConfirm(options: SaveModeConfirmOptions) {
+  const { getter, setter, dangerousValue, defaultValue } = options;
   const show = ref(false);
   const prev = ref('');
 
