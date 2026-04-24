@@ -141,12 +141,22 @@ const renderCategorySuffix = ({ option }: { option: TreeOption }) => {
             text: true,
             size: 'small',
             class: 'ml-2 min-h-32px min-w-32px text-gray-400 hover:text-blue-500',
-            'aria-label': `分类 ${option.name} 更多操作`,
+            'aria-label': `分类 ${option.name || option.categoryName} 更多操作`,
             onClick: (e: Event) => e.stopPropagation()
           },
           { default: () => h(NIcon, { size: 16 }, { default: () => h('span', { class: 'i-mdi-dots-vertical' }) }) }
         )
     }
+  );
+};
+
+const renderCategoryLabel = ({ option }: { option: TreeOption }) => {
+  // 稳妥获取 name，防止后端字段变更 or Jackson 序列化导致隐式丢失
+  const title = option.name || option.categoryName || option.label || '未知分类';
+  return h(
+    'span',
+    { class: 'flex-1 overflow-hidden text-ellipsis whitespace-nowrap ml-6px mr-2px', title: String(title) },
+    String(title)
   );
 };
 // ====================
@@ -494,6 +504,7 @@ onMounted(() => {
           key-field="id"
           label-field="name"
           children-field="children"
+          :render-label="renderCategoryLabel"
           :render-suffix="renderCategorySuffix"
           :render-prefix="renderCategoryPrefix"
           class="datasource-tree h-[calc(100%-44px)] min-h-200px"
@@ -791,7 +802,7 @@ onMounted(() => {
 :deep(.n-tree-node-content) {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  width: 100%;
 }
 :deep(.n-tree-node-content__suffix) {
   opacity: 1 !important;

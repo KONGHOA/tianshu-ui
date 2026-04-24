@@ -36,9 +36,10 @@ const appStore = useAppStore();
 const { hasAuth } = useAuth();
 
 const dataElementTypeOptions = [
-  { label: '基础数据元', value: 'BASIC' },
-  { label: '业务数据元', value: 'BUSINESS' },
-  { label: '共享数据元', value: 'SHARED' }
+  { label: '部标', value: 'NATIONAL' },
+  { label: '省标', value: 'PROVINCIAL' },
+  { label: '市标', value: 'MUNICIPAL' },
+  { label: '自定义', value: 'CUSTOM' }
 ];
 
 // GA/T 542-2011 表3：国际范围内认可的表示词
@@ -146,6 +147,9 @@ const { data, loading, getData, mobilePagination } = useNaivePaginatedTable({
     searchParams.pageNum = params.page;
     searchParams.pageSize = params.pageSize;
   },
+  paginationProps: {
+    pageSize: 15
+  },
   columns: () => []
 });
 
@@ -164,7 +168,7 @@ const codeSetList = ref<Api.Metadata.StdCodeSet[]>([]);
 const formModel = reactive<Api.Metadata.StdDataElementOperateParams>({
   dataElementId: undefined,
   bizId: '',
-  dataElementType: '',
+  dataElementType: 'CUSTOM',
   internalIdentifier: '',
   chineseName: '',
   englishName: '',
@@ -333,7 +337,7 @@ function resetForm() {
   Object.assign(formModel, {
     dataElementId: undefined,
     bizId: '',
-    dataElementType: '',
+    dataElementType: 'CUSTOM',
     internalIdentifier: '',
     chineseName: '',
     englishName: '',
@@ -520,15 +524,18 @@ const columns = computed<DataTableColumns<Api.Metadata.StdDataElement>>(() => [
       return (page - 1) * pageSize + index + 1;
     }
   },
-  { key: 'internalIdentifier', title: '内部标识符', width: 95 },
-  { key: 'chineseName', title: '中文名称', minWidth: 140 },
-  { key: 'definition', title: '说明', minWidth: 280, ellipsis: { tooltip: true } },
-  { key: 'symbol', title: '标识符', minWidth: 120 },
-  { key: 'version', title: '版本号', width: 90 },
+  { key: 'internalIdentifier', title: '内部标识符', width: 110, align: 'center' },
+  { key: 'symbol', title: '标识符', minWidth: 120, align: 'center' },
+  { key: 'chineseName', title: '中文名称', minWidth: 140, align: 'center' },
+  { key: 'definition', title: '说明', minWidth: 280, ellipsis: { tooltip: true }, align: 'center' },
+  { key: 'dataType', title: '数据类型', width: 100, align: 'center' },
+  { key: 'dataFormat', title: '表示格式', width: 120, align: 'center' },
+  { key: 'version', title: '版本号', width: 90, align: 'center' },
   {
     key: 'lifecycleStatus',
     title: '状态',
     width: 100,
+    align: 'center',
     render: row => {
       const statusMap: Record<string, string> = {
         ORIGINAL: '原始',
@@ -559,11 +566,11 @@ const columns = computed<DataTableColumns<Api.Metadata.StdDataElement>>(() => [
       );
     }
   },
-  { key: 'standardCategory', title: '标准分类', width: 120 },
   {
     key: 'approvalDate',
     title: '批准日期',
     width: 100,
+    align: 'center',
     render: row => {
       // 从 2024-11-09 00:00:00 截取前面的日期部分
       if (!row.approvalDate) return '-';
@@ -575,50 +582,52 @@ const columns = computed<DataTableColumns<Api.Metadata.StdDataElement>>(() => [
     title: '操作',
     width: 180,
     fixed: 'right',
+    align: 'center',
     render: row =>
       h('div', { class: 'flex items-center gap-8px' }, [
         hasAuth('metadata:standard:element:edit')
           ? h(
               NButton,
-              { text: true, type: 'primary', onClick: () => handleEdit(row.dataElementId) },
+              { text: true, type: 'primary', size: 'small', onClick: () => handleEdit(row.dataElementId) },
               { default: () => '编辑' }
             )
           : null,
         hasAuth('metadata:standard:element:submit') && ['ORIGIN', 'REJECTED'].includes(row.lifecycleStatus || '')
           ? h(
               NButton,
-              { text: true, type: 'success', onClick: () => handleWorkflowSubmit(row) },
+              { text: true, type: 'success', size: 'small', onClick: () => handleWorkflowSubmit(row) },
               { default: () => '提交' }
             )
           : null,
         hasAuth('metadata:standard:element:change') && row.lifecycleStatus === 'STANDARD'
           ? h(
               NButton,
-              { text: true, type: 'primary', onClick: () => handleWorkflowChange(row) },
+              { text: true, type: 'primary', size: 'small', onClick: () => handleWorkflowChange(row) },
               { default: () => '变更' }
             )
           : null,
         hasAuth('metadata:standard:element:abolish') && row.lifecycleStatus === 'STANDARD'
           ? h(
               NButton,
-              { text: true, type: 'error', onClick: () => handleWorkflowAbolish(row) },
+              { text: true, type: 'error', size: 'small', onClick: () => handleWorkflowAbolish(row) },
               { default: () => '废止' }
             )
           : null,
-        h(NButton, { text: true, onClick: () => handleHistory(row) }, { default: () => '历史' })
+        h(NButton, { text: true, size: 'small', onClick: () => handleHistory(row) }, { default: () => '历史' })
       ])
   }
 ]);
 
 const historyColumns: DataTableColumns<Api.Metadata.StdDataElementVersion> = [
-  { key: 'versionNo', title: '版本号', width: 100 },
-  { key: 'actionType', title: '操作类型', width: 100 },
-  { key: 'chineseName', title: '名称', minWidth: 160 },
-  { key: 'symbol', title: '标识符', minWidth: 140 },
+  { key: 'versionNo', title: '版本号', width: 100, align: 'center' },
+  { key: 'actionType', title: '操作类型', width: 100, align: 'center' },
+  { key: 'chineseName', title: '名称', minWidth: 160, align: 'center' },
+  { key: 'symbol', title: '标识符', minWidth: 140, align: 'center' },
   {
     key: 'lifecycleStatus',
     title: '状态',
     width: 100,
+    align: 'center',
     render: row => {
       const statusMap: Record<string, string> = {
         ORIGINAL: '原始',
@@ -650,18 +659,20 @@ const historyColumns: DataTableColumns<Api.Metadata.StdDataElementVersion> = [
     key: 'isCurrent',
     title: '当前版本',
     width: 90,
+    align: 'center',
     render: row => (row.isCurrent === '1' ? '是' : '否')
   }
 ];
 
 const codeSetColumns: DataTableColumns<Api.Metadata.StdCodeSet> = [
-  { key: 'codeSetCode', title: '代码集编码', width: 140 },
-  { key: 'codeSetName', title: '代码集名称', minWidth: 220 },
-  { key: 'version', title: '版本', width: 80 },
+  { key: 'codeSetCode', title: '代码集编码', width: 140, align: 'center' },
+  { key: 'codeSetName', title: '代码集名称', minWidth: 220, align: 'center' },
+  { key: 'version', title: '版本', width: 80, align: 'center' },
   {
     key: 'operate',
     title: '选择',
     width: 90,
+    align: 'center',
     render: row =>
       h(NButton, { size: 'small', type: 'primary', onClick: () => selectCodeSet(row) }, { default: () => '选择' })
   }
@@ -675,19 +686,24 @@ const codeSetColumns: DataTableColumns<Api.Metadata.StdCodeSet> = [
         <NSpace align="center" :size="12">
           <NInput
             v-model:value="(searchParams.params as any).searchValue"
-            placeholder="输入中文名称或标识符(不区分大小写)..."
+            placeholder="输入中文名称或标识符"
             clearable
+            size="small"
             style="width: 260px"
             @keyup.enter="handleSearch"
           />
-          <NButton type="primary" ghost @click="handleSearch">
+          <NButton size="small" type="primary" ghost @click="handleSearch">
             <template #icon><icon-mdi-magnify /></template>
             查询
           </NButton>
-          <NButton v-if="hasAuth('metadata:standard:element:add')" type="primary" @click="handleAdd">
+          <NButton v-if="hasAuth('metadata:standard:element:add')" size="small" type="primary" @click="handleAdd">
+            <template #icon><icon-mdi-plus /></template>
             新增数据元
           </NButton>
-          <NButton @click="getData">刷新</NButton>
+          <NButton size="small" @click="getData">
+            <template #icon><icon-mdi-refresh /></template>
+            刷新
+          </NButton>
         </NSpace>
       </template>
       <NDataTable
@@ -698,7 +714,7 @@ const codeSetColumns: DataTableColumns<Api.Metadata.StdCodeSet> = [
         :flex-height="!appStore.isMobile"
         remote
         :row-key="row => row.dataElementId"
-        class="pb-12px sm:h-full"
+        class="sm:h-full"
       />
     </NCard>
 
@@ -714,6 +730,7 @@ const codeSetColumns: DataTableColumns<Api.Metadata.StdCodeSet> = [
         :rules="rules"
         label-placement="left"
         label-width="115"
+        size="small"
         require-mark-placement="left"
       >
         <NGrid :x-gap="16" :cols="2">
@@ -1061,14 +1078,15 @@ const codeSetColumns: DataTableColumns<Api.Metadata.StdCodeSet> = [
       </div>
       <template #action>
         <NSpace justify="end">
-          <NButton @click="formatModalVisible = false">取消</NButton>
-          <NButton type="primary" :disabled="!builtFormat" @click="confirmFormat">确定</NButton>
+          <NButton size="small" @click="formatModalVisible = false">取消</NButton>
+          <NButton size="small" type="primary" :disabled="!builtFormat" @click="confirmFormat">确定</NButton>
         </NSpace>
       </template>
     </NModal>
 
     <NModal v-model:show="codeSetVisible" preset="card" title="选择代码集" class="w-880px">
       <NDataTable
+        size="small"
         :columns="codeSetColumns"
         :data="codeSetList"
         :loading="codeSetLoading"
@@ -1077,8 +1095,21 @@ const codeSetColumns: DataTableColumns<Api.Metadata.StdCodeSet> = [
       />
     </NModal>
 
-    <NModal v-model:show="historyVisible" preset="card" :title="`历史版本 - ${historyTitle}`" class="w-860px">
-      <NDataTable :columns="historyColumns" :data="historyList" :loading="historyLoading" :pagination="false" />
+    <NModal
+      v-model:show="historyVisible"
+      preset="card"
+      title="数据元历史版本"
+      style="width: 1050px"
+      class="std-history-modal"
+      size="small"
+    >
+      <NDataTable
+        size="small"
+        :columns="historyColumns"
+        :data="historyList"
+        :loading="historyLoading"
+        :pagination="false"
+      />
     </NModal>
   </div>
 </template>
@@ -1326,13 +1357,5 @@ const codeSetColumns: DataTableColumns<Api.Metadata.StdCodeSet> = [
 }
 .dashboard-grid > .span-2 {
   grid-column: span 2;
-}
-
-:deep(.n-card > .n-card-header) {
-  padding: 8px 12px;
-  background-color: var(--n-color-modal, rgba(0, 0, 0, 0.03));
-}
-:deep(.n-card > .n-card__content) {
-  padding: 12px 12px 0 12px;
 }
 </style>
